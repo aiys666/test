@@ -1,0 +1,39 @@
+# 虚拟环境
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 日志文件
+*.log
+*.txt
+
+# Excel输出文件
+*.xlsx
+*.xls
+
+# CSV文件
+*.csv
+
+# 临时文件
+*.tmp
+*.bak
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 操作系统文件
+Thumbs.db
+.DS_Store
+
+# 数据库连接信息
+*.env
+*.config
+
+# Jupyter Notebook
+*.ipynb
+.ipynb_checkpoints/
