@@ -1,0 +1,227 @@
+---
+name: mexico-temp-limit-analysis
+description: 墨西哥临时额度(在线/离线临额)分析口径与取数指南。用于临额发放/使用/坏账分析、C010/C013/C015事件打标、V5_2/V5_3策略分桶、yj_test_table临额字段核对、fd_use_creditamount评分解读。不用于印尼/尼日临额或非临额风控分析。
+---
+
+# 墨西哥临额分析
+
+墨西哥临时额度（TEMP limit）分析的统一口径、表字段映射、打标 SQL 模板与常见陷阱。所有结论必须能追溯到 SQL 与业务文档（见 `references/`）。
+
+## 1. 两类临额的本质区别（先定口径再取数）
+
+| 维度 | 在线临额 | 离线临额 |
+|---|---|---|
+| 触发时点 | 用信时（点借款按钮后毫秒级决策） | 用信前，营销系统按月两次批量圈客 |
+| 客户感知 | 用信成功后弹窗，全用或不用（10秒默认不用） | 被动到账，有效期内随借随用 |
+| 决策流 | modelmainid=1386（弹窗决策树）+ 1523（用信评分） | offline_temp_credit_amount_update_df / offline_credit_amount_update_df |
+| 额度变更事件码 | **C010** | **C013 / C015** |
+| 名单粒度 | biz_id 级实时进件 | MID 级名单（营销系统上传，activity_id 分批） |
+| yj 表字段 | issue_tag / strategy_flag / score 齐全 | 无专门 tag，只能 change_record 打标 |
+| 底表 | mx.tmp_darren_temp_limit_table / tmp_darren_new_temp_limit_table | mx.yuhan_temp_limit_base_table_his_*（temp_limit_tag/amount/date） |
+
+额度规则：使用顺序先主额后临额；还款冲账先临额后主额（防敞口扩大）。`limit_type` 在额度表区分 MAIN / TEMP，2025-12-09 后所有额度变量查询必须带 limit_type 过滤（见 references/variable-dictionary.md）。
+
+### 1.1 在线临额发放机制（2026-10-14 用「临额数据.xlsx」流程记录/规则 sheet 校准确认）
+
+**决策顺序（一条链路上的三步，16:56→17:00:18 时间戳印证）**：
+1. **授信给额**：`授信-复贷风控事件`（复贷授信决策流 V57）落定 `credit_amount`（授信额度）
+2. **用户自选主额**：授权后用户选额度，冻结为 `risk_credit_limit` —— 取自 `s05_user_creditlimit_used_detail`，`change_action='FREEZE_LIMIT'` 且 `limit_type='MAIN'`；这就是"占用主额" `use_main_credit_amount`（Groovy `use_loop_credit_amount_info` 输出的主额度最新冻结快照）
+3. **临额发放弹窗**（最后一步）：`临额发放弹窗事件`（决策流 V11，modelmainid=1386）
+
+**Eagle 规则引擎配置**：
+- 触发条件（AND）：`临额发放标签 = 1` 且 `复贷用信临额类型 ∈ {1.0, 2.0, 3.0}`。该"复贷用信临额类型"即 `fd_use_creditamount_type`，**type4 不触发→几乎不发在线临额**（与 E3 实证 type4 的 tag1≈0 一致）
+- 发放额：`临时额度 = use_main_credit_amount × 比例`，**type1→50%、type2→40%、type3→20%**
+- 有效期：固定 **3 天**（`临时额度过期天数 = 3`）
+- ⚠️ 该比例是**临额占「占用额度」的比例，不是占授信额度的比例**（分母是占用主额 risk_credit_limit，不是 credit_amount）
+
+→ 语义链条：`credit_amount`(授信额度) ≠ `risk_credit_limit`(本笔占用主额) ≠ `temp_grant_amount`(实际使用临额)。使用顺序先主额后临额，`temp_grant_amount` 是本笔放款中超出占用主额、走临额的那部分，**已含在 `real_issue_amount` 内，不可与主额部分相加**。
+
+### 1.2 硬恒等式与对账结论（2026-10-14 逐笔+全量验证）
+
+- **恒等式：`contract_amount = risk_credit_limit(MAIN冻结) + temp_grant_amount(TEMP使用)`**，逐笔成立（案例 mid=1040160040722566 三笔：2996+429.6=3425.6、6000+2829.6=8829.6、7000+2029.6=9029.6）。用户拿到的不是"两个独立额度"，而是同一额度池的 MAIN+TEMP 两部分冻结。
+- **`C010 = 实际领取/使用，不是发放标签`**：`change_desc="Confirm loan page created temporary limit"`，用户在确认借款页点确认才创建。yj 的 `tag=1` 是决策层"弹窗展示"（15,720 笔），仅 46%（7,282 笔）真正使用并产生 C010。**对账口径：C010 ↔ `tag=1 且 temp_grant_amount>0`**，笔数 7,358 vs 7,282（98.97%）、mid 97.98%、biz_id 97.4%；差额来自 create_time vs app_date 窗口边界+多笔+if_issue=0。
+- **在线临额「发放时刻」与「使用时刻」是两个不同时刻（2026-10-16 全量验证）**：发放 = `modelmainid=1386`「临额发放弹窗决策」的 `createtime`（决定 `temp_credit_amount_issue_tag`）；使用 = C010 `create_time`（客户确认借款页才创建）。实证 9/1-10/10 共 5,652 笔 C010：**发放恒早于使用（0 笔反序）**，中位间隔 92 秒、均值 250 秒、**59.5% 间隔 >60 秒**（不存在"发放=使用同刻"）。取样例 biz 1620000462179690：发放 20:46:19.749 → 使用 21:05:04.582（~18.7 分）。取数：`ods.s21_risk_model_record`（`where modelmainid=1386 and strategytype='CHAMPION'`，按 biz_id）取 createtime；或 `mx.tmp_darren_temp_limit_table.dt`（dt = createtime − 6h，已验证 14:46:19.749+6h = 20:46:19.749 严格相等）。**取数陷阱（2026-10-16 单笔校验补）**：打"在线发放时间"必须过滤 `outputdata LIKE '%"temp_credit_amount_issue_tag":1%'`——9/1-10/16 窗口 1386 决策共跑过 56,872 笔，真正发放(tag=1)仅 **13,715** 笔、其余 **43,157** 笔 tag=0 未发放；不过滤会把"未发放"误标成"已发放"。C010 实际使用 6,422 笔 = tag=1 的 **46.8%**。反例：biz 1620000482922458（1386 tag=0、无 C010、实为离线使用）。
+- **金额口径（2026-10-15 修正 + 全量验证）**：C010 `change_total_grantamount` = 本次**名义**发放额；C010 `change_used_grantamount` = 发放**前**该 TEMP 账户的**存量占用**。⚠️ 旧表述"C010 used≈0 不可用"作废——该字段值小（07-01~10-14 全窗口合计 10.6万 / 名义发放 677.1万）是因为**多数账户发放前无占用**，不是字段无意义。
+  - **硬恒等式（定律，非巧合）**：`本次实到账临额 = change_total_grantamount − change_used_grantamount` = `s05_user_creditlimit_used_detail` 中该 biz 的 TEMP `FREEZE_LIMIT` 冻结额。全量 13,701 笔 C010 命中 13,528（**98.7%**），失配 100% 为当日明细未落库的数据延迟。
+  - **账户级恒等式**：`change_used_grantamount` = 截至该事件时点 `Σ(TEMP FREEZE − TEMP UNFREEZE)`（同 `limit_main_id` 账户累计，案例逐事件 diff=0 共 4/4）。
+  - yj `temp_grant_amount` = `total − used`（案例 429.6 / 2829.6 / 2029.6 三次全中），可直接用；`change_total_grantamount` 单独看会高估临额力度。
+- **解冻事件码有两个：C004 和 C008**（C008 约占解冻 4%）；冻结=C003。判"临额是否释放"必须用 `change_action='UNFREEZE_LIMIT'`，不能只看 C004。
+- **在线+离线双路径**：同一 mid 的 TEMP 事件挂在同一个 `limit_main_id` 额度账户上，事件序列 C010/C015(发放)→C003(冻结)→C004/C008(解冻) 循环。8/19-10/06 复贷已放款 14,514 个 mid 中，两路径事件（2026-07 起）都有的 4,230 个（29.1%）。
+- **"未解冻即再调额"冲突扫描**（change_action 判定，2026-07 起 TEMP 账户）：72,821 笔调额中 585 笔（0.80%）、558/27,395 mid（2.04%）；按类型 C015 562 笔/C013 12 笔/C010 仅 11 笔。冲突几乎全是离线批次（客户上一笔占用未释放就被下一批圈客）；**样例事件流证实行为是额度替换/续期（expiring_time 顺延、新调额覆盖旧额），非叠加放大**，无"双重占用"硬冲突。
+
+### 1.3 临额「存量占用」与「结清后残留」（2026-10-15 取证，纠正 1.2 旧结论）
+
+**占用公式**：`账户存量占用(t) = Σ_{TEMP事件 create_time ≤ t}(FREEZE_LIMIT − UNFREEZE_LIMIT)`，源表 `ods.s05_user_creditlimit_used_detail`（`limit_type='TEMP'`，按 `limit_main_id` 账户累计）。每笔放款在 TEMP 冻结**该笔的临额部分**（= `contract_amount − MAIN冻结`），还款时按事件解冻。
+
+⚠️ **解冻不一定在每期还款触发**：实证只见部分期次（多为**末期**）触发 `UNFREEZE_LIMIT` 且金额 = 末期本金。→ 前期已还本金对应的临额冻结**长期不解冻**，挂在账户上。
+
+**后果 1：新发放的临额被存量占用抵扣**（案例 mid=1040160040722566，同一账户 3 笔）
+
+| C010 时间 | 名义发放 | 发放前存量占用 | 实到账临额 |
+|---|---|---|---|
+| 2026-08-29 | 1200 | 770.4 | 429.6 |
+| 2026-09-10 | 3600 | 770.4 | 2829.6 |
+| 2026-10-01 | 2800 | 770.4 | 2029.6 |
+
+- **770.4 来源**：两笔 3 月老贷 —— biz 1620000395926822（冻 830 / 解冻 332）、biz 1620000396309679（冻 454 / 解冻 181.6）。两笔均 2 期、**2026-03-26 全额结清**（每期 state=1 且 fact_capital=should_capital），但解冻只在**末期还款同一秒**触发且只放末期本金 → 残留 = 非末期本金 = 498.0 + 272.4 = 770.4，此后长期挂账。
+- **判定要点**：`逾期=0` / `已结清` **≠** `临额已解冻`。占用是未释放的**冻结残留**，不是欠款也不是坏账。
+- **影响面（07-01~10-14 全量 C010）**：13,701 笔 / 10,874 mid 中，**324 笔（2.4%）/ 269 mid** 被存量占用抵扣，合计抵扣 10.6万比索 vs 名义发放 677.1万（**1.6%**）；抵扣占发放 >75% 的尾部 29 笔；无"完全占满"（净可用≈0）反例。→ 均值影响小，问题在尾部与口径失真（展示毛发放、按发放额衡量临额力度会高估）。
+- **结清后残留规模**（按冻结月队列；口径：全期 state=1 且 `Frz−Unfrz>0.01`，账龄≥7天以剔当日解冻延迟）：2月 22 笔/1.32万、3月 112 笔/4.04万、6月 22 笔/**11.2 比索（≈0）**、7月后 ≈0。→ 该缺陷集中在 **2026 年 2-3 月**，6 月起消失（疑似已修复）。
+- **无单一闭式公式**：残留 = 临额冻结额 − 实际解冻额，实际解冻额 ≈ N×末期本金（N 为实际触发解冻的期数，0≤N<nper），各笔 N 不一致；因此只能用 `Σ(freeze−unfreeze)` 台账逐笔还原，勿用 `合同本金−末期本金` 一刀切（实测命中率仅 39%）。
+- 复跑脚本：`墨西哥/_fw_770_law.py`（队列规模+公式）、`_fw_770_idlaw.py`（98.7% 全量定律）、`_fw_770_impact.py`（影响面）、`_fw_770_mar.py`（3月队列）、`_fw_recon.py`（口径对账）。
+
+### 1.4 笔级时间轴宽表的判读字段（2026-10-16 新增并全量验证）
+
+用于 `墨西哥/_fw_770验证SQL/11_在线离线临额区分逻辑.sql`【时间轴宽表】段，含义与口径：
+
+1. **「在线是否覆盖离线」**：离线与在线(C010)同时存在时，比较 `C010.change_total_grantamount`（在线**名义**发放额）vs `C015/C013.change_total_grantamount`（离线**名义**发放额）→ `在线>=离线` 记 `是(在线>=离线)`，否则 `否(在线<离线)`；缺任一侧记 `不适用`。**只是金额层对比**，不代表系统实际结算路径。
+2. **在线临额决策链与金额三段式（底数→理论额→弹窗额，全部落库可逐笔还原，2026-10-16 全量穿透）**：取数均在 `ods.s21_risk_model_record`，**只取 `strategtype='CHAMPION'`**（SHADOW 影子链路同步重跑一份，值相同但不入账），宽表对应 `dec` CTE。
+   - **节点链（毫秒级）**：`1522(用信评分) → 1523(type) → 1386(弹窗tag) → 1379(理论算额) → 857(弹窗最终额)`。各节点 outputdata：
+     - 1522 = `{"fd_use_creditamount_score_v1":x}`（评分 -4~5，**只落总分**；两个构成分量 daily_left_amount_quota_use_rate / finish_total_num 不落库，构成规则见 §5）
+     - 1523 = `{"fd_use_creditamount_type":1~4}`（1 优 / 4 差，决策矩阵产物）
+     - 1386 = `{"temp_credit_amount_issue_tag":0/1}`（**只落 tag 不落金额**）
+     - 1379 = `{"temp_credit_amount_expired_day":3,"decision_tree_label":1,"temp_credit_amount":理论额}`（每笔算两次，一次有额一次全 null，聚合取非空）
+     - 857 = `{"temp_credit_amount":弹窗最终额}`。⚠️ 857 是通用变量节点，同节点还写 `last_credit_amt_float`（上次借款额）、`sd_disburse_amt_temp`、`grantcredit_7d/28d/30d_amount`、`credit_amount` 等用信页其他变量，**必须按 key 正则取 temp_credit_amount，不能整节点取值**
+   - **★ 算额公式（9/1-10/16 共 14,177 笔，99.87% 精确命中，余 0.13% 为 type4 保底/切档边界）**：
+     `理论算额_1379 = floor(占用主额MAIN冻结 / 20) × 20 × 理论发放比例`
+     - **底数 = 占用主额向下取整到 20 比索档**：MAIN 冻结常带 1~19 比索零头（如 2179→2160，864=2160×40%）；直接用 MAIN 原值乘比例会有最高 7.6 比索系统性偏差
+     - **比例：type2=40%、type3=20%（V5_2/V5_3 一致）；★ type1 = V5_2 50% / V5_3 60%**。V5_3 除放开评级档（§7 矩阵）外，**另把最优档 type1 的发放比例上调 10pp**——yj flag 关联实证（v10 宽表补全底数后最终口径）：V5_3 桶 1,568 笔实测比例全为 0.6、V5_2 桶 1,124 笔全为 0.5（仅 1 笔切桶边界 1620000462632742 例外；详见第 2f 条按周交叉=版本效应非时间趋势）。⚠️ 1.1 节 Eagle 文档的"type1→50%"是 **V5_2 配置**，分析 V5_3 期资产时须用 60%
+     - **type4 原则不发放**（tag=0、1379=null）；全窗口仅 10 笔有值（7 笔 MAIN=300 的保底 400、3 笔切档边界按 20%），属异常尾巴
+   - **★ 取整规则：`弹窗额_857 = round(理论算额_1379 / 50) × 50`（四舍五入到 50 比索档），14,177 笔 100% 命中**。经典案例 biz 1620000462179690：MAIN=1180 → floor20=1180 × type2 40% = **472** → round50 = **450** = C010 名义额 = TEMP 冻结（合同 1630=1180+450）。
+   - **金额三段式语义（严禁混用）**：`理论算额1379(未取整) → 弹窗额857(名义发放, 客户看到/领取的上限) → C010实到账(名义−发放前存量占用)`，其中 **C010 实到账 = 本笔 TEMP 冻结 = 临额最终使用**。biz 1620000464027012：名义 1300 但发放前存量占用 1217.2 → 实到账仅 82.8，只看名义高估 15 倍（存量占用机制见 §1.3）。
+   - **覆盖与领取**：tag=1 共 13,739 笔，857 金额 100% 覆盖；已领取（有 C010）6,432 笔 **857额 == C010.change_total_grantamount 100%**。tag=1 但未领取（无 C010，约 53%）：发放时间+弹窗额有值、使用列为空——"弹窗已发、客户未领"（biz 1620000463197032：857=250、550 全主额；biz 1620000466574256：857=300、800 全主额）。
+   - ⚠️ **取数门槛**：tag=0 时 1379=null、857 照跑并输出 `temp_credit_amount:0`（43,157 笔），必须 `nullif(...,0)` + 列上挂 tag=1 双保险。
+   - 跑数：`_probe_chain.py`/`_probe_chain2.py`（节点结构发现）、`_probe_chain3b.py`（round50 破解）、`_probe_chain4~7.py`（底数公式/V5_3 60%/覆盖率）、`_verify_wide8.py`（宽表全量断言）。
+2b. **授信与评级底数（同链路节点，宽表 crd/grd CTE）**：
+   - **授信节点 `modelmainid=1067`（放款笔覆盖率 100%）**：`credit_amount`=授信额度、`daily_max_available_limit`=单日最大可借（100 倍数档）、`credit_amount_expired_day`=授信有效期（常见 15/18/23/26/27/29/30 天）、另有 `grantcredit_7d_amount`（7 天期产品支用额，**实测恒=credit_amount**；2026-10-16 核实节点无 28d/30d key）。⚠️ credit_amount ≠ daily_max（1500/2100、10850/10000 均可出现），二者也都不等于"本笔占用主额"，对应语义链条见 §1.1。
+   - **评级节点 `1500/1542/1635` = `android_oldCust_mainCreditLevel_charge_V5_2/V5_3/V6_1`**（整数 1 优→差；V5_2 值域 1~16，V5_3/V6_1 约 1~11/10；覆盖率 57,908/57,913=99.99%）。这就是 fd_use_creditamount_type 决策矩阵的行变量（§7），三套评级每笔同时落库，做跨版本反事实时直接取不必复现模型。
+2c. **离线临额批量算额链路（2026-10-16 新发现，与在线 1379/857 对称，宽表 ofr CTE）**：离线临额不是客户触发，而是每日 **20-21 点批处理圈人**——节点 **1504**（outputdata `{"mid":"...","temp_credit_amount":推荐额}`，**biz_id 为空、只按 mid 落库**）+ **1505**（`temp_credit_amount_expired_day` 恒=**5**、label 为 null）。全窗口 9/1-10/14 共 30,137 条/10,865 个 mid，其中金额>0 28,573 次（0~9800、均值 1301，同 mid 同日可能 2 条=20/21 点各一轮取最晚）。全量对账：每条 >0 推荐都在 ±3 天内配对到同 mid **C015**（无 C013）、时刻差≈0 分钟（C015 即批处理落账事件）；**24,748/28,573=86.6% 金额完全相等，其余差额全为 50 的倍数（+50~+1200）= 旧未过期临额叠加/凑档，无其他尾差**。宽表取"本 mid 在本笔 apply_time 前 3 天内最近一条 1504"，与 C015 实发额并列可直接对账。⚠️ 1504 有效期 5 天（1505 实落），与早期文档"离线 7 天"口径不同，以 1505/expiring_time 实测为准。其他无价值节点：661=进件时刻额度快照（temp 额恒 0，193k 条仅 16 条非 0）、1166=T+1 日批额度刷新（credit_amount/daily_max，6,024 笔）、1043/1077=单笔支用帽 fd_single_grantcredit_amount_cap/global_7d_limit（约 1,051 笔）、1441/1747/694=产品级配置实验节点（个位数笔，勿当个人临额来源）。
+2d. **★ 申请时刻主额链条（2026-10-16 由 biz 1620000482769098"无主额"下钻破解，宽表 mauth CTE）**：以前只知"授信 1067"和"支用 used_detail"，中间缺两环。`s05_user_creditlimit_change_record` 的 **MAIN** 事件完整链：
+   - `C009 CHANGE_LIMIT`（授信落账，金额=1067 credit_amount，app_time 时刻）→ `C002 CHANGE_LIMIT`（**申请时提额**，external_id 是合成串 `mid_ts` 不挂 biz，按 mid + `[app_time, apply_time+1min]` 窗口取）→ `C003 FREEZE_LIMIT`（**apply 时刻对主额总额度的预授权**，external_id=本 biz）→ 失败时 `C004 UNFREEZE_LIMIT` 解冻。
+   - 经典笔 1620000462179690：C009 1500 → C002 提到 2300 → C003 预授权 2300（change_used_grantamount=1370）→ 实际支用 MAIN used_detail=1180（合同 1630=1180+450）。
+   - ⚠️ **C003 MAIN 预授权额 ≠ 实际支用主额**（前者是对总额度授权，后者才是合同里的主额部分，落 used_detail）。
+   - ⚠️ **失败重申请会改写主额账**：biz 1620000482769098 成功 apply 01:28:43 预授权 34000，01:36 三笔失败 biz 触发 C004 解冻 34000 + C002 降到 28000——取 C002/C003 必须卡时间窗/认 external_id，否则取到失败链的数。
+   - ⚠️ **取数性能**：C002（按 mid）与 C003（按 external_id）必须拆成两个子查询、各带 `create_time` 分区过滤再 union all；写成一个 OR join 无法分区裁剪会超时。
+2e. **★ "无主额"假象根因与补全口径（2026-10-16 全量盘点，v10 全量 57,940 笔）**：宽表里 used_detail MAIN 为空**不是没占主额**，主因是 used_detail 批次落库延迟——每日都有缺 MAIN 冻结明细的放款笔（与批处理/放款时点无关，T+1/T+2 补齐），全量 785 笔(1.36%)取 used_detail 为空。补全：**`占用主额金额_补全 = coalesce(used_detail MAIN, contract_amount − temp_grant_amount/1000)`**（硬恒等式反推，补全后 0 空缺）；「恒等式差额_诊断」=0 表示两侧一致，非 0 共 251 笔（多为 ±200 的在途延迟 + 少量 ±0.05 舍入）。主额链覆盖率：C003 预授权 57,192 笔(98.7%，每日 94%~100%)、C002 提额 12,180 笔(21%，仅提额申请有)。biz 1620000482769098：宽表曾显示合同 450/主额空，实为 **450 全主额**（tag=1 弹窗 250 客户未领），**1379=264=floor(450/20)×20×60%=440×0.6**（V5_3）→857=250，即算额底数就是本笔主额支用；该笔"授信/评级看似空"是旧 s21 取数窗口 `<10/16` 截断所致，窗口前后放宽后齐全（1067 授信 34000/daily_max 10000/exp 26，1522 评分 5/1523 type1）。⚠️ 切片全量取数教训：按进件日切片时节点 CTE 窗口必须填充 ±7 天（进件→申请跨天最长 5 天，决策/评级落在 apply 时刻），否则跨天笔的 dec/grd/mauth 全丢（曾导致 1379 覆盖只数到 9,186）。
+2f. **★ type1 60% 是策略版本效应、非时间趋势（2026-10-16 实测比例落列实证）**：宽表新增「实测比例_1379除底数」= `amt_1379/nullif(floor20,0)`，不依赖 flag。type1+tag1 全量只有 0.50/0.60 两个值：yj V5_2 桶 1,124 笔全 0.50（唯一 1 笔切桶边界 1620000462632742 实走 0.60）、V5_3 桶 1,568 笔全 0.60；**按周交叉两比例每周并存**（0.5 每周 73~202、0.6 每周 85~258，无时间漂移）。公式最终命中 **13,738/13,746=99.94%**（8 笔例外=type4 保底/切档+切桶边界+3 笔 1379 落 0）。宽表另落：实验 hash 值（sha256 口径见 §6）与 ABC 组（9/3 后阈值 0.7/0.3）、1379 `decision_tree_label`（有值恒=1）、评级迁徙 V53−V52、弹窗领取状态（无弹窗 tag0 **44,194** / 已弹窗未领取 **7,309** / 已弹窗本笔在线领取 **6,434** / 弹窗未领本笔走离线 3）、决策是否 T+1 重跑（**对申请日判定，仅 4 笔**；不能对进件日，进件→申请跨天占 27.6%）、四类间隔（申请→弹窗中位 111 秒、弹窗→领取中位 90 秒、领取→放款中位约 8 分钟）。探查后**确认无价值、不入宽表**的节点：1553 `fd_temp_limit_creditlevel_from_tag`（覆盖 98.3% 但 56,947/56,948 恒=1）、1341 `oldcust_creditlevel_version`（全量恒为 V5_3，是平台管线版本≠实验分桶，与 0.5/0.6 无关）、857 节点的 last_credit_amt_float/sd_disburse_amt_temp key（0 覆盖）。跑数：`_probe_nomain.py`/`_probe_nomain2.py`（下钻）、`_probe_chain12.py`（覆盖率/版本/比例交叉）、`_verify_wide10.py`+`_verify_wide10_local.py`（v10 宽表切片全量回归，结果 CSV：`墨西哥/在线临额决策链大宽表_20260901_1015.csv`，v11 扩展后 58,367 行 60 列，历史占用拆分见 §1.4 第 7 条）。
+3. **「临额占用金额」**：本笔在 `ods.s05_user_creditlimit_used_detail` 的 TEMP 冻结额 = `sum(risk_credit_limit) where change_action='FREEZE_LIMIT' and limit_type='TEMP'`；**「临额最终使用金额」**= `wxs_application_funnel.temp_grant_amount/1000.0`。二者同指"本笔实际用掉的临额"，两侧互证：全量 9/1-10/16 复贷放款 57,817 笔、有 TEMP 冻结明细 11,624 笔中，**|差|<0.01 命中 11,555 笔 = 99.4%**；剩 69 笔差额仅 ±0.05/±0.04（舍入）；另 337 笔"有使用但无冻结明细"= 明细未落库的数据延迟（放款次日仍可能取不到，如 biz 1620000482922458）。
+   - **按来源拆分成「临额最终使用(在线临额)」/「临额最终使用(离线临额)」**（2026-10-16 两次修订定稿）。规则：**仅当本笔真的用了临额（`temp_grant_amount>0`）才判来源**；来源 = 本 mid 在**本笔 C003 冻结时刻**（缺则回退 `release_time`）之前 **最近一次的临额发放事件**（mid 关联 change_record 的 C010/C013/C015，按 create_time 取最近一笔）——`gtype='C010'` → 全归在线（在线=temp_grant，离线=0）；`gtype∈{C013,C015}` 或无发放 → 全归离线（在线=0，离线=temp_grant）。依据"临额实际使用额恒等于本笔冻结额，且不会同时用在线+离线两类"（§1.3）。
+     - ⚠️ **修订1（2026-10-16）废弃"本笔 biz 自身有 C010 才算在线"**：会漏掉"同日同 mid 多次申请、在线临额由前面失败笔创建、却由后面成功笔消耗"的场景（案例 biz 1620000483074755：当日连续申请 4 笔，前 3 笔失败 C008 释额，C010(400) 在第 1 笔 biz 1620000481078667 点确认时创建、挂同一临额账户 limit_main_id，最终被第 4 笔成功放款冻结消耗；本笔自身无 C010 → 旧规则误判"离线"，新规则判"在线"）。影响面：11,961 笔用临额中判定变化 **170 笔（169 离线改在线 / 60,920.9 比索，1 在线改离线 / 100 比索）**，旧在线 6,422 → 新在线 6,590。
+     - ⚠️ **修订2（2026-10-16）时间锚点由 `release_time` 收紧为"本笔 C003 冻结时刻"并加 `temp_grant_amount>0` 门槛**：原写法会把这笔**根本没消耗临额**、只是同 mid 更早一笔贷款的发放事件挂到本笔上。反例 biz 1620000479377160：10/08 放款、`temp_grant_amount=0`（全额走主额 2185），却在旧口径下挂上 09/30 另一笔（biz 1620000474814924）的 C010 2000 → 在线发放/使用金额虚增 2000。**污染面（9/1-10/16 全量 57,817 笔）**：无临额笔（temp=0）45,856 笔中 **25,033 笔（54.6%）**被旧规则挂了无关的发放事件；修复后这些笔的离线/在线列全部留空、来源记"无"。对真正的临额笔（temp>0，11,961 笔）来源判定仅再变动 2 笔。跑数：`_verify_wide7.py`（9 笔回归）、`_impact_src2.py`（影响面）、`_diag_main0.py`/`_diag_main0b.py`（事件链下钻）。
+     - 对账结论仍成立：原 6,422 笔有 C010 中 6,394 笔(99.56%) C010实到账 == temp_grant，剩 28 笔差额全为 ±0.05 舍入。
+4. **「合同金额_放款金额」**：`wxs_application_funnel.contract_amount`；**「占用主额金额」**= `sum(used_detail.risk_credit_limit) where change_action='FREEZE_LIMIT' and limit_type='MAIN'`。硬恒等式：`contract_amount = 占用主额(MAIN冻结) + 临额占用/最终使用(TEMP冻结)`，逐笔成立（5 笔抽查：1630=1180+450、2100=1500+600、6200=5905.34+294.66、6588.8=6506+82.8、2600=1500+1100）。
+5. ⚠️ **离线发放的锚点必须用 `apply_time`（申请时刻），不能用 `app_time`（进件时刻）**：二者可差数天。反例 biz 1620000463039322：`app_time`=09-04、`apply_time`=09-09，本笔实际用的是 09-09 04:16 才发的离线(C013 600)，用 `app_time` 会错取 08-25 那笔已过期的 1150，把"真离线使用"误判成"离线已过期"。修复后该笔：离线发放 09-09 04:16 / 600 / 仍有效。
+6. **「离线使用时间」/「离线使用金额」**（2026-10-16 新增，紧跟"离线发放时间/金额"，与在线"发放→使用"对称）：离线临额的"使用"用 **C003 冻结时刻**表示（离线发放=C015/C013，使用=C003冻结）。规则：**来源为离线（最近发放 gtype∈{C013,C015} 或无发放）→ 取该笔 C003 `min(create_time)` 为离线使用时间、`temp_grant_amount` 为离线使用金额；来源为在线（gtype='C010'）→ 离线仅持有未被消耗，离线使用时间记空、离线使用金额记 0**。故"离线使用金额"与"临额最终使用(离线临额)"同义。抽查校验：纯离线笔 1620000463039322 离线发放 09-09 04:16:27.780 → 离线使用 09-09 08:45:01.224(=C003)/294.7；1620000482922458 离线发放 10-13 21:01:02.481 → 离线使用 10-15 11:15:20.495(=C003)/1100.0；有 C010 的 1620000462179690/1620000462287861/1620000464027012 离线使用时间均为空、金额 0。注：对纯离线使用笔该列 == "临额冻结时刻_C003"；对在线笔为空。跑数：`_verify_offuse.py`。
+
+7. **【v11 历史临额占用拆分】（2026-10-17 全量验证，宽表新增 4 列，仅在线来源笔 gtype='C010' 取值）**：
+   - **历史临额占用金额** = C010 名义发放额(`change_total_grantamount`) − 本次实到账 = `change_used_grantamount`，即发放前该 TEMP 账户(limit_main_id)的存量占用（账户级恒等式，见 §1.3）。
+   - **台账还原互证**：取 C010 发放时刻(gtime)前同账户 TEMP 台账(`ods.s05_user_creditlimit_used_detail`，limit_type='TEMP'，下界 timestamp '2026-01-01' 覆盖 2-3 月残留 bug 期)，按来源 biz 拆 `resid=ΣFREEZE−ΣUNFREEZE`(>0.01 才计入)，台账合计应≈`change_used_grantamount`。"历史占用台账还原差额_诊断"≈0 即互证。
+   - **结清后/未结清二分**：来源贷款在发放时刻前已结清(`any_unpaid=0` 且最后一笔还款 `fact_time < gtime`)但冻结未释放 → **历史结清后临额占用**（2-3 月残留 bug 即此类）；否则(在途/后才结清/无还款记录) → **历史未结清临额占用**。结清判定用 `ods_view_presto.s02_loan_repayment`（`state<>1` 为未还，`max(case when state<>1 then 1 else 0 end)=0` 判结清，避免窗口截断假阳性）。
+   - **★ 全量数字（9/1-10/15 复贷放款 58,367 笔 / 在线领取 6,445 笔）**：历史占用>0.01 共 **143 笔、合计 51,723.9 比索**；其中**结清后占用 35 笔 / 5,068.1 比索**（残留 bug 量级很小）、**未结清占用 110 笔 / 46,655.8 比索**（主因在途贷款占用）。勾稽：结清后+未结清==历史占用，**偏差>0.05 笔数=0、最大偏差=0.0**；台账还原差额全量 6,664 笔恒=0，**|差额|>0.05 笔数=0**，双重互证成立。
+   - 样例笔 biz 1620000465328686：名义 400 / 实到账 93.75 / 历史占用 306.25，唯一来源 biz 1620000460517829（4 期、发放时刻仍在途、9/24 才结清）→ 未结清 306.25 / 结清后 0。
+   - 按周分布：未结清占比从 9 月初的 99.9% 逐步降到 10 月中旬的 68.5%，结清后占用金额在 9/21、10/05 两周出现小高峰（1,070.8 / 1,670.0 比索）。
+   - 跑数：`_probe_histocc.py`（样例下钻）、`_verify_wide10.py`（v11 切片全量回归，按周切片 7 片）、`_verify_wide11_fromcsv.py`（CSV 离线校验）；CSV：`墨西哥/在线临额决策链大宽表_20260901_1015.csv`（58,367 行 60 列）。
+
+跑数脚本：`_verify_new3.py`（3笔抽查）、`_verify_occupy_eq_used.py`（全量口径）、`_verify_wide5.py`（改后宽表5笔）、`_drill_verify2.py`（两笔全链路事件）、`_verify_offuse.py`（离线使用时间/金额抽查）。
+
+## 2. 核心表与字段
+
+- `mx.yj_test_table_250225`：复贷老客宽表（344列，is_reloan='old' and tenant='yawey'）。只有 app_time/app_date，**无 apply_time**。临额现成字段：
+  - `temp_credit_amount_issue_tag`（double，0/1）：在线临额是否发放，来自 model 1386 outputdata `$.temp_credit_amount_issue_tag`，关联取**最早一条**（row_number order by dt，rn=1）
+  - `temp_credit_amount_strategy_test_flag`：V5_2/V5_3 策略分桶（建表时按 apply_time 算好落表，直接用，勿复现 hash）
+  - `temp_grant_amount`（bigint）：实际使用临额金额（/1000 为比索）；客户弹窗点"使用"才 >0
+  - `fd_use_creditamount_score_v1`（-4~5）/ `fd_use_creditamount_type`（1~4）：model 1523，关联取**最新一条**（order by dt desc，rn=1）
+  - `release_time` 放款时间、`if_issue=1` 放款、`credit_no`、`app_group_sha256`、`mid`(bigint)、`biz_id`(varchar)
+- `mx.wxs_application_funnel`：首贷+复贷主宽表（475列），有 apply_time（≥ app_time，约 27.6% 行不在同一天），首贷评级须 join `mx.report_application_funnel7_table f7 on r.camera_id = cast(f7.biz_id as bigint)`，取 f7.credit_level（null 赋 9999）
+- `ods.s21_risk_model_record`：风控决策流节点落库（在线临额决策链全在此表）。关键列：`biz_id`（**bigint**，等值用数字字面量或 cast）、`modelmainid`（节点号）、`strategtype`（**只取 'CHAMPION'**，SHADOW 为影子重跑）、`createtime`、`outputdata`（JSON varchar，用 `regexp_extract(cast(outputdata as varchar),'"key":(-?[0-9.]+)',1)` 取值，负号别漏）。节点号：1522 用信评分 / 1523 type / 1386 弹窗tag / 1379 理论算额 / 857 弹窗最终额 / 1067 授信（credit_amount、daily_max_available_limit、credit_amount_expired_day）/ 1500·1542·1635 评级 V5_2·V5_3·V6_1 / **1504·1505 离线临额每日批量算额**（无 biz 只按 mid，见 §1.4 第 2c 条）/ 661 进件额度快照（temp 额恒 0 无发放价值）/ 1166 T+1 日批额度刷新。1379 每笔算两次（一有值一全 null）、1067 可能多条，聚合用 max()。⚠️ s21 决策节点按 createtime 取数时窗口要比业务窗口**前后各放宽 1 天**：部分笔唯一 CHAMPION 记录是 T+1 凌晨批处理重跑（10/13-15 申请的笔在 10/16 00:00-02:00 重跑，实测 11 笔）。
+- `ods_view_presto.s05_user_creditlimit_change_record`：额度变更记录。limit_type='TEMP' + change_event_type in ('C010','C013','C015')。**无 biz_id，用 mid 关联**（`external_id` 列可映射 biz_id 做笔级对账）。关键列：`change_event_type`（C010在线发放/C013·C015离线发放/C003冻结/C004·C008解冻）、`change_action`（FREEZE_LIMIT/UNFREEZE_LIMIT/CHANGE_LIMIT）、`change_total_grantamount`（发放/冻结上限）、`change_used_grantamount`（实际支用）、`expiring_time`（临额到期，在线=发放+3天）、`limit_main_id`（额度账户，同一 mid 在线/离线共用）、`change_desc`。**MAIN 主额事件链（2026-10-16 补）**：C009=授信落账（app 时刻）/C002=申请时提额（external_id 是 `mid_ts` 合成串，按 mid 取）/C003=apply 时刻总额度预授权（external_id=本 biz）/C004=解冻；语义与取数窗口见 §1.4 第 2d 条。
+- `ods.s05_user_creditlimit_used_detail`：额度使用明细（冻结快照）。`change_action='FREEZE_LIMIT'` + `limit_type` 区分 MAIN/TEMP，`risk_credit_limit`=本笔占用金额；有 biz_id（bigint）
+- `ods_view_presto.s02_loan_repayment`：还款计划表，join `cast(a.biz_id as bigint) = cast(b.camera_id as bigint)`
+- 坏账口径：1t0% = sum(t0_overdue_amount_1)/sum(t0_should_amt_1)，仅统计 t0_should_amt_1>0；用户标准为总额含利息口径
+- **vintage 分期窗口字段（复现同事 t1d0$/t1d3$/t2d3$/t3d3$ 用）**：yj 宽表按账龄期数带 4 组窗口
+  - `is_t0_window_1..4` / `is_t0_overdue_1..4` / `t0_overdue_amount_1..4` / `t0_should_amt_1..4`
+  - `is_t3_window_1..4` / `is_t3_overdue_1..4` / `t3_overdue_amount_1..4` / `t3_should_amt_1..4`
+  - 映射：`t1d0$`=window1 的 `t0_overdue_amount_1/t0_should_amt_1`；`t1d3$`=window1 的 `t3_overdue_amount_1/t3_should_amt_1`；`t2d3$`=window2 的 `t3_overdue_amount_2/t3_should_amt_2`；`t3d3$`=window3 的 `t3_overdue_amount_3/t3_should_amt_3`。`is_*_window_n` 标记该窗口是否已成熟（分母 should 全空=未成熟，分子分母都要按成熟窗口取）
+
+## 3. 临额四组打标（离线必须走 change_record）
+
+```sql
+with evt_last as (
+  select biz_id, change_event_type,
+    row_number() over (partition by biz_id order by create_time desc) as rn
+  from (
+    select y.biz_id, e.change_event_type, e.create_time
+    from mx.yj_test_table_250225 y
+    join ods_view_presto.s05_user_creditlimit_change_record e
+      on y.mid = e.mid and e.create_time <= y.release_time   -- 放款前最近一次TEMP事件
+    where y.if_issue=1 and y.is_reloan='old'
+      and y.app_date >= date'XXXX-XX-XX' and y.app_date < date'XXXX-XX-XX'
+      and e.limit_type='TEMP' and e.change_event_type in ('C010','C013','C015')
+  ) x
+)
+-- online_tag1: C010 且 temp_credit_amount_issue_tag=1（实际发放）
+-- online_tag0: C010 且 tag=0（未发放）
+-- offline: C013/C015；none: 无TEMP事件（left join null）
+```
+
+要点：change_record 关联很重，**按周切片循环跑**，合并大区间查询易超时；连接不稳定时脚本须带登录+查询双层重试（见 scripts 模板）。
+
+## 4. 在线临额分析优先用现成字段（勿用 C010 打标在线组）
+
+C010 事件打标在线临额曾出现样本污染。复现 Excel「满额动支发放临额」口径时直接用：
+`temp_credit_amount_strategy_test_flag × temp_credit_amount_issue_tag × temp_grant_amount`
+
+四个标准指标（金额 /1000）：
+- 使用临额均值：`avg(if(temp_grant_amount!=0, temp_grant_amount/1000.0, null))`
+- 使用临额件数：`count(distinct if(temp_grant_amount>0, biz_id, null))`
+- 使用临额总额：`sum(temp_grant_amount/1000.0)`
+- 未使用件数：`count(distinct if(temp_grant_amount=0, biz_id, null))`
+
+策略分桶 hash 逻辑（仅供理解，勿重算）：hash=from_base(substr(to_hex(sha256(to_utf8('20260811'||credit_no||app_group_sha256))),1,4),16)/65536；9/3 后阈值 0.3（V5_3=≤0.3），8/10-9/3 阈值 0.7（V5_3=≤0.7），8/10 前为 null。
+
+## 5. 评分变量口径
+
+`fd_use_creditamount_score_v1` = 两段 CASE 加和（-4~5）：
+- daily_left_amount_quota_use_rate：<=-999→-3；(-999,0]→0；(0,0.5)→4；[0.5,0.9)→2；>=0.9→-1
+- finish_total_num：<6→-1；>=6→1
+
+使用率精确定义（20260513 文档）：本笔占用主额取 s05_user_creditlimit_used_detail（biz_id + change_action='FREEZE_LIMIT' + limit_type='MAIN' 的 risk_credit_limit）；分母=单日剩余可借+本笔占用主额；分母0→-999，分子0→-99，接口异常→-98。
+
+## 6. 分析流程与输出要求
+
+1. 先声明口径：进件周(app_week) vs 放款周(issue_week)、进件口径 vs if_issue=1 放款口径、本金 vs 总额含利息、金额单位
+2. 趋势分解用结构分解法：率效应（各组坏账率变化）+ 结构效应（各组份额变化），逐组算贡献，勿把算术贡献当因果
+3. 策略评估用 hash 三组自然实验：A(hash>0.7 始终V5_2)、B(0.3<hash≤0.7，8/10-9/3执行V5_3后切回)、C(hash≤0.3 始终V5_3)，以 A 为平行对照算 DID
+4. 结果须有理有据：给出可复跑 SQL 脚本路径、关键中间表、样本量；Excel 报告含指标对比、结构分解、趋势图
+5. TR（动支率）= 放款金额/授信额度 credit_amount，约 30%，**不是**放款笔数/进件笔数（那是通过率约 8-10%）
+
+## 7. 已验证的关键结论（避免重复踩坑）
+
+- 临额本身不制造坏账：同评级内发临额客户坏账≤未发客户（模型挑好客户发）；坏账来自客群结构下沉
+- V5_3 风险在于给评级 6 级以上客户加临额杠杆（9级+ tag1 坏账约 45%，件均被放大 60%+）
+- 0903 灰度切回：在线临额桶内坏账 DID -3.16pp，但全复贷大盘 DID≈0（坏账从临额桶退回主额，未消失）
+- 0922 后大盘坏账回落主因是 V6_1 档位10 拒尾（放款率 33%→23%）+ 转产线调整，非临额回调
+- 复贷 none 组（无临额尾部客群，50% 评级9+、件均~500、循环额度过期老客坏账 57-62%、curr_ovd_cnt_all 多头逾期上行）是未被任何临额政策覆盖的残留敞口
+- 发薪日（15/30号前后）无显著坏账周期，波动由策略节点解释，勿建议按发薪日调放款节奏
+- 【2026-10-10 复核】yj_test_table 每日 05:42 重跑，当日白天不会继续回填：当日快照为窗口 8/14-10/09（76841行），8/14-18 逐日爬坡(34/79/135/342/549)，8/19 起完整，更早周直接缺失；轮询 30+ 分钟笔数无变化即可判定快照稳定，不要死等。取 yj 前必须与 funnel 复贷周笔数对账，覆盖率≥98% 才能单独成结论（w0817=92% 只能趋势参考）；结构分解/DID 只用完整周
+- 【2026-10-10 复核，刷新值】全客户 DID B-A(P1→P2)=+0.10pp≈0；tag1 桶 DID=-2.68pp（B桶tag1评级 4.89→3.48 为选择效应）；结构分解 w0824→w0914：none 组应还份额 14.2%→21.2% 结构效应 +2.73pp，抵消 online_tag1 合计 -1.85pp；V6_1 当周(w0921)大盘 23.56% 四组率效应齐降、w0928 回弹 25.87%
+- yj 周度打标窗口可一直取到最近日期（t0 在放款次日后即成熟，w0928 9/28-10/4 已成熟；不足7天/should 全空的尾周只看笔数不看率）
+- temp_grant_amount 单位确认：/1000=比索（中位数 277596→278 比索，占件均 1947 的 14%）；不是分。SQL 里 sum(temp_grant_amount/1000) 输出的是比索不是千比索，进 Excel 需再 /1000
+- 【2026-10-11 指标命名，用户确认】放款/授信=额度使用率（util_rate），**不是 TR**；TR=息费率−1T7本金坏账−1T7息费坏账（口径见 墨西哥经分/墨西哥周报自动化.py）：息费率=(should_interest后收利息+haircut_amount砍头息)/contract_amount；砍头占比=haircut_amount/contract_amount；1t0_capit本金坏账=t0_overdue_capit_1/t0_should_capit_1、1t0_amt总额坏账=t0_overdue_amount_1/t0_should_amt_1；1T7息费坏账=t7_overdue_interest_4/t7_should_amt_4。1T7 需 4 期账龄：7月成熟、8月部分、9月未成熟。用户习惯 1t0_amt/1t0_capit 命名风格
+- 在线临额使用占复贷放款额：9月 9.0%（临额使用 4.66M / 放款 51.9M）；yj 8月窗口(8/14-31) 12.3%（分子分母同期才可比，8月全月缺）
+- curr_ovd_cnt_all=外部多头当前逾期笔数合计（共债预警变量，非评分）；fd_use_creditamount_score_v1=1523用信环节评分(-4~5，越高越优)；fd_use_creditamount_type=1523输出分类1~4（type1最优/type4最差，实证件均与t0单调）
+- 【2026-10-11 决策矩阵实证，用户提供决策表】fd_use_creditamount_type 由决策矩阵决定：行=android_oldCust_mainCreditLevel_charge_V5_2/V5_3（整数评级1优~14差，≥14与null全行=4），列=score_v1 五档（≥5/[3,5)/[1,3)/[0,1)/<0]，无score空分列（score null约1.5%行失配）。V5_2 矩阵 8级及以下优质区分级、8-13全4；**V5_3 结构性放开：g8 全档改2/3、g9-10改2/3/4、g6-7高分段升入1，g11+/null仍全4**。矩阵逐笔回放命中率94.2-98.7%（P1/B最低94.2，因当期切档执行边界），即生产真实逻辑可直接做反事实
+- 【2026-10-16 在线临额算额公式全量穿透】理论额1379 = `floor(MAIN冻结/20)*20 × 比例`（底数先舍到20比索档，MAIN 常带零头）；比例 type2=40%/type3=20% 两策略一致，**★type1：V5_2=50%、V5_3=60%（yj strat_flag 关联实证，V5_3 除放开评级档外另把最优档比例+10pp）**；type4 不发（全窗口仅10笔保底/边界）。弹窗额857 = `round(理论额/50)*50`（14,177笔100%），公式 99.87%。金额三段：1379理论→857名义→C010实到账(=TEMP冻结=最终使用，扣发放前存量占用)。详见 §1.4 第2/2b 条
+- 【2026-10-16 主额链穿透 + 60%版本实锤 + v10大宽表】① MAIN change_record 链：C009授信→C002申请时提额→C003总额度预授权(external_id=biz)，C003≠实际支用(在used_detail)，失败重申请会改写主额账；② "占用主额为空"=used_detail批次延迟(每日均有, 非缺失)，用 `合同-临额` 恒等式补全，补全后公式命中 99.94%；③ 60% 是版本效应非时间趋势：type1 实测比例全量仅 0.5/0.6 两值(V5_2桶1124全0.5/V5_3桶1568全0.6，每周并存)，节点1341的V5_3是平台管线版本≠实验桶勿用；④ 大宽表 57,940 行 57 列已导出 `墨西哥/在线临额决策链大宽表_20260901_1015.csv`，全链路+策略细节见 §1.4 第2d-2f 条；⑤ 网关结果集上限1万行，全量取数按进件日切片且节点窗口填充±7天
+- 【2026-10-17 v11 历史临额占用拆分】为在线领取笔(gtype='C010', 6,445笔)新增4列：历史临额占用金额(=C010.change_used_grantamount=名义−实到账)、历史结清后临额占用、历史未结清临额占用、台账还原差额_诊断。全量 58,367 笔中历史占用>0.01 共143笔/51,723.9比索：结清后35笔/5,068.1比索(2-3月残留bug, 量级很小)、未结清110笔/46,655.8比索(在途贷款占用为主)。勾稽：结清后+未结清==历史占用 偏差>0.05笔数=0；台账还原差额全量6,664笔恒=0，双重互证成立。宽表现58,367行60列，取数按周切片(7片, 每片~9000行<1万上限)。详见 §1.4 第7条
+- 【2026-10-11 type迁徙反事实，_fw_h.py】对每笔用双评级列同时算两套type（两列在yj表均全量落数，无null）：41.1%放款（25261/61451，窗口8/19-10/05）V5_2型4→V5_3型1-3（新放开），加权t0 29.08%、新增临额使用2.98M比索；主路径4→3 15.6k(t0 31.35%)、4→2 9.0k(25.96%)；留4→4 19.8k t0 42.07%。单元风险(C组实走V5_3 vs A组实走V5_2)：g8 tag1 1293笔(t0 22-35%)、g9 351(27-38%)、g10 541(g10 s[0,1) 42.27%)；g8/g9 的score≥3段t0 22-27%，下沉档内评分仍有排序力→建议按矩阵单元收紧（g10仅留score≥3+降额，g9 s<0停发）而非全档关闭。SQL中矩阵用 element_at(array[...],band+1) 紧凑写法（~0.6K/个），勿用嵌套CASE（~20K会超Excel单元格32767字符限制）
+
+## 8. 参考资料
+
+- `references/analysis-framework.md`：7 模块额度策略分析框架（供给/TR/在线策略/离线政策/风险分层/客群质量/性价比+DID）、成熟度规则、结构分解做法
+- `references/temp-limit-business.md`：5 份需求文档（管理体系/三国逻辑/使用率变量/循环贷变量改造）的业务逻辑整理
+- `references/variable-dictionary.md`：额度表/变更表字段与临额变量字典
+- `scripts/tagging_template.py`：四组打标 + 周度指标的 Python/Presto 脚本模板（含网络重试）
+- `墨西哥/_fw_h.py`：V5_2/V5_3 决策矩阵（矩阵常量 V52/V53 + matrix() SQL 构造器）、E5 矩阵命中率校验、E6 双矩阵 type 迁徙、E7 单元风险格；矩阵常量可直接 import 复用
+- `墨西哥/_fw_verify_all.py`：1.2 节全部校验的逐条复跑脚本（恒等式/C010对账/双路径/冲突扫描/样例事件流），编号 V1~V9
+- 取数连接：`code/mexico_presto.py` 的 PrestoQuery（query 返回 DataFrame 或错误字符串，单页上限 1000 行）

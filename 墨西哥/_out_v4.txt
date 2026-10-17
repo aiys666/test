@@ -1,0 +1,187 @@
+﻿============================================================================================================================================
+Q1 分版本×按日 1t0率(各自趋势)
+      app_date v3_flag issue_cnt    t0_rate
+0   2026-09-08    V5_3       376  28.250000
+1   2026-09-08    V6_1      1020  29.360000
+2   2026-09-09    V5_3       413  27.140000
+3   2026-09-09    V6_1       977  28.060000
+4   2026-09-10    V5_3       375  34.030000
+5   2026-09-10    V6_1       971  28.450000
+6   2026-09-11    V5_3       413  24.700000
+7   2026-09-11    V6_1       908  28.440000
+8   2026-09-12    V5_3       340  26.730000
+9   2026-09-12    V6_1       869  30.670000
+10  2026-09-13    V5_3       301  32.570000
+11  2026-09-13    V6_1       750  28.120000
+12  2026-09-14    V5_3       433  26.650000
+13  2026-09-14    V6_1      1043  27.990000
+14  2026-09-15    V5_3       656  33.660000
+15  2026-09-15    V6_1       773  28.050000
+16  2026-09-16    V5_3       617  27.070000
+17  2026-09-16    V6_1       661  34.460000
+18  2026-09-17    V5_3       633  27.630000
+19  2026-09-17    V6_1       686  27.360000
+20  2026-09-18    V5_3       666  29.880000
+21  2026-09-18    V6_1       735  27.410000
+22  2026-09-19    V5_3       692  29.080000
+23  2026-09-19    V6_1       699  27.060000
+24  2026-09-20    V5_3       525  23.380000
+25  2026-09-20    V6_1       571  32.100000
+26  2026-09-21    V5_3       711  24.960000
+27  2026-09-21    V6_1       757  24.270000
+28  2026-09-22    V5_3       652  24.540000
+29  2026-09-22    V6_1       657  24.260000
+30  2026-09-23    V5_3       663  25.740000
+31  2026-09-23    V6_1       697  23.500000
+32  2026-09-24    V5_3       686  22.310000
+33  2026-09-24    V6_1       727  23.850000
+34  2026-09-25    V5_3       639  25.780000
+35  2026-09-25    V6_1       674  22.120000
+36  2026-09-26    V5_3       672  23.970000
+37  2026-09-26    V6_1       644  26.220000
+38  2026-09-27    V5_3       552  25.270000
+39  2026-09-27    V6_1       540  18.340000
+40  2026-09-28    V5_3       694  23.320000
+41  2026-09-28    V6_1       746  23.150000
+[rows=42]
+============================================================================================================================================
+Q2 V5_3版本内 评级段×两段 率(是否所有段降)
+[retry 1] ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[retry 2] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+[retry 3] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+[retry 4] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+      seg  g5seg issue_cnt    t0_rate
+0   after    1-6      1022  16.440000
+1  before    1-6      1097  20.740000
+2   after  11-12       495  45.290000
+3  before  11-12       564  48.890000
+4   after    13+         3  44.750000
+5  before    13+         6  34.580000
+6   after   7-10      1831  31.660000
+7  before   7-10      2030  36.300000
+[rows=8]
+============================================================================================================================================
+Q3 V6_1版本内 评级段×两段 率
+[retry 1] ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))
+[retry 2] ConnectTimeout: HTTPSConnectionPool(host='data.tengoprestamos.com', port=443): Max retries exceeded with url: /dataworks-development/adhoc/querySql (Caused by Connect
+[retry 3] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+[retry 4] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+[retry 5] ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054, None))
+python : Traceback (most recent call last):
+At line:15 char:3686
++ ... _modules\@vscode\ripgrep\bin'; python _probe_v4.py > _out_v4.txt 2>&1
++                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "D:\Python313\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "D:\Python313\Lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "D:\Python313\Lib\site-packages\urllib3\connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+  File "D:\Python313\Lib\http\client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "D:\Python313\Lib\http\client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "D:\Python313\Lib\http\client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "D:\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+ConnectionResetError: [WinError 10054] 远程主机强迫关闭了一个现有的连接。
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Python313\Lib\site-packages\requests\adapters.py", line 645, in send
+    resp = conn.urlopen(
+        method=request.method,
+    ...<9 lines>...
+        chunked=chunked,
+    )
+  File "D:\Python313\Lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
+    retries = retries.increment(
+        method, url, error=new_e, _pool=self, _stacktrace=sys.exc_info()[2]
+    )
+  File "D:\Python313\Lib\site-packages\urllib3\util\retry.py", line 490, in increment
+    raise reraise(type(error), error, _stacktrace)
+          ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\site-packages\urllib3\util\util.py", line 38, in reraise
+    raise value.with_traceback(tb)
+  File "D:\Python313\Lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+        conn,
+    ...<10 lines>...
+        **response_kw,
+    )
+  File "D:\Python313\Lib\site-packages\urllib3\connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+  File "D:\Python313\Lib\site-packages\urllib3\connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+  File "D:\Python313\Lib\http\client.py", line 1430, in getresponse
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "D:\Python313\Lib\http\client.py", line 331, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "D:\Python313\Lib\http\client.py", line 292, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "D:\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+urllib3.exceptions.ProtocolError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 10054,
+ None))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\岳松个人文件\嘉银工作内容的整理\code\墨西哥\_probe_v4.py", line 64, in <module>
+    q("""
+    ~^^^^
+    select
+    ^^^^^^
+    ...<13 lines>...
+    group by 1,2 order by 2,1
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    """, "Q3 V6_1版本内 评级段×两段 率")
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\岳松个人文件\嘉银工作内容的整理\code\墨西哥\_probe_v4.py", line 22, in q
+    r = pq.query(sql); break
+  File "E:\岳松个人文件\嘉银工作内容的整理\code\mexico_presto.py", line 84, in query
+    r = self.sess.post(
+        f"{self.base}/dataworks-development/adhoc/querySql",
+    ...<6 lines>...
+        timeout=(10, 180), verify=False
+    )
+  File "D:\Python313\Lib\site-packages\requests\sessions.py", line 640, in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Python313\Lib\site-packages\requests\sessions.py", line 592, in request
+    resp = self.send(prep, **send_kwargs)
+  File "D:\Python313\Lib\site-packages\requests\sessions.py", line 706, in send
+    r = adapter.send(request, **kwargs)
+  File "D:\Python313\Lib\site-packages\requests\adapters.py", line 660, in send
+    raise ConnectionError(err, request=request)
+requests.exceptions.ConnectionError: ('Connection aborted.', ConnectionResetError(10054, '远程主机强迫关闭了一个现有的连接。', None, 100
+54, None))

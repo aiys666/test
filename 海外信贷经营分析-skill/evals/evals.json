@@ -1,0 +1,47 @@
+{
+  "skill_name": "overseas-credit-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "name": "monthly-plan-update",
+      "prompt": "帮我更新7月的经营计划预估。6月实际放款新客6200笔、件均$62，复贷进件22万笔。7月首贷日消耗不变$2200，CPI预计降到$3.4，通过率提升到68%。帮我算一下7月首贷和复贷的预估值。",
+      "expected_output": "基于公式链计算首贷+复贷预估，输出放款笔数/金额汇总。识别CPI下降和通过率提升对首贷量的影响。",
+      "difficulty": 2
+    },
+    {
+      "id": 2,
+      "name": "sql-debug",
+      "prompt": "这个SQL跑了一个小时还没出结果，帮我优化。查询的是 ind.ba_asset_base_info 表从2024年开始的全量数据，有15个CTE嵌套，最后输出100多个字段给看板用。",
+      "expected_output": "识别全表扫描、CTE嵌套、无日期分区过滤等问题。给出拆分建议：限制日期范围、拆分长SQL为多段、添加分区过滤。",
+      "difficulty": 2
+    },
+    {
+      "id": 3,
+      "name": "data-reconciliation",
+      "prompt": "这个月的权责预估和资产底表对不上——预估的复贷放款金额比实际多了15%，帮我一层层排查。这是预估Excel和底表查询结果。",
+      "expected_output": "逐层排查：进件量→通过率→Q分布→件均→汇率→SUMIFS汇总。定位偏差最大的维度（可能是某个产品×期限的Q分布变了但没更新config）。",
+      "difficulty": 3
+    },
+    {
+      "id": 4,
+      "name": "bad-debt-spike",
+      "prompt": "风险团队说5月的T30坏账率从4月的12%涨到了17%，让我分析一下是什么原因。是整体都在涨还是特定产品/期限？另外帮我对比一下VINTAGE曲线看看是不是早期cohort就已经有问题了。",
+      "expected_output": "按产品×期限×策略维度拆解坏账率变化。如果数据允许，生成VINTAGE cohort对比。区分是整体恶化还是局部恶化。",
+      "difficulty": 3
+    },
+    {
+      "id": 5,
+      "name": "weekly-report-auto",
+      "prompt": "帮我出这周的周报。这周是6月23日到6月29日。我需要放款汇总、进件漏斗、风险指标，还有和上周的环比。数据都在 Presto 库里。",
+      "expected_output": "查询Presto数据库生成周报数据：放款笔数/金额/件均（按新老拆分）、进件漏斗各环节转化率及环比、FPD/T30坏账率。用周报模板格式输出。",
+      "difficulty": 2
+    },
+    {
+      "id": 6,
+      "name": "kpi-definition",
+      "prompt": "彤姐问我看板上那个'新客纯进件确认率'是怎么算的，分母和分子分别是什么？还有'在贷逾期30天以上金额'的口径是什么？",
+      "expected_output": "从 indicator-glossary.md 查指标定义，说明公式、数据来源和过滤条件。如果有多个口径，说明区别。",
+      "difficulty": 1
+    }
+  ]
+}

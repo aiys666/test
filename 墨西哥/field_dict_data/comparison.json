@@ -1,0 +1,4792 @@
+[
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_reloan",
+  "field": "id",
+  "my_desc": "进件id(授信快照id)",
+  "ref_desc": "申请记录ID",
+  "my_logic": "直取 s09_os_credit_snapshot.id",
+  "ref_logic": "贷款申请的唯一记录标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_reloan",
+  "field": "reloan_num",
+  "my_desc": "本次进件前的放款笔数+1(首贷=1)",
+  "ref_desc": "复贷次数",
+  "my_logic": "CASE WHEN issue_num IS NULL THEN 1 ELSE issue_num END；issue_num=count(t2.biz_id)+1，t2为同一mid在本次进件之前(create_time>release_time)已放款(state in (1,2))的订单",
+  "ref_logic": "客户历史复贷次数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_reloan",
+  "field": "grant_strategy",
+  "my_desc": "首贷/复贷标记",
+  "ref_desc": "借贷类型",
+  "my_logic": "CASE WHEN issue_num IS NULL THEN '首贷' ELSE '复贷' END",
+  "ref_logic": "借贷类型（如首贷、复贷）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "camera_id",
+  "my_desc": "订单id(放款订单号)",
+  "ref_desc": "摄像头ID",
+  "my_logic": "直取 s02_loan.camera_id",
+  "ref_logic": "活体检测使用的摄像头标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "release_time",
+  "my_desc": "放款时间",
+  "ref_desc": "放款时间",
+  "my_logic": "直取 s02_loan.release_time",
+  "ref_logic": "每笔贷款实际放款时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "should_time",
+  "my_desc": "应还日期(按订单取最大应还日)",
+  "ref_desc": "应还款时间",
+  "my_logic": "直取 t2.should_time = max(a.should_time)，a为s02_loan_repayment按camera_id分组(state in (1,2,3))",
+  "ref_logic": "每笔订单客户应还款的具体时间",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "should_capital",
+  "my_desc": "应还本金(按订单合计)",
+  "ref_desc": "应还本金",
+  "my_logic": "直取 t2.should_capital = sum(a.should_capital)",
+  "ref_logic": "每笔订单应还本金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "should_interest",
+  "my_desc": "应还利息(按订单合计)",
+  "ref_desc": "应还利息",
+  "my_logic": "直取 t2.should_interest = sum(a.should_interest)",
+  "ref_logic": "每笔订单应还利息金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "should_fine",
+  "my_desc": "应还罚息(按订单合计)",
+  "ref_desc": "应还罚金",
+  "my_logic": "直取 t2.should_fine = sum(a.should_fine)",
+  "ref_logic": "每笔订单应还罚金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "fact_capital",
+  "my_desc": "实还本金(按订单合计)",
+  "ref_desc": "实际还款本金",
+  "my_logic": "直取 t3.fact_capital = sum(a.fact_capital)，a为s02_loan_repayment_detail按camera_id分组",
+  "ref_logic": "每笔订单实际已还本金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "fact_interest",
+  "my_desc": "实还利息(按订单合计)",
+  "ref_desc": "实际还款利息",
+  "my_logic": "直取 t3.fact_interest = sum(a.fact_interest)",
+  "ref_logic": "每笔订单实际已还利息金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "fact_fine",
+  "my_desc": "实还罚息(按订单合计)",
+  "ref_desc": "实际还款罚金",
+  "my_logic": "直取 t3.fact_fine = sum(a.fact_fine)",
+  "ref_logic": "每笔订单实际已还罚金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "now_should_amt",
+  "my_desc": "当前应还总额(本金+利息)",
+  "ref_desc": "当前应还金额",
+  "my_logic": "直取 t2.now_should_amt = should_capital + should_interest",
+  "ref_logic": "客户当前应还款总额（单位：比索，含本金+利息）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t0_should_amt",
+  "my_desc": "T0窗口应还总额(应还日已到)",
+  "ref_desc": "T0应还金额",
+  "my_logic": "直取 t2.t0_should_amt = CASE WHEN date(should_time)<current_date THEN should_capital+should_interest END",
+  "ref_logic": "T0时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t3_should_amt",
+  "my_desc": "T3窗口应还总额(应还日+3天已到)",
+  "ref_desc": "T3应还金额",
+  "my_logic": "直取 t2.t3_should_amt = CASE WHEN date(should_time)+interval'3'day<current_date THEN should_capital+should_interest END",
+  "ref_logic": "T3时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t7_should_amt",
+  "my_desc": "T7窗口应还总额(应还日+7天已到)",
+  "ref_desc": "T7应还金额",
+  "my_logic": "直取 t2.t7_should_amt = CASE WHEN date(should_time)+interval'7'day<current_date THEN should_capital+should_interest END",
+  "ref_logic": "T7时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t14_should_amt",
+  "my_desc": "T14窗口应还总额(应还日+14天已到)",
+  "ref_desc": "T14应还金额",
+  "my_logic": "直取 t2.t14_should_amt = CASE WHEN date(should_time)+interval'14'day<current_date THEN should_capital+should_interest END",
+  "ref_logic": "T14时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t30_should_amt",
+  "my_desc": "T30窗口应还总额(应还日+30天已到)",
+  "ref_desc": "T30应还金额",
+  "my_logic": "直取 t2.t30_should_amt = CASE WHEN date(should_time)+interval'30'day<current_date THEN should_capital+should_interest END",
+  "ref_logic": "T30时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "now_fact_amt",
+  "my_desc": "当前实还总额(本金+利息)",
+  "ref_desc": "当前实际还款金额",
+  "my_logic": "直取 t3.now_fact_amt = sum(fact_capital + fact_interest)",
+  "ref_logic": "客户当前实际还款总额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t0_fact_amt",
+  "my_desc": "T0窗口实还总额(截至应还日)",
+  "ref_desc": "T0实际还款金额",
+  "my_logic": "直取 t3.t0_fact_amt = sum(CASE WHEN date(fact_time)<=date(should_time) THEN fact_capital+fact_interest END)",
+  "ref_logic": "T0时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t3_fact_amt",
+  "my_desc": "T3窗口实还总额(截至应还日+3天)",
+  "ref_desc": "T3实际还款金额",
+  "my_logic": "直取 t3.t3_fact_amt = sum(CASE WHEN date(fact_time)<=interval'3'day+date(should_time) THEN fact_capital+fact_interest END)",
+  "ref_logic": "T3时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t7_fact_amt",
+  "my_desc": "T7窗口实还总额(截至应还日+7天)",
+  "ref_desc": "T7实际还款金额",
+  "my_logic": "直取 t3.t7_fact_amt = sum(CASE WHEN date(fact_time)<=interval'7'day+date(should_time) THEN fact_capital+fact_interest END)",
+  "ref_logic": "T7时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t14_fact_amt",
+  "my_desc": "T14窗口实还总额(截至应还日+14天)",
+  "ref_desc": "T14实际还款金额",
+  "my_logic": "直取 t3.t14_fact_amt = sum(CASE WHEN date(fact_time)<=interval'14'day+date(should_time) THEN fact_capital+fact_interest END)",
+  "ref_logic": "T14时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t30_fact_amt",
+  "my_desc": "T30窗口实还总额(截至应还日+30天)",
+  "ref_desc": "T30实际还款金额",
+  "my_logic": "直取 t3.t30_fact_amt = sum(CASE WHEN date(fact_time)<=interval'30'day+date(should_time) THEN fact_capital+fact_interest END)",
+  "ref_logic": "T30时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t0_should_num",
+  "my_desc": "T0窗口应还期数标记(应还日已到=1)",
+  "ref_desc": "T0应还笔数",
+  "my_logic": "直取 t2.t0_should_num = CASE WHEN date(should_time)<current_date THEN 1 ELSE 0 END",
+  "ref_logic": "T0时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t3_should_num",
+  "my_desc": "T3窗口应还期数标记(应还日+3天已到=1)",
+  "ref_desc": "T3应还笔数",
+  "my_logic": "直取 t2.t3_should_num = CASE WHEN date(should_time)+interval'3'day<current_date THEN 1 ELSE 0 END",
+  "ref_logic": "T3时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t7_should_num",
+  "my_desc": "T7窗口应还期数标记(应还日+7天已到=1)",
+  "ref_desc": "T7应还笔数",
+  "my_logic": "直取 t2.t7_should_num = CASE WHEN date(should_time)+interval'7'day<current_date THEN 1 ELSE 0 END",
+  "ref_logic": "T7时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t14_should_num",
+  "my_desc": "T14窗口应还期数标记(应还日+14天已到=1)",
+  "ref_desc": "T14应还笔数",
+  "my_logic": "直取 t2.t14_should_num = CASE WHEN date(should_time)+interval'14'day<current_date THEN 1 ELSE 0 END",
+  "ref_logic": "T14时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "t30_should_num",
+  "my_desc": "T30窗口应还期数标记(应还日+30天已到=1)",
+  "ref_desc": "T30应还笔数",
+  "my_logic": "直取 t2.t30_should_num = CASE WHEN date(should_time)+interval'30'day<current_date THEN 1 ELSE 0 END",
+  "ref_logic": "T30时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "pre_p2_repay",
+  "my_desc": "提前超过2天还款金额(本+息)",
+  "ref_desc": "提前两天还款金额",
+  "my_logic": "直取 t3.pre_p2_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))>2 THEN fact_capital+fact_interest ELSE 0 END)",
+  "ref_logic": "提前两天还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "p2_repay",
+  "my_desc": "提前2天还款金额(本+息)",
+  "ref_desc": "还款日前两天当天还款金额",
+  "my_logic": "直取 t3.p2_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=2 THEN fact_capital+fact_interest ELSE 0 END)",
+  "ref_logic": "还款日前两天当天还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "p2_repaytt",
+  "my_desc": "提前>=2天还款金额(本+息)",
+  "ref_desc": "第二期还款总额",
+  "my_logic": "直取 t3.p2_repaytt = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))>=2 THEN fact_capital+fact_interest ELSE 0 END)",
+  "ref_logic": "第二期的还款总额（本金+利息，单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "p1_repay",
+  "my_desc": "提前1天还款金额(本+息)",
+  "ref_desc": "第一期还款金额",
+  "my_logic": "直取 t3.p1_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=1 THEN fact_capital+fact_interest ELSE 0 END)",
+  "ref_logic": "第一期的还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "p0_repay",
+  "my_desc": "到期日当天还款金额(本+息)",
+  "ref_desc": "当前期还款金额",
+  "my_logic": "直取 t3.p0_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=0 THEN fact_capital+fact_interest ELSE 0 END)",
+  "ref_logic": "当前期应还的金额（单位：比索，含本金+利息）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "is_t0_window",
+  "my_desc": "是否已过应还日T0窗口(0/1)",
+  "ref_desc": "是否在T0时间窗口",
+  "my_logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>0 THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否在T0时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "is_t3_window",
+  "my_desc": "是否已过T3窗口(0/1)",
+  "ref_desc": "是否在T3时间窗口",
+  "my_logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>3 THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否在T3时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "is_t7_window",
+  "my_desc": "是否已过T7窗口(0/1)",
+  "ref_desc": "是否在T7时间窗口",
+  "my_logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>7 THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否在T7时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "is_t14_window",
+  "my_desc": "是否已过T14窗口(0/1)",
+  "ref_desc": "是否在T14时间窗口",
+  "my_logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>14 THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否在T14时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "is_t30_window",
+  "my_desc": "是否已过T30窗口(0/1)",
+  "ref_desc": "是否在T30时间窗口",
+  "my_logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>30 THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否在T30时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "now_OVERDUE_AMOUNT",
+  "my_desc": "当前逾期金额",
+  "ref_desc": "当前逾期金额",
+  "my_logic": "CASE WHEN now_fact_amt>=now_should_amt THEN 0 WHEN now_fact_amt<now_should_amt THEN now_should_amt-now_fact_amt WHEN now_fact_amt IS NULL THEN now_should_amt END",
+  "ref_logic": "每一笔订单当前所有逾期未还的总金额（单位：比索）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "T0_OVERDUE_AMOUNT",
+  "my_desc": "T0窗口逾期金额",
+  "ref_desc": "T0逾期金额",
+  "my_logic": "CASE WHEN t0_fact_amt>=now_should_amt THEN 0 WHEN t0_fact_amt<now_should_amt THEN now_should_amt-t0_fact_amt WHEN t0_fact_amt IS NULL THEN t0_should_amt END",
+  "ref_logic": "逾期0天（即当天）未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "T3_OVERDUE_AMOUNT",
+  "my_desc": "T3窗口逾期金额",
+  "ref_desc": "T3逾期金额",
+  "my_logic": "CASE WHEN t3_fact_amt>=now_should_amt THEN 0 WHEN t3_fact_amt<now_should_amt THEN now_should_amt-t3_fact_amt WHEN t3_fact_amt IS NULL THEN t3_should_amt END",
+  "ref_logic": "逾期3天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "T7_OVERDUE_AMOUNT",
+  "my_desc": "T7窗口逾期金额",
+  "ref_desc": "T7逾期金额",
+  "my_logic": "CASE WHEN t7_fact_amt>=now_should_amt THEN 0 WHEN t7_fact_amt<now_should_amt THEN now_should_amt-t7_fact_amt WHEN t7_fact_amt IS NULL THEN t7_should_amt END",
+  "ref_logic": "逾期7天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "T14_OVERDUE_AMOUNT",
+  "my_desc": "T14窗口逾期金额",
+  "ref_desc": "T14逾期金额",
+  "my_logic": "CASE WHEN t14_fact_amt>=now_should_amt THEN 0 WHEN t14_fact_amt<now_should_amt THEN now_should_amt-t14_fact_amt WHEN t14_fact_amt IS NULL THEN t14_should_amt END",
+  "ref_logic": "逾期14天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "T30_OVERDUE_AMOUNT",
+  "my_desc": "T30窗口逾期金额",
+  "ref_desc": "T30逾期金额",
+  "my_logic": "CASE WHEN t30_fact_amt>=now_should_amt THEN 0 WHEN t30_fact_amt<now_should_amt THEN now_should_amt-t30_fact_amt WHEN t30_fact_amt IS NULL THEN t30_should_amt END",
+  "ref_logic": "逾期30天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "IS_T0_OVERDUE",
+  "my_desc": "T0窗口是否逾期",
+  "ref_desc": "是否T0逾期",
+  "my_logic": "CASE WHEN t0_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+  "ref_logic": "标识是否处于逾期0天的状态（0-否，1-是）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "IS_T3_OVERDUE",
+  "my_desc": "T3窗口是否逾期",
+  "ref_desc": "是否T3逾期",
+  "my_logic": "CASE WHEN t3_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+  "ref_logic": "标识是否处于逾期3天的状态（0-否，1-是）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "IS_T7_OVERDUE",
+  "my_desc": "T7窗口是否逾期",
+  "ref_desc": "是否T7逾期",
+  "my_logic": "CASE WHEN t7_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+  "ref_logic": "标识是否处于逾期7天的状态（0-否，1-是）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "IS_T14_OVERDUE",
+  "my_desc": "T14窗口是否逾期",
+  "ref_desc": "是否T14逾期",
+  "my_logic": "CASE WHEN t14_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+  "ref_logic": "标识是否处于逾期14天的状态（0-否，1-是）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_risk_ttl",
+  "field": "IS_T30_OVERDUE",
+  "my_desc": "T30窗口是否逾期",
+  "ref_desc": "是否T30逾期",
+  "my_logic": "CASE WHEN t30_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+  "ref_logic": "标识是否处于逾期30天的状态（0-否，1-是）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all4",
+  "field": "id",
+  "my_desc": "进件id",
+  "ref_desc": "申请记录ID",
+  "my_logic": "直取 mx.wxs_vintage_all31.id（group by 键）",
+  "ref_logic": "贷款申请的唯一记录标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t0_overdue_amount_1",
+  "my_desc": "第1期 到期当天 逾期金额",
+  "ref_desc": "T0逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_0",
+  "ref_logic": "第一期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t3_overdue_amount_1",
+  "my_desc": "第1期 逾期3天 逾期金额",
+  "ref_desc": "T3逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_3",
+  "ref_logic": "第一期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t7_overdue_amount_1",
+  "my_desc": "第1期 逾期7天 逾期金额",
+  "ref_desc": "T7逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_7",
+  "ref_logic": "第一期贷款逾期7天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t30_overdue_amount_1",
+  "my_desc": "第1期 逾期30天 逾期金额",
+  "ref_desc": "T30逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_30",
+  "ref_logic": "第一期贷款逾期30天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t0_overdue_amount_2",
+  "my_desc": "第2期 到期当天 逾期金额",
+  "ref_desc": "T0逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_0",
+  "ref_logic": "第二期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t3_overdue_amount_2",
+  "my_desc": "第2期 逾期3天 逾期金额",
+  "ref_desc": "T3逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_3",
+  "ref_logic": "第二期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t7_overdue_amount_2",
+  "my_desc": "第2期 逾期7天 逾期金额",
+  "ref_desc": "T7逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_7",
+  "ref_logic": "第二期贷款逾期7天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t30_overdue_amount_2",
+  "my_desc": "第2期 逾期30天 逾期金额",
+  "ref_desc": "T30逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_30",
+  "ref_logic": "第二期贷款逾期30天的未还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t0_overdue_1",
+  "my_desc": "第1期 到期当天 是否逾期标记",
+  "ref_desc": "是否T0逾期（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_0",
+  "ref_logic": "标识第一期贷款是否处于逾期0天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t3_overdue_1",
+  "my_desc": "第1期 逾期3天 是否逾期标记",
+  "ref_desc": "是否T3逾期（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_3",
+  "ref_logic": "标识第一期贷款是否处于逾期3天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t7_overdue_1",
+  "my_desc": "第1期 逾期7天 是否逾期标记",
+  "ref_desc": "是否T7逾期（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_7",
+  "ref_logic": "标识第一期贷款是否处于逾期7天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t30_overdue_1",
+  "my_desc": "第1期 逾期30天 是否逾期标记",
+  "ref_desc": "是否T30逾期（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_30",
+  "ref_logic": "标识第一期贷款是否处于逾期30天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t0_overdue_2",
+  "my_desc": "第2期 到期当天 是否逾期标记",
+  "ref_desc": "是否T0逾期（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_0",
+  "ref_logic": "标识第二期贷款是否处于逾期0天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t3_overdue_2",
+  "my_desc": "第2期 逾期3天 是否逾期标记",
+  "ref_desc": "是否T3逾期（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_3",
+  "ref_logic": "标识第二期贷款是否处于逾期3天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t7_overdue_2",
+  "my_desc": "第2期 逾期7天 是否逾期标记",
+  "ref_desc": "是否T7逾期（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_7",
+  "ref_logic": "标识第二期贷款是否处于逾期7天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t30_overdue_2",
+  "my_desc": "第2期 逾期30天 是否逾期标记",
+  "ref_desc": "是否T30逾期（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_30",
+  "ref_logic": "标识第二期贷款是否处于逾期30天状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t0_should_amt_1",
+  "my_desc": "第1期 到期当天 应还金额",
+  "ref_desc": "T0应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_1_0",
+  "ref_logic": "第一期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t3_should_amt_1",
+  "my_desc": "第1期 逾期3天 应还金额",
+  "ref_desc": "T3应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_1_3",
+  "ref_logic": "第一期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t7_should_amt_1",
+  "my_desc": "第1期 逾期7天 应还金额",
+  "ref_desc": "T7应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_1_7",
+  "ref_logic": "第一期贷款T7时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t30_should_amt_1",
+  "my_desc": "第1期 逾期30天 应还金额",
+  "ref_desc": "T30应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_1_30",
+  "ref_logic": "第一期贷款T30时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t0_should_amt_2",
+  "my_desc": "第2期 到期当天 应还金额",
+  "ref_desc": "T0应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_2_0",
+  "ref_logic": "第二期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t3_should_amt_2",
+  "my_desc": "第2期 逾期3天 应还金额",
+  "ref_desc": "T3应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_2_3",
+  "ref_logic": "第二期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t7_should_amt_2",
+  "my_desc": "第2期 逾期7天 应还金额",
+  "ref_desc": "T7应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_2_7",
+  "ref_logic": "第二期贷款T7时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "t30_should_amt_2",
+  "my_desc": "第2期 逾期30天 应还金额",
+  "ref_desc": "T30应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_capital_2_30",
+  "ref_logic": "第二期贷款T30时间窗口内的应还金额（单位：比索）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t0_window_1",
+  "my_desc": "第1期 到期当天 窗口标记",
+  "ref_desc": "是否T0时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_1_0",
+  "ref_logic": "标识第一期贷款是否处于T0时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t3_window_1",
+  "my_desc": "第1期 逾期3天 窗口标记",
+  "ref_desc": "是否T3时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_1_3",
+  "ref_logic": "标识第一期贷款是否处于T3时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t7_window_1",
+  "my_desc": "第1期 逾期7天 窗口标记",
+  "ref_desc": "是否T7时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_1_7",
+  "ref_logic": "标识第一期贷款是否处于T7时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t30_window_1",
+  "my_desc": "第1期 逾期30天 窗口标记",
+  "ref_desc": "是否T30时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_1_30",
+  "ref_logic": "标识第一期贷款是否处于T30时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t0_window_2",
+  "my_desc": "第2期 到期当天 窗口标记",
+  "ref_desc": "是否T0时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_2_0",
+  "ref_logic": "标识第二期贷款是否处于T0时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t3_window_2",
+  "my_desc": "第2期 逾期3天 窗口标记",
+  "ref_desc": "是否T3时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_2_3",
+  "ref_logic": "标识第二期贷款是否处于T3时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t7_window_2",
+  "my_desc": "第2期 逾期7天 窗口标记",
+  "ref_desc": "是否T7时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_2_7",
+  "ref_logic": "标识第二期贷款是否处于T7时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t30_window_2",
+  "my_desc": "第2期 逾期30天 窗口标记",
+  "ref_desc": "是否T30时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_vintage_all4.should_cnt_2_30",
+  "ref_logic": "标识第二期贷款是否处于T30时间窗口内（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t0_overdue",
+  "my_desc": "进件级是否T0逾期(取各期次最大)",
+  "ref_desc": "是否T0逾期",
+  "my_logic": "GREATEST(overdue_cnt_1_0,overdue_cnt_2_0,overdue_cnt_3_0,overdue_cnt_4_0)，来自子查询b(基于mx.wxs_vintage_all4)",
+  "ref_logic": "标识是否处于逾期0天的状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t3_overdue",
+  "my_desc": "进件级是否T3逾期(取各期次最大)",
+  "ref_desc": "是否T3逾期",
+  "my_logic": "GREATEST(overdue_cnt_1_3,overdue_cnt_2_3,overdue_cnt_3_3,overdue_cnt_4_3)，来自子查询b(基于mx.wxs_vintage_all4)",
+  "ref_logic": "标识是否处于逾期3天的状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t7_overdue",
+  "my_desc": "进件级是否T7逾期(取各期次最大)",
+  "ref_desc": "是否T7逾期",
+  "my_logic": "GREATEST(overdue_cnt_1_7,overdue_cnt_2_7,overdue_cnt_3_7,overdue_cnt_4_7)，来自子查询b(基于mx.wxs_vintage_all4)",
+  "ref_logic": "标识是否处于逾期7天的状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_vintage_all5",
+  "field": "is_t30_overdue",
+  "my_desc": "进件级是否T30逾期(取各期次最大)",
+  "ref_desc": "是否T30逾期",
+  "my_logic": "GREATEST(overdue_cnt_1_30,overdue_cnt_2_30,overdue_cnt_3_30,overdue_cnt_4_30)，来自子查询b(基于mx.wxs_vintage_all4)",
+  "ref_logic": "标识是否处于逾期30天的状态（0-否，1-是）",
+  "decision": "采用期次口径（用户确认）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "camera_id",
+  "my_desc": "订单id(放款订单号)",
+  "ref_desc": "摄像头ID",
+  "my_logic": "直取 mx.wxs_risk_ttl.camera_id",
+  "ref_logic": "活体检测使用的摄像头标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "should_time",
+  "my_desc": "应还日期(按订单取最大应还日)",
+  "ref_desc": "应还款时间",
+  "my_logic": "直取 mx.wxs_risk_ttl.should_time",
+  "ref_logic": "每笔订单客户应还款的具体时间",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "should_capital",
+  "my_desc": "应还本金(按订单合计)",
+  "ref_desc": "应还本金",
+  "my_logic": "直取 mx.wxs_risk_ttl.should_capital",
+  "ref_logic": "每笔订单应还本金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "fact_capital",
+  "my_desc": "实还本金(按订单合计)",
+  "ref_desc": "实际还款本金",
+  "my_logic": "直取 mx.wxs_risk_ttl.fact_capital",
+  "ref_logic": "每笔订单实际已还本金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "should_interest",
+  "my_desc": "应还利息(按订单合计)",
+  "ref_desc": "应还利息",
+  "my_logic": "直取 mx.wxs_risk_ttl.should_interest",
+  "ref_logic": "每笔订单应还利息金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "fact_interest",
+  "my_desc": "实还利息(按订单合计)",
+  "ref_desc": "实际还款利息",
+  "my_logic": "直取 mx.wxs_risk_ttl.fact_interest",
+  "ref_logic": "每笔订单实际已还利息金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "should_fine",
+  "my_desc": "应还罚息(按订单合计)",
+  "ref_desc": "应还罚金",
+  "my_logic": "直取 mx.wxs_risk_ttl.should_fine",
+  "ref_logic": "每笔订单应还罚金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "fact_fine",
+  "my_desc": "实还罚息(按订单合计)",
+  "ref_desc": "实际还款罚金",
+  "my_logic": "直取 mx.wxs_risk_ttl.fact_fine",
+  "ref_logic": "每笔订单实际已还罚金金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "now_should_amt",
+  "my_desc": "当前应还总额(本金+利息)",
+  "ref_desc": "当前应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.now_should_amt",
+  "ref_logic": "客户当前应还款总额（单位：比索，含本金+利息）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "is_t0_window",
+  "my_desc": "是否已过应还日T0窗口(0/1)",
+  "ref_desc": "是否在T0时间窗口",
+  "my_logic": "直取 mx.wxs_risk_ttl.is_t0_window",
+  "ref_logic": "标识是否在T0时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "is_t3_window",
+  "my_desc": "是否已过T3窗口(0/1)",
+  "ref_desc": "是否在T3时间窗口",
+  "my_logic": "直取 mx.wxs_risk_ttl.is_t3_window",
+  "ref_logic": "标识是否在T3时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "is_t7_window",
+  "my_desc": "是否已过T7窗口(0/1)",
+  "ref_desc": "是否在T7时间窗口",
+  "my_logic": "直取 mx.wxs_risk_ttl.is_t7_window",
+  "ref_logic": "标识是否在T7时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "is_t14_window",
+  "my_desc": "是否已过T14窗口(0/1)",
+  "ref_desc": "是否在T14时间窗口",
+  "my_logic": "直取 mx.wxs_risk_ttl.is_t14_window",
+  "ref_logic": "标识是否在T14时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "is_t30_window",
+  "my_desc": "是否已过T30窗口(0/1)",
+  "ref_desc": "是否在T30时间窗口",
+  "my_logic": "直取 mx.wxs_risk_ttl.is_t30_window",
+  "ref_logic": "标识是否在T30时间窗口内（0-否，1-是）",
+  "decision": "采用SQL口径（应还日窗口）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t0_should_amt",
+  "my_desc": "T0窗口应还总额(应还日已到)",
+  "ref_desc": "T0应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t0_should_amt",
+  "ref_logic": "T0时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t3_should_amt",
+  "my_desc": "T3窗口应还总额(应还日+3天已到)",
+  "ref_desc": "T3应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t3_should_amt",
+  "ref_logic": "T3时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t7_should_amt",
+  "my_desc": "T7窗口应还总额(应还日+7天已到)",
+  "ref_desc": "T7应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t7_should_amt",
+  "ref_logic": "T7时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t14_should_amt",
+  "my_desc": "T14窗口应还总额(应还日+14天已到)",
+  "ref_desc": "T14应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t14_should_amt",
+  "ref_logic": "T14时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t30_should_amt",
+  "my_desc": "T30窗口应还总额(应还日+30天已到)",
+  "ref_desc": "T30应还金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t30_should_amt",
+  "ref_logic": "T30时间窗口内的应还金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "now_fact_amt",
+  "my_desc": "当前实还总额(本金+利息)",
+  "ref_desc": "当前实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.now_fact_amt",
+  "ref_logic": "客户当前实际还款总额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t0_fact_amt",
+  "my_desc": "T0窗口实还总额(截至应还日)",
+  "ref_desc": "T0实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t0_fact_amt",
+  "ref_logic": "T0时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t3_fact_amt",
+  "my_desc": "T3窗口实还总额(截至应还日+3天)",
+  "ref_desc": "T3实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t3_fact_amt",
+  "ref_logic": "T3时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t7_fact_amt",
+  "my_desc": "T7窗口实还总额(截至应还日+7天)",
+  "ref_desc": "T7实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t7_fact_amt",
+  "ref_logic": "T7时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t14_fact_amt",
+  "my_desc": "T14窗口实还总额(截至应还日+14天)",
+  "ref_desc": "T14实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t14_fact_amt",
+  "ref_logic": "T14时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t30_fact_amt",
+  "my_desc": "T30窗口实还总额(截至应还日+30天)",
+  "ref_desc": "T30实际还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.t30_fact_amt",
+  "ref_logic": "T30时间窗口内的实际还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t0_should_num",
+  "my_desc": "T0窗口应还期数标记(应还日已到=1)",
+  "ref_desc": "T0应还笔数",
+  "my_logic": "直取 mx.wxs_risk_ttl.t0_should_num",
+  "ref_logic": "T0时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t3_should_num",
+  "my_desc": "T3窗口应还期数标记(应还日+3天已到=1)",
+  "ref_desc": "T3应还笔数",
+  "my_logic": "直取 mx.wxs_risk_ttl.t3_should_num",
+  "ref_logic": "T3时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t7_should_num",
+  "my_desc": "T7窗口应还期数标记(应还日+7天已到=1)",
+  "ref_desc": "T7应还笔数",
+  "my_logic": "直取 mx.wxs_risk_ttl.t7_should_num",
+  "ref_logic": "T7时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t14_should_num",
+  "my_desc": "T14窗口应还期数标记(应还日+14天已到=1)",
+  "ref_desc": "T14应还笔数",
+  "my_logic": "直取 mx.wxs_risk_ttl.t14_should_num",
+  "ref_logic": "T14时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "t30_should_num",
+  "my_desc": "T30窗口应还期数标记(应还日+30天已到=1)",
+  "ref_desc": "T30应还笔数",
+  "my_logic": "直取 mx.wxs_risk_ttl.t30_should_num",
+  "ref_logic": "T30时间窗口内的应还账单笔数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "pre_p2_repay",
+  "my_desc": "提前超过2天还款金额(本+息)",
+  "ref_desc": "提前两天还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.pre_p2_repay",
+  "ref_logic": "提前两天还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "p2_repay",
+  "my_desc": "提前2天还款金额(本+息)",
+  "ref_desc": "还款日前两天当天还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.p2_repay",
+  "ref_logic": "还款日前两天当天还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "p2_repaytt",
+  "my_desc": "提前>=2天还款金额(本+息)",
+  "ref_desc": "第二期还款总额",
+  "my_logic": "直取 mx.wxs_risk_ttl.p2_repaytt",
+  "ref_logic": "第二期的还款总额（本金+利息，单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "p1_repay",
+  "my_desc": "提前1天还款金额(本+息)",
+  "ref_desc": "第一期还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.p1_repay",
+  "ref_logic": "第一期的还款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "p0_repay",
+  "my_desc": "到期日当天还款金额(本+息)",
+  "ref_desc": "当前期还款金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.p0_repay",
+  "ref_logic": "当前期应还的金额（单位：比索，含本金+利息）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "now_OVERDUE_AMOUNT",
+  "my_desc": "当前逾期金额",
+  "ref_desc": "当前逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.now_OVERDUE_AMOUNT",
+  "ref_logic": "每一笔订单当前所有逾期未还的总金额（单位：比索）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "T0_OVERDUE_AMOUNT",
+  "my_desc": "T0窗口逾期金额",
+  "ref_desc": "T0逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.T0_OVERDUE_AMOUNT",
+  "ref_logic": "逾期0天（即当天）未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "T3_OVERDUE_AMOUNT",
+  "my_desc": "T3窗口逾期金额",
+  "ref_desc": "T3逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.T3_OVERDUE_AMOUNT",
+  "ref_logic": "逾期3天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "T7_OVERDUE_AMOUNT",
+  "my_desc": "T7窗口逾期金额",
+  "ref_desc": "T7逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.T7_OVERDUE_AMOUNT",
+  "ref_logic": "逾期7天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "T14_OVERDUE_AMOUNT",
+  "my_desc": "T14窗口逾期金额",
+  "ref_desc": "T14逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.T14_OVERDUE_AMOUNT",
+  "ref_logic": "逾期14天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_overdue_basetable",
+  "field": "T30_OVERDUE_AMOUNT",
+  "my_desc": "T30窗口逾期金额",
+  "ref_desc": "T30逾期金额",
+  "my_logic": "直取 mx.wxs_risk_ttl.T30_OVERDUE_AMOUNT",
+  "ref_logic": "逾期30天未还的金额（单位：比索）",
+  "decision": "采用SQL口径（应还日时点截止）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "reloan_num",
+  "my_desc": "复贷期数/第几贷（首贷=1，复贷=历史放款次数+1）",
+  "ref_desc": "复贷次数",
+  "my_logic": "直取 mx.wxs_reloan.reloan_num",
+  "ref_logic": "客户历史复贷次数",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "grant_strategy",
+  "my_desc": "首贷/复贷标记",
+  "ref_desc": "借贷类型",
+  "my_logic": "直取 mx.wxs_reloan.grant_strategy（首贷/复贷）",
+  "ref_logic": "借贷类型（如首贷、复贷）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "channel_category",
+  "my_desc": "渠道大类(FB/google/apple/tz/qudao/yunying/organic)",
+  "ref_desc": "渠道分类",
+  "my_logic": "按 a2.media_source(register_success) 的 CASE WHEN：facebook→FB, google→google, Apple Search Ads→apple, organic/dc1/tz1-5/tanzhi→tz, luxmediakx_int等12个→qudao, Tengo_to_Yawey_all/yawey_to_tengo_all/direction_toApp/SMS等运营→yunying, else→organic",
+  "ref_logic": "申请渠道分类（如organic、tz）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app",
+  "my_desc": "APP名(hola/hola se/hola max/hola pro/yawey/yawey_plus/yawey_ultra/yawey_max/tengo/voltrix/tengo_plus/tengo_ultra/tengo_max/pf)",
+  "ref_desc": "应用标识",
+  "my_logic": "按 a.app_channel(channel_uuid) 的 CASE WHEN 映射：fe939ba4→hola, faa92afe→hola se, 4cc31ae6→hola max, db0d289f→hola pro, 56c660de→yawey, cdf58da5→yawey_plus, 9922eb08→yawey_ultra, ab9981d2→yawey_max, 2930a02e→tengo, 91379659→voltrix, cbcf1f5e→tengo_plus, e5a5940e→tengo_ultra, 6d21fe7d→tengo_max, 026f5e80→pf，else→e.app_name",
+  "ref_logic": "客户使用的APP包名",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_group",
+  "my_desc": "APP分组（如YW等）",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 e.app_group (ods.s08_app_category_mapping)",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_id",
+  "my_desc": "进件单号",
+  "ref_desc": "应用ID",
+  "my_logic": "b.biz_id (s05_creditx_order)",
+  "ref_logic": "应用的唯一标识",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "cust_name",
+  "my_desc": "客户姓名",
+  "ref_desc": "客户姓名",
+  "my_logic": "直取 b.cust_name",
+  "ref_logic": "客户姓名（与name重复）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "phone_num",
+  "my_desc": "客户手机号",
+  "ref_desc": "客户电话号码",
+  "my_logic": "直取 b.phone_num",
+  "ref_logic": "客户联系电话（与phone重复）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "product_type",
+  "my_desc": "产品类型",
+  "ref_desc": "产品类型",
+  "my_logic": "直取 b.product_type",
+  "ref_logic": "贷款产品类型",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_time",
+  "my_desc": "申请时间（即进件时间）",
+  "ref_desc": "申请时间",
+  "my_logic": "b.create_time as app_time",
+  "ref_logic": "每笔贷款订单申请的具体时间",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "apply_time",
+  "my_desc": "申请时间(另一口径字段)",
+  "ref_desc": "申请时间",
+  "my_logic": "直取 b.apply_time",
+  "ref_logic": "每笔贷款订单申请的具体时间(精确到毫秒)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "status",
+  "my_desc": "进件状态（0申请/1执行中/372已通过/425已拒绝）",
+  "ref_desc": "申请状态",
+  "my_logic": "直取 b.status",
+  "ref_logic": "贷款申请状态",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "is_loan",
+  "my_desc": "是否放款标记",
+  "ref_desc": "是否贷款",
+  "my_logic": "直取 b.is_loan",
+  "ref_logic": "标识客户是否成功贷款（Yes：1/No:0）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "product_name",
+  "my_desc": "产品名称",
+  "ref_desc": "biz_id",
+  "my_logic": "直取 b.product_name",
+  "ref_logic": "t0_overdue_amount_1",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "double_loan",
+  "my_desc": "复贷次数标记",
+  "ref_desc": "是否为复贷",
+  "my_logic": "直取 b.double_loan",
+  "ref_logic": "标识是否为复贷（0-否，1-是，与is_reloan含义相同）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "source",
+  "my_desc": "进件来源",
+  "ref_desc": "系统",
+  "my_logic": "直取 b.source",
+  "ref_logic": "申请来源（如Android、ios）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "is_reloan",
+  "my_desc": "是否复贷(old/new)",
+  "ref_desc": "是否复贷",
+  "my_logic": "CASE：double_loan_tenant=1→old, =0→new, null时若 app_channel 在复贷APP列表(cdf58da5/cbcf1f5e等11个uuid)→old，否则按 b.double_loan>0→old, =0→new",
+  "ref_logic": "标识是否为复贷订单（new/old）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "repayment",
+  "my_desc": "还款方式",
+  "ref_desc": "还款方式",
+  "my_logic": "直取 b.repayment",
+  "ref_logic": "还款方式（4,6,7）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "apply_period",
+  "my_desc": "申请期数",
+  "ref_desc": "申请周期",
+  "my_logic": "直取 b.apply_period",
+  "ref_logic": "客户申请周期（如首次申请、复贷申请）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_version",
+  "my_desc": "APP版本号",
+  "ref_desc": "应用版本",
+  "my_logic": "直取 b.app_version",
+  "ref_logic": "客户使用的应用版本号",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "grantcredit_amount",
+  "my_desc": "授信额度",
+  "ref_desc": "授信额度",
+  "my_logic": "直取 b.grantcredit_amount",
+  "ref_logic": "系统授予客户的信用额度",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "loan_cycle",
+  "my_desc": "产品期限(天)",
+  "ref_desc": "贷款周期（天）",
+  "my_logic": "ceil(c.loan_cycle)",
+  "ref_logic": "每笔贷款的总天数（如7天、14天）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "contract_amount",
+  "my_desc": "合同金额",
+  "ref_desc": "合同金额",
+  "my_logic": "直取 c.contract_amount (s02_loan)",
+  "ref_logic": "贷款合同签订的总金额（单位：比索）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "amount",
+  "my_desc": "实际放款金额",
+  "ref_desc": "实际金额（冗余字段）",
+  "my_logic": "直取 c.amount",
+  "ref_logic": "实际贷款金额（与contract_amount重复）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "haircut_amount",
+  "my_desc": "砍头息",
+  "ref_desc": "前砍金额",
+  "my_logic": "直取 c.haircut_amount",
+  "ref_logic": "砍头息",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "release_time",
+  "my_desc": "放款时间",
+  "ref_desc": "放款时间",
+  "my_logic": "直取 c.release_time",
+  "ref_logic": "每笔贷款实际放款时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "cancel_time",
+  "my_desc": "取消时间",
+  "ref_desc": "取消时间",
+  "my_logic": "直取 c.cancel_time",
+  "ref_logic": "每笔贷款申请取消时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "finish_time",
+  "my_desc": "结清时间",
+  "ref_desc": "结清时间",
+  "my_logic": "直取 c.finish_time",
+  "ref_logic": "每笔贷款完成时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "loan_state",
+  "my_desc": "放款状态（0待审核/1已放款/2正常结清/3核销/4取消/5放款失败/6审核拒绝/7放款中）",
+  "ref_desc": "贷款状态",
+  "my_logic": "c.state as loan_state",
+  "ref_logic": "贷款当前状态（0-正常，1-逾期，2-结清，4-未成交等）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "loan_indexs",
+  "my_desc": "分期期数",
+  "ref_desc": "贷款期数",
+  "my_logic": "直取 c.loan_indexs",
+  "ref_logic": "贷款期数",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "if_app",
+  "my_desc": "是否进件(0/1)",
+  "ref_desc": "是否申请标志",
+  "my_logic": "CASE WHEN b.biz_id IS NOT NULL THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否发起申请（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "if_pass",
+  "my_desc": "是否机审通过(0/1)",
+  "ref_desc": "是否通过标志",
+  "my_logic": "CASE WHEN b.status=372 then 1 else 0 end",
+  "ref_logic": "标识申请是否通过（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "IF_BID",
+  "my_desc": "是否发标(0/1)",
+  "ref_desc": "是否投标标志",
+  "my_logic": "CASE WHEN b.is_loan='1' THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否进入投标流程（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "if_cancel",
+  "my_desc": "是否取消(0/1)",
+  "ref_desc": "是否取消标志",
+  "my_logic": "CASE WHEN c.cancel_time IS NOT NULL THEN 1 ELSE 0 END",
+  "ref_logic": "标识申请是否取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "if_issue",
+  "my_desc": "是否放款(0/1)",
+  "ref_desc": "是否放款标志",
+  "my_logic": "CASE WHEN d.should_time IS NOT NULL THEN 1 ELSE 0 END",
+  "ref_logic": "标识是否已放款（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "apply_amount",
+  "my_desc": "用户申请额度(千元)",
+  "ref_desc": "申请金额",
+  "my_logic": "cast(b.apply_amount/1000 as decimal)",
+  "ref_logic": "客户本次申请的金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "approve_amount",
+  "my_desc": "审批额度(千元)",
+  "ref_desc": "审批金额",
+  "my_logic": "cast(b.approve_amount/1000 as decimal)",
+  "ref_logic": "风控审批通过的金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "issue_amount",
+  "my_desc": "放款金额(实际)",
+  "ref_desc": "放款金额",
+  "my_logic": "CASE WHEN d.should_capital IS NOT NULL then cast(c.amount as decimal) else 0 end",
+  "ref_logic": "实际放款金额（单位：比索）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "should_amount",
+  "my_desc": "应还金额",
+  "ref_desc": "应还总额",
+  "my_logic": "cast(d.should_capital as decimal)",
+  "ref_logic": "当前应还总额（本金+利息+罚金，单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "repay_amount",
+  "my_desc": "实还本金",
+  "ref_desc": "还款金额",
+  "my_logic": "cast(d.fact_capital as decimal)",
+  "ref_logic": "客户实际还款金额（单位：比索）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_date",
+  "my_desc": "进件日",
+  "ref_desc": "申请日期",
+  "my_logic": "date(b.create_time)",
+  "ref_logic": "每笔订单申请日期",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_week",
+  "my_desc": "进件周",
+  "ref_desc": "申请周",
+  "my_logic": "date_trunc('week',date(b.create_time))",
+  "ref_logic": "每笔订单申请日期所在周（按周起始日划分）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "app_month",
+  "my_desc": "进件月",
+  "ref_desc": "申请月",
+  "my_logic": "date_trunc('month',date(b.create_time))",
+  "ref_logic": "每笔订单申请日期所在月份",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "issue_date",
+  "my_desc": "放款日",
+  "ref_desc": "放款日期",
+  "my_logic": "date(c.release_time)",
+  "ref_logic": "每笔订单实际放款日期",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "issue_week",
+  "my_desc": "放款周",
+  "ref_desc": "放款周",
+  "my_logic": "date_trunc('week',date(c.release_time))",
+  "ref_logic": "每笔订单放款日期所在周",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "issue_month",
+  "my_desc": "放款月",
+  "ref_desc": "放款月",
+  "my_logic": "date_trunc('month',date(c.release_time))",
+  "ref_logic": "每笔订单放款日期所在月份",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "deadline",
+  "my_desc": "到期日",
+  "ref_desc": "截止日期",
+  "my_logic": "date(d.should_time)",
+  "ref_logic": "贷款截止日期（如还款截止日）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_1",
+  "field": "credit_no",
+  "my_desc": "授信编号",
+  "ref_desc": "信用编号",
+  "my_logic": "裸字段直取（未加表别名，应为 s05_creditx_order 或 s09 快照字段，来源待确认）",
+  "ref_logic": "客户身份证唯一标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "BIZ_ID",
+  "my_desc": "进件单号（与 funnel_1.app_id 关联）",
+  "ref_desc": "业务ID",
+  "my_logic": "直取 b.biz_id (s05_creditx_order)",
+  "ref_logic": "订单唯一标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_anti_fraud",
+  "my_desc": "是否进入首贷强反欺诈节点(0/1)",
+  "ref_desc": "是否进入首贷反欺诈",
+  "my_logic": "p1子查询(current_processor='首贷强反欺诈')，进入即1",
+  "ref_logic": "标识是否进入首贷反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_anti_fraud_passed",
+  "my_desc": "首贷强反欺诈是否通过(0/1)",
+  "ref_desc": "首贷反欺诈是否通过",
+  "my_logic": "sum(case when approve_result='REFUSED' then 1 end) is null→1，即无REFUSED记录视为通过",
+  "ref_logic": "标识首贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_anti_fraud_refused",
+  "my_desc": "首贷强反欺诈是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷反欺诈",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识首贷反欺诈审核是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_anti_fraud",
+  "my_desc": "是否进入复贷强反欺诈节点(0/1)",
+  "ref_desc": "是否进入复贷反欺诈",
+  "my_logic": "p2子查询(current_processor='复贷强反欺诈')，进入即1",
+  "ref_logic": "标识是否进入复贷反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_anti_fraud_passed",
+  "my_desc": "复贷强反欺诈是否通过(0/1)",
+  "ref_desc": "复贷反欺诈是否通过",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识复贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_anti_fraud_refused",
+  "my_desc": "复贷强反欺诈是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷反欺诈",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷反欺诈审核是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_anti_fraud_weak",
+  "my_desc": "是否进入首贷弱反欺诈节点(0/1)",
+  "ref_desc": "是否进入首贷弱规则反欺诈",
+  "my_logic": "p3子查询(current_processor='首贷弱反欺诈')，进入即1",
+  "ref_logic": "标识是否进入首贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_anti_fraud_weak_passed",
+  "my_desc": "首贷弱反欺诈是否通过(0/1)",
+  "ref_desc": "首贷弱规则反欺诈是否通过",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识首贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_anti_fraud_weak_refused",
+  "my_desc": "首贷弱反欺诈是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷弱规则反欺诈",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识首贷弱规则反欺诈是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_anti_fraud_weak",
+  "my_desc": "是否进入复贷弱反欺诈节点(0/1)",
+  "ref_desc": "是否进入复贷弱规则反欺诈",
+  "my_logic": "p4子查询(current_processor='复贷弱反欺诈')，进入即1",
+  "ref_logic": "标识是否进入复贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_anti_fraud_weak_passed",
+  "my_desc": "复贷弱反欺诈是否通过(0/1)",
+  "ref_desc": "复贷弱规则反欺诈是否通过",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识复贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_anti_fraud_weak_refused",
+  "my_desc": "复贷弱反欺诈是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷弱规则反欺诈",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷弱规则反欺诈是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_model",
+  "my_desc": "是否进入首贷模型拒绝节点(0/1)",
+  "ref_desc": "是否进入首贷模型",
+  "my_logic": "p5子查询(current_processor='首贷模型拒绝')，进入即1",
+  "ref_logic": "标识是否进入首贷模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_model_passed",
+  "my_desc": "首贷模型是否通过(0/1)",
+  "ref_desc": "是否通过首贷模型",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识首贷模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_model_refused",
+  "my_desc": "首贷模型是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷模型",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识首贷模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_model",
+  "my_desc": "是否进入复贷模型拒绝节点(0/1)",
+  "ref_desc": "是否进入复贷模型",
+  "my_logic": "p6子查询(current_processor='复贷模型拒绝')，进入即1",
+  "ref_logic": "标识是否进入复贷模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_model_passed",
+  "my_desc": "复贷模型是否通过(0/1)",
+  "ref_desc": "是否通过复贷模型",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识复贷模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_model_refused",
+  "my_desc": "复贷模型是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷模型",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_normal_check",
+  "my_desc": "是否进入首贷人审节点(0/1)",
+  "ref_desc": "是否进入首贷常规检查",
+  "my_logic": "p7子查询(current_processor in '首贷初审','人审节点')，进入即1",
+  "ref_logic": "标识是否进入首贷常规人工检查节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_check_passed",
+  "my_desc": "首贷人审是否通过(0/1)",
+  "ref_desc": "首贷常规检查是否通过",
+  "my_logic": "approve_result='PASSED'记录>=1→1",
+  "ref_logic": "标识首贷常规人工检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_check_refused",
+  "my_desc": "首贷人审是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷常规检查",
+  "my_logic": "approve_result='REFUSED'记录>=1→1",
+  "ref_logic": "标识首贷常规人工检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_check_canceled",
+  "my_desc": "首贷人审是否取消(0/1)",
+  "ref_desc": "是否取消首贷常规检查",
+  "my_logic": "approve_result='CANCELED'记录>=1→1",
+  "ref_logic": "标识首贷常规人工检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_manual_check_pending",
+  "my_desc": "首贷人审是否待处理(0/1)",
+  "ref_desc": "首贷人工检查是否待处理",
+  "my_logic": "approve_result is null 记录>=1→1",
+  "ref_logic": "标识首贷人工检查是否处于待处理状态（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_manual_check",
+  "my_desc": "是否进入复贷人审节点(0/1)",
+  "ref_desc": "是否进入复贷人工检查",
+  "my_logic": "p8子查询(current_processor='复贷初审')，进入即1",
+  "ref_logic": "标识是否进入复贷人工检查节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_check_passed",
+  "my_desc": "复贷人审是否通过(0/1)",
+  "ref_desc": "复贷常规检查是否通过",
+  "my_logic": "PASSED记录>=1→1",
+  "ref_logic": "标识复贷常规人工检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_check_refused",
+  "my_desc": "复贷人审是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷常规检查",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷常规人工检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_check_canceled",
+  "my_desc": "复贷人审是否取消(0/1)",
+  "ref_desc": "是否取消复贷常规检查",
+  "my_logic": "CANCELED记录>=1→1",
+  "ref_logic": "标识复贷常规人工检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_manual_check_pending",
+  "my_desc": "复贷人审是否待处理(0/1)",
+  "ref_desc": "复贷人工检查是否待处理",
+  "my_logic": "approve_result is null 记录>=1→1",
+  "ref_logic": "标识复贷人工检查是否处于待处理状态（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_external_data",
+  "my_desc": "是否进入首贷三方节点(0/1)",
+  "ref_desc": "是否进入首贷外部数据验证",
+  "my_logic": "p9子查询(current_processor='首贷三方节点')，进入即1",
+  "ref_logic": "标识是否调用外部数据源验证首贷申请（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_external_data_passed",
+  "my_desc": "首贷三方是否通过(0/1)",
+  "ref_desc": "首贷外部数据验证是否通过",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识首贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_external_data_refused",
+  "my_desc": "首贷三方是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷外部数据验证",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识首贷外部数据验证是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_external_data",
+  "my_desc": "是否进入复贷三方节点(0/1)",
+  "ref_desc": "是否进入复贷外部数据验证",
+  "my_logic": "p10子查询(current_processor='复贷三方节点')，进入即1",
+  "ref_logic": "标识是否调用外部数据源验证复贷申请（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_external_data_passed",
+  "my_desc": "复贷三方是否通过(0/1)",
+  "ref_desc": "复贷外部数据验证是否通过",
+  "my_logic": "无REFUSED记录→1",
+  "ref_logic": "标识复贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_external_data_refused",
+  "my_desc": "复贷三方是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷外部数据验证",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷外部数据验证是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_shou_normal_rule_check",
+  "my_desc": "是否进入人审规则节点(首贷)(0/1)",
+  "ref_desc": "是否进入首贷常规规则检查",
+  "my_logic": "p11子查询(current_processor='人审规则节点')，进入即1",
+  "ref_logic": "标识是否进入首贷常规规则引擎检查（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_rule_check_passed",
+  "my_desc": "首贷人审规则是否通过(0/1)",
+  "ref_desc": "首贷常规规则检查是否通过",
+  "my_logic": "json_extract(context_result,'$.myDecisionResult') is null 记录>=1→1",
+  "ref_logic": "标识首贷常规规则引擎检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_rule_check_canceled",
+  "my_desc": "首贷人审规则是否取消(0/1)",
+  "ref_desc": "是否取消首贷常规规则检查",
+  "my_logic": "myDecisionResult='cancel'记录>=1→1",
+  "ref_logic": "标识首贷常规规则检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_normal_rule_check_refused",
+  "my_desc": "首贷人审规则是否拒绝(0/1)",
+  "ref_desc": "是否拒绝首贷常规规则检查",
+  "my_logic": "myDecisionResult='reject'记录>=1→1",
+  "ref_logic": "标识首贷常规规则检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_rule_check_passed",
+  "my_desc": "复贷人审规则是否通过(0/1)",
+  "ref_desc": "复贷常规规则检查是否通过",
+  "my_logic": "p12子查询(current_processor='复贷人审规则')，myDecisionResult is null记录>=1→1",
+  "ref_logic": "标识复贷常规规则引擎检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_rule_check_canceled",
+  "my_desc": "复贷人审规则是否取消(0/1)",
+  "ref_desc": "是否取消复贷常规规则检查",
+  "my_logic": "myDecisionResult='cancel'记录>=1→1",
+  "ref_logic": "标识复贷常规规则检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_normal_rule_check_refused",
+  "my_desc": "复贷人审规则是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷常规规则检查",
+  "my_logic": "myDecisionResult='reject'记录>=1→1",
+  "ref_logic": "标识复贷常规规则检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_SD_AI",
+  "my_desc": "是否进入电核规则节点(SD AI)(0/1)",
+  "ref_desc": "是否进入首贷AI模型",
+  "my_logic": "p13子查询(current_processor='电核规则节点')，进入即1",
+  "ref_logic": "标识是否进入首贷AI模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_AI_passed",
+  "my_desc": "电核AI是否通过(0/1)",
+  "ref_desc": "首贷AI模型是否通过",
+  "my_logic": "approve_result='PASSED'记录>=1→1",
+  "ref_logic": "标识首贷AI模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_AI_PENDING",
+  "my_desc": "电核AI是否待处理(0/1)",
+  "ref_desc": "首贷AI模型是否待处理",
+  "my_logic": "approve_result='WAITING'记录>=1→1",
+  "ref_logic": "标识首贷AI模型评分是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_FD_AI",
+  "my_desc": "是否进入FD AI节点(0/1)",
+  "ref_desc": "是否进入复贷AI模型",
+  "my_logic": "p14子查询(current_processor='FDAI')，进入即1",
+  "ref_logic": "标识是否进入复贷AI模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_FU_AI_passed",
+  "my_desc": "FD AI是否通过(0/1)",
+  "ref_desc": "复贷AI模型是否通过",
+  "my_logic": "PASSED记录>=1→1",
+  "ref_logic": "标识复贷AI模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_FU_AI_refused",
+  "my_desc": "FD AI是否拒绝(0/1)",
+  "ref_desc": "是否拒绝复贷AI模型",
+  "my_logic": "REFUSED记录>=1→1",
+  "ref_logic": "标识复贷AI模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_FU_AI_PENDING",
+  "my_desc": "FD AI是否待处理(0/1)",
+  "ref_desc": "复贷AI模型是否待处理",
+  "my_logic": "WAITING记录>=1→1",
+  "ref_logic": "标识复贷AI模型评分是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_sx",
+  "my_desc": "是否进入首贷/复贷授信等待节点(0/1)",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "p15子查询(current_processor in '首贷授信等待节点','复贷授信等待节点')，进入即1",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_SX_passed",
+  "my_desc": "授信等待是否通过(0/1)",
+  "ref_desc": "是否用信",
+  "my_logic": "PASSED记录>=1→1",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_SX_WAITING",
+  "my_desc": "授信等待中(0/1)",
+  "ref_desc": "授信流程是否待处理",
+  "my_logic": "WAITING记录>=1→1",
+  "ref_logic": "标识授信节点是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_normal_rule_check",
+  "my_desc": "是否进入复贷人审规则节点(0/1)",
+  "ref_desc": "是否进入首贷常规规则检查",
+  "my_logic": "p12子查询('复贷人审规则')，进入即1",
+  "ref_logic": "标识是否进入首贷常规规则引擎检查（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_shou_ai_refused",
+  "my_desc": "电核AI是否拒绝(首贷)(0/1)",
+  "ref_desc": "是否拒绝首贷AI模型",
+  "my_logic": "p13，REFUSED记录>=1→1",
+  "ref_logic": "标识首贷AI模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_fu_sx_refuse",
+  "my_desc": "是否进入复贷授信拒绝节点(0/1)",
+  "ref_desc": "是否进入复贷授信拒绝流程",
+  "my_logic": "p16子查询(current_processor='复贷授信拒绝')，进入即1",
+  "ref_logic": "标识是否进入复贷授信拒绝复审节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_sx_refuse_passed",
+  "my_desc": "复贷授信拒绝节点是否通过(0/1)",
+  "ref_desc": "复贷授信拒绝复审是否通过",
+  "my_logic": "PASSED记录>=1→1",
+  "ref_logic": "标识复贷授信拒绝复审结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_fu_sx_refuse_WAITING",
+  "my_desc": "复贷授信拒绝节点是否等待(0/1)",
+  "ref_desc": "复贷授信拒绝复审是否待处理",
+  "my_logic": "WAITING记录>=1→1",
+  "ref_logic": "标识复贷授信拒绝复审是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_sx_6h",
+  "my_desc": "授信等待>6小时仍无结果标记(0/1)",
+  "ref_desc": "是否进入6小时授信流程",
+  "my_logic": "date_diff('minute',create_time,now)>=6*60 记录>=1→1",
+  "ref_logic": "标识是否进入6小时内快速授信节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_sx_24h",
+  "my_desc": "授信等待>24小时仍无结果标记(0/1)",
+  "ref_desc": "是否进入24小时授信流程",
+  "my_logic": "date_diff>=24*60 记录>=1→1",
+  "ref_logic": "标识是否进入24小时内标准授信节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_SX_passed_6h",
+  "my_desc": "授信通过但耗时>6h才出结果标记(0/1)",
+  "ref_desc": "6小时授信是否通过",
+  "my_logic": "PASSED 且 update_time-create_time<=6h 且 距now>=6h 记录>=1→1",
+  "ref_logic": "标识6小时快速授信结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_SX_passed_24h",
+  "my_desc": "授信通过但耗时>24h才出结果标记(0/1)",
+  "ref_desc": "24小时授信是否通过",
+  "my_logic": "PASSED 且 <=24h 且 距now>=24h 记录>=1→1",
+  "ref_logic": "标识24小时标准授信结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "01墨西哥风险宽表新口径.sql",
+  "table": "mx.wxs_application_funnel_2",
+  "field": "if_in_post_model",
+  "my_desc": "是否进入首贷后置模型拒绝节点(0/1)",
+  "ref_desc": "是否进入贷后模型",
+  "my_logic": "p20子查询(current_processor='首贷后置模型拒绝节点')，进入即1（注：p20内 if_post_model_passed/refused 未在外层SELECT输出）",
+  "ref_logic": "标识是否进入贷后模型评分(0-否，1-是)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "credit_amount",
+  "my_desc": "结清后的授信额度",
+  "ref_desc": "授信总额",
+  "my_logic": "来自 {t0中间表: ods.s21_risk_strategy_record, productid=428 结清授信决策流 outputdata}，口径见文档第二部分步骤2-9",
+  "ref_logic": "客户历史累计授信金额（单位：比索）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "create_time",
+  "my_desc": "结清后5天内进件记录的创建时间",
+  "ref_desc": "记录创建时间",
+  "my_logic": "来自 {mx.wxs_application_funnel（is_settle_adjust_quota_flag=1的进件）}，关联条件为 settle_time < create_time 且 date_diff<5",
+  "ref_logic": "记录订单创建的具体时间（精确到毫秒）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "app_time",
+  "my_desc": "进件时间",
+  "ref_desc": "申请时间",
+  "my_logic": "来自 {mx.wxs_application_funnel}，后续时间窗口统计(date_diff(settle_time,app_time))的基础",
+  "ref_logic": "每笔贷款订单申请的具体时间",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "biz_id",
+  "my_desc": "进件ID",
+  "ref_desc": "业务ID",
+  "my_logic": "来自 {mx.wxs_application_funnel}，关联进件主表",
+  "ref_logic": "订单唯一标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "identity",
+  "my_desc": "用户身份标识（identity↔mid映射）",
+  "ref_desc": "客户身份标识",
+  "my_logic": "来自步骤1 mx.darren_identity_mid_base_table：ods.s01_mem_base_info.identity LEFT JOIN ods.s01_mem_member_account(mb_cust_id=cust_id)，一个identity可能对应多个mid",
+  "ref_logic": "客户身份类型（如身份证、护照等）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "table": "mx.darren_jieqing_dt_table",
+  "field": "mid",
+  "my_desc": "会员ID",
+  "ref_desc": "客户号",
+  "my_logic": "来自 mx.darren_identity_mid_base_table（ods.s01_mem_member_account）",
+  "ref_logic": "手机号+app唯一",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "double_loan_2",
+  "my_desc": "首复贷标签(优先 e 表决策流，次取 b.double_loan)",
+  "ref_desc": "二次贷款标识",
+  "my_logic": "case when e.double_loan_tenant is not null then e.double_loan_tenant when e.double_loan_tenant is null and b.double_loan is not null then b.double_loan else 0 end",
+  "ref_logic": "备用二次贷款标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "app_group",
+  "my_desc": "渠道分组",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 b.app_group",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "new_media_source",
+  "my_desc": "新媒体来源（小渠道归并）",
+  "ref_desc": "获客渠道",
+  "my_logic": "case when new_media_source IN ('vfine_int','dc1','jc','创蓝') then '小渠道' else new_media_source end",
+  "ref_logic": "获客渠道",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "campaign_name",
+  "my_desc": "营销活动名（按 campaign 关键字映射）",
+  "ref_desc": "活动名称",
+  "my_logic": "case when lower(campaign) like '%cpf07%' then 'cpf07' when lower(campaign) like '%cpf10%' then 'cpf10' when lower(campaign) like '%cpf06%' then 'cpf06' when lower(campaign) like '%cpx05%' then 'X05' when lower(campaign) like '%cpx07%' or lower(campaign) like '%cpx%' then 'X07' when lower(campaign) like '%cpv%2%' and lower(campaign) like '%bin1to8%' then 'cpv2_bin1to8' when lower(campaign) like '%cpv%2%' and lower(campaign) like '%weighted%' then 'cpv2_weighted' when lower(campaign) like '%cpv%' then 'cpv' else '其他' end",
+  "ref_logic": "营销活动名称简写",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_anti_fraud",
+  "my_desc": "首贷强反欺诈节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷反欺诈",
+  "my_logic": "p1子查询固定置 1",
+  "ref_logic": "标识是否进入首贷反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_anti_fraud_passed",
+  "my_desc": "首贷强反欺诈节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "首贷反欺诈是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识首贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_anti_fraud_refused",
+  "my_desc": "首贷强反欺诈节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝首贷反欺诈",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷反欺诈审核是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_anti_fraud",
+  "my_desc": "复贷强反欺诈节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷反欺诈",
+  "my_logic": "p2子查询固定置 1",
+  "ref_logic": "标识是否进入复贷反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_anti_fraud_passed",
+  "my_desc": "复贷强反欺诈节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "复贷反欺诈是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识复贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_anti_fraud_refused",
+  "my_desc": "复贷强反欺诈节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷反欺诈",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷反欺诈审核是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_anti_fraud_weak",
+  "my_desc": "首贷弱反欺诈节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷弱规则反欺诈",
+  "my_logic": "p3子查询固定置 1",
+  "ref_logic": "标识是否进入首贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_anti_fraud_weak_passed",
+  "my_desc": "首贷弱反欺诈节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "首贷弱规则反欺诈是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识首贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_anti_fraud_weak_refused",
+  "my_desc": "首贷弱反欺诈节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝首贷弱规则反欺诈",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷弱规则反欺诈是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_anti_fraud_weak",
+  "my_desc": "复贷弱反欺诈节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷弱规则反欺诈",
+  "my_logic": "p4子查询固定置 1",
+  "ref_logic": "标识是否进入复贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_anti_fraud_weak_passed",
+  "my_desc": "复贷弱反欺诈节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "复贷弱规则反欺诈是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识复贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_anti_fraud_weak_refused",
+  "my_desc": "复贷弱反欺诈节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷弱规则反欺诈",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷弱规则反欺诈是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_model",
+  "my_desc": "首贷模型拒绝节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷模型",
+  "my_logic": "p5子查询固定置 1",
+  "ref_logic": "标识是否进入首贷模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_model_passed",
+  "my_desc": "首贷模型拒绝节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "是否通过首贷模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识首贷模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_model_refused",
+  "my_desc": "首贷模型拒绝节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝首贷模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_model",
+  "my_desc": "复贷模型拒绝节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷模型",
+  "my_logic": "p6子查询固定置 1",
+  "ref_logic": "标识是否进入复贷模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_model_passed",
+  "my_desc": "复贷模型拒绝节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "是否通过复贷模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识复贷模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_model_refused",
+  "my_desc": "复贷模型拒绝节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_normal_check",
+  "my_desc": "首贷初审/人审节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷常规检查",
+  "my_logic": "p7子查询固定置 1",
+  "ref_logic": "标识是否进入首贷常规人工检查节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_check_passed",
+  "my_desc": "首贷初审/人审节点通过标记(0/1)",
+  "ref_desc": "首贷常规检查是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规人工检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_check_refused",
+  "my_desc": "首贷初审/人审节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝首贷常规检查",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规人工检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_check_canceled",
+  "my_desc": "首贷初审/人审节点取消标记(0/1)",
+  "ref_desc": "是否取消首贷常规检查",
+  "my_logic": "case when (sum(case when approve_result='CANCELED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规人工检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_manual_check_pending",
+  "my_desc": "首贷人工审核待处理标记(0/1)",
+  "ref_desc": "首贷人工检查是否待处理",
+  "my_logic": "case when (sum(case when approve_result is null then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷人工检查是否处于待处理状态（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_manual_check",
+  "my_desc": "复贷初审(人审)节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷人工检查",
+  "my_logic": "p8子查询固定置 1",
+  "ref_logic": "标识是否进入复贷人工检查节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_check_passed",
+  "my_desc": "复贷初审节点通过标记(0/1)",
+  "ref_desc": "复贷常规检查是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规人工检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_check_refused",
+  "my_desc": "复贷初审节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷常规检查",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规人工检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_check_canceled",
+  "my_desc": "复贷初审节点取消标记(0/1)",
+  "ref_desc": "是否取消复贷常规检查",
+  "my_logic": "case when (sum(case when approve_result='CANCELED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规人工检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_manual_check_pending",
+  "my_desc": "复贷人工审核待处理标记(0/1)",
+  "ref_desc": "复贷人工检查是否待处理",
+  "my_logic": "case when (sum(case when approve_result is null then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷人工检查是否处于待处理状态（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_external_data",
+  "my_desc": "首贷三方数据节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷外部数据验证",
+  "my_logic": "p9子查询固定置 1",
+  "ref_logic": "标识是否调用外部数据源验证首贷申请（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_external_data_passed",
+  "my_desc": "首贷三方数据节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "首贷外部数据验证是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识首贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_external_data_refused",
+  "my_desc": "首贷三方数据节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝首贷外部数据验证",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷外部数据验证是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_external_data",
+  "my_desc": "复贷三方数据节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷外部数据验证",
+  "my_logic": "p10子查询固定置 1",
+  "ref_logic": "标识是否调用外部数据源验证复贷申请（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_external_data_passed",
+  "my_desc": "复贷三方数据节点通过标记(0/1)，无拒绝即通过",
+  "ref_desc": "复贷外部数据验证是否通过",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+  "ref_logic": "标识复贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_external_data_refused",
+  "my_desc": "复贷三方数据节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷外部数据验证",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷外部数据验证是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_shou_normal_rule_check",
+  "my_desc": "首贷人审规则节点是否命中(0/1)",
+  "ref_desc": "是否进入首贷常规规则检查",
+  "my_logic": "p11子查询固定置 1",
+  "ref_logic": "标识是否进入首贷常规规则引擎检查（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_rule_check_passed",
+  "my_desc": "首贷人审规则节点通过标记(0/1)，myDecisionResult='Normal'",
+  "ref_desc": "首贷常规规则检查是否通过",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='Normal' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规规则引擎检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_rule_check_canceled",
+  "my_desc": "首贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'",
+  "ref_desc": "是否取消首贷常规规则检查",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='cancel' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规规则检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_normal_rule_check_refused",
+  "my_desc": "首贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'",
+  "ref_desc": "是否拒绝首贷常规规则检查",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='reject' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷常规规则检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_rule_check_passed",
+  "my_desc": "复贷人审规则节点通过标记(0/1)，myDecisionResult 为空",
+  "ref_desc": "复贷常规规则检查是否通过",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar) is null then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规规则引擎检查结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_rule_check_canceled",
+  "my_desc": "复贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'",
+  "ref_desc": "是否取消复贷常规规则检查",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='cancel' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规规则检查是否被取消（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_normal_rule_check_refused",
+  "my_desc": "复贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'",
+  "ref_desc": "是否拒绝复贷常规规则检查",
+  "my_logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='reject' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷常规规则检查是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_sd_ai",
+  "my_desc": "电核规则节点(AI)是否命中(0/1)",
+  "ref_desc": "是否进入首贷AI模型",
+  "my_logic": "p13子查询固定置 1",
+  "ref_logic": "标识是否进入首贷AI模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_ai_passed",
+  "my_desc": "电核规则节点通过标记(0/1)",
+  "ref_desc": "首贷AI模型是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷AI模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_shou_ai_pending",
+  "my_desc": "电核规则节点待处理标记(0/1)",
+  "ref_desc": "首贷AI模型是否待处理",
+  "my_logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识首贷AI模型评分是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fd_ai",
+  "my_desc": "FDAI 节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷AI模型",
+  "my_logic": "p14子查询固定置 1",
+  "ref_logic": "标识是否进入复贷AI模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_ai_passed",
+  "my_desc": "FDAI 节点通过标记(0/1)",
+  "ref_desc": "复贷AI模型是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷AI模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_ai_refused",
+  "my_desc": "FDAI 节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝复贷AI模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷AI模型评分是否被拒绝（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_ai_pending",
+  "my_desc": "FDAI 节点待处理标记(0/1)",
+  "ref_desc": "复贷AI模型是否待处理",
+  "my_logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷AI模型评分是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_sx",
+  "my_desc": "授信等待节点是否命中(0/1)",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "p15子查询固定置 1",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_sx_passed",
+  "my_desc": "授信等待节点通过标记(0/1)",
+  "ref_desc": "是否用信",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_sx_waiting",
+  "my_desc": "授信等待节点等待中标记(0/1)",
+  "ref_desc": "授信流程是否待处理",
+  "my_logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识授信节点是否待处理（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_post_model",
+  "my_desc": "首贷后置模型拒绝节点是否命中(0/1)",
+  "ref_desc": "是否进入贷后模型",
+  "my_logic": "p16子查询固定置 1",
+  "ref_logic": "标识是否进入贷后模型评分(0-否，1-是)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_post_model_passed",
+  "my_desc": "首贷后置模型拒绝节点通过标记(0/1)",
+  "ref_desc": "贷后模型是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "贷后模型评分结果(0-未通过，1-通过)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_post_model_refused",
+  "my_desc": "首贷后置模型拒绝节点拒绝标记(0/1)",
+  "ref_desc": "是否拒绝贷后模型",
+  "my_logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "贷后模型评分是否被拒绝(0-否，1-是)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_fu_sx_refuse",
+  "my_desc": "复贷授信拒绝节点是否命中(0/1)",
+  "ref_desc": "是否进入复贷授信拒绝流程",
+  "my_logic": "p17子查询固定置 1",
+  "ref_logic": "标识是否进入复贷授信拒绝复审节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_fu_sx_refuse_passed",
+  "my_desc": "复贷授信拒绝节点通过标记(0/1)",
+  "ref_desc": "复贷授信拒绝复审是否通过",
+  "my_logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+  "ref_logic": "标识复贷授信拒绝复审结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "camera_id",
+  "my_desc": "摄像头/相机ID（放款流水标识）",
+  "ref_desc": "摄像头ID",
+  "my_logic": "直取 b.camera_id",
+  "ref_logic": "活体检测使用的摄像头标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "apply_phase",
+  "my_desc": "申请期数对应的区间（如月/日区间）",
+  "ref_desc": "申请阶段",
+  "my_logic": "interval_start as apply_phase（按 apply_period 关联 s03_product_due.did）",
+  "ref_logic": "当前申请所处的阶段编号",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_sx_passed_within24h",
+  "my_desc": "首贷授信等待节点24小时内通过标记(0/1)",
+  "ref_desc": "24小时内授信通过",
+  "my_logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=24*60 AND date_diff('minute',create_time,now)>=24*60 THEN 1 ELSE 0 END",
+  "ref_logic": "是否在24小时内授信通过(0-否，1-是)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "if_in_sx_over24h",
+  "my_desc": "授信等待节点超过24小时标记(0/1)",
+  "ref_desc": "授信超过24小时",
+  "my_logic": "CASE WHEN date_diff('minute',create_time,now)>=24*60 THEN 1 ELSE 0 END",
+  "ref_logic": "授信流程是否超过24小时(0-否，1-是)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "creditno_appchan",
+  "my_desc": "信用号+渠道拼接标识",
+  "ref_desc": "信用号渠道",
+  "my_logic": "CONCAT(a.credit_no, b.app_channel)",
+  "ref_logic": "信用编号关联的申请渠道",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "03墨西哥风险等级划分.sql",
+  "table": "darren_risk_wide_table",
+  "field": "credit_amount",
+  "my_desc": "高通过组授信额度",
+  "ref_desc": "授信总额",
+  "my_logic": "max(cast(json_extract_scalar(outputdata, '$.credit_amount') as double))",
+  "ref_logic": "客户历史累计授信金额（单位：比索）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "biz_id",
+  "my_desc": "进件单号(申请量口径)",
+  "ref_desc": "业务ID",
+  "my_logic": "直取 wxs_application_funnel.biz_id",
+  "ref_logic": "订单唯一标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "update_time",
+  "my_desc": "数据写入/更新时间",
+  "ref_desc": "记录更新时间",
+  "my_logic": "substr(cast(current_timestamp as varchar),1,24)",
+  "ref_logic": "记录最后更新的具体时间(精确到毫秒)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "credit_no",
+  "my_desc": "客户证件号(身份证)",
+  "ref_desc": "信用编号",
+  "my_logic": "直取 wxs_application_funnel.credit_no",
+  "ref_logic": "客户身份证唯一标识",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "app_time",
+  "my_desc": "申请时间",
+  "ref_desc": "申请时间",
+  "my_logic": "直取 wxs_application_funnel.app_time",
+  "ref_logic": "每笔贷款订单申请的具体时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "tenant",
+  "my_desc": "租户",
+  "ref_desc": "租户名称",
+  "my_logic": "直取 wxs_application_funnel.tenant",
+  "ref_logic": "租户简称",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "source",
+  "my_desc": "来源渠道",
+  "ref_desc": "系统",
+  "my_logic": "直取 wxs_application_funnel.source",
+  "ref_logic": "申请来源（如Android、ios）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "degree",
+  "my_desc": "学历(负值置空)",
+  "ref_desc": "学历",
+  "my_logic": "case when degree<0 then null else degree end，源 s01_mem_base_info.degree",
+  "ref_logic": "",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "income",
+  "my_desc": "收入(负值置空)",
+  "ref_desc": "收入",
+  "my_logic": "case when income<0 then null else income end，源 s01_mem_base_info.income",
+  "ref_logic": "客户申报的收入金额",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "age",
+  "my_desc": "年龄(负值置空)",
+  "ref_desc": "年龄",
+  "my_logic": "case when age<0 then null else age end，源 s01_mem_base_info.age",
+  "ref_logic": "客户年龄",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "income_flag",
+  "my_desc": "收入分箱",
+  "ref_desc": "收入分组标签",
+  "my_logic": "case when income>=8 then '3_[8,inf]' when income>=5 then '2_[5,8)' when income>=0 then '1_[0,5)' else '0_-1'",
+  "ref_logic": "收入水平分组字段",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "age_flag",
+  "my_desc": "年龄分箱",
+  "ref_desc": "年龄分组标志",
+  "my_logic": "case when age>=54 then '3_[54,inf]' when age>=38 then '2_[38,54)' else '1_[inf,38)'",
+  "ref_logic": "年龄分段标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_in_sx",
+  "my_desc": "是否进授信",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "直取 wxs_application_funnel.if_in_sx",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_sx_passed",
+  "my_desc": "授信是否通过",
+  "ref_desc": "是否用信",
+  "my_logic": "直取 wxs_application_funnel.if_sx_passed",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_in_fu_anti_fraud",
+  "my_desc": "是否进反欺诈",
+  "ref_desc": "是否进入复贷反欺诈",
+  "my_logic": "直取 wxs_application_funnel.if_in_fu_anti_fraud",
+  "ref_logic": "标识是否进入复贷反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_fu_external_data_passed",
+  "my_desc": "三方数据是否通过",
+  "ref_desc": "复贷外部数据验证是否通过",
+  "my_logic": "直取 wxs_application_funnel.if_fu_external_data_passed",
+  "ref_logic": "标识复贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "grantcredit_7d_amount",
+  "my_desc": "授信额度(7天可用额度)",
+  "ref_desc": "7天产品授信额度",
+  "my_logic": "直取 wxs_application_funnel.grantcredit_7d_amount",
+  "ref_logic": "贷款期限为7天，赋予客户的授信总额（需转换为数值类型）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_in_sx_24h",
+  "my_desc": "24小时内是否进授信",
+  "ref_desc": "是否进入24小时授信流程",
+  "my_logic": "直取 wxs_application_funnel.if_in_sx_24h",
+  "ref_logic": "标识是否进入24小时内标准授信节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "if_sx_passed_24h",
+  "my_desc": "24小时内授信是否通过",
+  "ref_desc": "24小时授信是否通过",
+  "my_logic": "直取 wxs_application_funnel.if_sx_passed_24h",
+  "ref_logic": "标识24小时标准授信结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "t0_overdue_amount_1",
+  "my_desc": "T0逾期金额",
+  "ref_desc": "T0逾期金额（第一期）",
+  "my_logic": "直取 wxs_application_funnel.t0_overdue_amount_1",
+  "ref_logic": "第一期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "t3_overdue_amount_1",
+  "my_desc": "T3逾期金额",
+  "ref_desc": "T3逾期金额（第一期）",
+  "my_logic": "直取 wxs_application_funnel.t3_overdue_amount_1",
+  "ref_logic": "第一期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "t0_should_amt_1",
+  "my_desc": "T0应还金额",
+  "ref_desc": "T0应还金额（第一期）",
+  "my_logic": "直取 wxs_application_funnel.t0_should_amt_1",
+  "ref_logic": "第一期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "t3_should_amt_1",
+  "my_desc": "T3应还金额",
+  "ref_desc": "T3应还金额（第一期）",
+  "my_logic": "直取 wxs_application_funnel.t3_should_amt_1",
+  "ref_logic": "第一期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "is_t0_window_1",
+  "my_desc": "是否进入T0逾期窗口",
+  "ref_desc": "是否T0时间窗口（第一期）",
+  "my_logic": "直取 wxs_application_funnel.is_t0_window_1",
+  "ref_logic": "标识第一期贷款是否处于T0时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "is_t3_window_1",
+  "my_desc": "是否进入T3逾期窗口",
+  "ref_desc": "是否T3时间窗口（第一期）",
+  "my_logic": "直取 wxs_application_funnel.is_t3_window_1",
+  "ref_logic": "标识第一期贷款是否处于T3时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "new_media_source",
+  "my_desc": "新媒体来源分类(Google/tiktok/探知/organic/其它)",
+  "ref_desc": "获客渠道",
+  "my_logic": "case when new_media_source='Google' then '1_Google' when 'tiktok' then '2_tiktok' when '探知' then '3_探知' when 'organic' then '4_organic' else '5_其它'",
+  "ref_logic": "获客渠道",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "max_overdue_days",
+  "my_desc": "最大历史逾期天数",
+  "ref_desc": "历史最大逾期天数",
+  "my_logic": "max(case when t2.finish_time is not null and t2.should_time<t2.finish_time then date_diff('day',date(t2.should_time),date(t2.finish_time)) when t2.finish_time is null and t2.should_time<t1.app_time then date_diff('day',date(t2.should_time),date(t1.app_time)) else null end)",
+  "ref_logic": "",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "06墨西哥老客画像.sql",
+  "table": "mx.yj_reloan_prof",
+  "field": "app",
+  "my_desc": "产品app",
+  "ref_desc": "应用标识",
+  "my_logic": "直取 wxs_application_funnel.app",
+  "ref_logic": "客户使用的APP包名",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "app_group",
+  "my_desc": "app分组(复借率分析维度)",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 结清订单.app_group",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "finish_time",
+  "my_desc": "本笔结清时间",
+  "ref_desc": "结清时间",
+  "my_logic": "直取 结清订单.finish_time",
+  "ref_logic": "每笔贷款完成时间",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "is_reloan",
+  "my_desc": "是否复贷",
+  "ref_desc": "是否复贷",
+  "my_logic": "直取 wxs_application_funnel.is_reloan",
+  "ref_logic": "标识是否为复贷订单（new/old）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_in_sx",
+  "my_desc": "5天复借窗口内进授信笔数(通过率分母)",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "sum(case when date_diff('day',date(a.finish_time),now())>=5 and date_diff('day',date(a.finish_time),date(b.app_time))<5 then b.if_in_sx end)；复借窗口<5天",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_in_fu_anti_fraud",
+  "my_desc": "5天复借窗口内进反欺诈笔数",
+  "ref_desc": "是否进入复贷反欺诈",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_in_fu_anti_fraud end)",
+  "ref_logic": "标识是否进入复贷反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_fu_external_data_passed",
+  "my_desc": "5天复借窗口内三方数据通过笔数",
+  "ref_desc": "复贷外部数据验证是否通过",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_fu_external_data_passed end)",
+  "ref_logic": "标识复贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_sx_passed",
+  "my_desc": "5天复借窗口内授信通过笔数(通过率分子)",
+  "ref_desc": "是否用信",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_sx_passed end)",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_sx_passed_24h",
+  "my_desc": "5天复借窗口内24h授信通过笔数(24h用信率分子)",
+  "ref_desc": "24小时授信是否通过",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_sx_passed_24h end)",
+  "ref_logic": "标识24小时标准授信结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "if_in_sx_24h",
+  "my_desc": "5天复借窗口内24h进授信笔数(24h用信率分母)",
+  "ref_desc": "是否进入24小时授信流程",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_in_sx_24h end)",
+  "ref_logic": "标识是否进入24小时内标准授信节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "t0_overdue_amount_1",
+  "my_desc": "5天复借窗口放款T0逾期金额",
+  "ref_desc": "T0逾期金额（第一期）",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t0_window_1=1 then b.t0_overdue_amount_1 end)",
+  "ref_logic": "第一期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "t3_overdue_amount_1",
+  "my_desc": "5天复借窗口放款T3逾期金额",
+  "ref_desc": "T3逾期金额（第一期）",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t3_window_1=1 then b.t3_overdue_amount_1 end)",
+  "ref_logic": "第一期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "t0_should_amt_1",
+  "my_desc": "5天复借窗口放款T0应还金额",
+  "ref_desc": "T0应还金额（第一期）",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t0_window_1=1 then b.t0_should_amt_1 end)",
+  "ref_logic": "第一期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "07墨西哥老客结清复借率.sql",
+  "table": "mx.yj_clear_reloan",
+  "field": "t3_should_amt_1",
+  "my_desc": "5天复借窗口放款T3应还金额",
+  "ref_desc": "T3应还金额（第一期）",
+  "my_logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t3_window_1=1 then b.t3_should_amt_1 end)",
+  "ref_logic": "第一期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "apply_date",
+  "my_desc": "申请日期(分组维度)",
+  "ref_desc": "申请日期",
+  "my_logic": "直取 wxs_application_funnel.app_date as apply_date",
+  "ref_logic": "",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "app",
+  "my_desc": "产品app",
+  "ref_desc": "应用标识",
+  "my_logic": "直取 wxs_application_funnel.app",
+  "ref_logic": "客户使用的APP包名",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "tenant",
+  "my_desc": "租户",
+  "ref_desc": "租户名称",
+  "my_logic": "直取 wxs_application_funnel.tenant",
+  "ref_logic": "租户简称",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "app_group",
+  "my_desc": "app分组",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 wxs_application_funnel.app_group",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "double_loan",
+  "my_desc": "是否复贷",
+  "ref_desc": "是否为复贷",
+  "my_logic": "直取 wxs_application_funnel.double_loan",
+  "ref_logic": "标识是否为复贷（0-否，1-是，与is_reloan含义相同）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "app_version",
+  "my_desc": "app版本",
+  "ref_desc": "应用版本",
+  "my_logic": "直取 wxs_application_funnel.app_version",
+  "ref_logic": "客户使用的应用版本号",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "channel_category",
+  "my_desc": "渠道分类(新媒体来源)",
+  "ref_desc": "渠道分类",
+  "my_logic": "直取 gm_attribution_detail.new_media_source as channel_category",
+  "ref_logic": "申请渠道分类（如organic、tz）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "source",
+  "my_desc": "来源(统一小写)",
+  "ref_desc": "系统",
+  "my_logic": "lower(source)",
+  "ref_logic": "申请来源（如Android、ios）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "apply_cnt",
+  "my_desc": "申请量",
+  "ref_desc": "申请进件量",
+  "my_logic": "count(distinct a.biz_id)",
+  "ref_logic": "",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "if_issue",
+  "my_desc": "放款笔数",
+  "ref_desc": "是否放款标志",
+  "my_logic": "sum(if_issue)",
+  "ref_logic": "标识是否已放款（0-否，1-是）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "should_capital",
+  "my_desc": "应放款金额",
+  "ref_desc": "应还本金",
+  "my_logic": "sum(should_capital)",
+  "ref_logic": "每笔订单应还本金金额（单位：比索）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "if_in_sx_24h",
+  "my_desc": "24小时进授信人数",
+  "ref_desc": "是否进入24小时授信流程",
+  "my_logic": "sum(if_in_sx_24h)",
+  "ref_logic": "标识是否进入24小时内标准授信节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "08墨西哥复贷节点转化监控.sql",
+  "table": "mx.wxs_aurora_za",
+  "field": "if_sx_passed_24h",
+  "my_desc": "24小时授信通过人数",
+  "ref_desc": "24小时授信是否通过",
+  "my_logic": "sum(if_sx_passed_24h)",
+  "ref_logic": "标识24小时标准授信结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "source",
+  "my_desc": "来源(分组维度)",
+  "ref_desc": "系统",
+  "my_logic": "直取 wxs_application_funnel.source，t0聚合维度",
+  "ref_logic": "申请来源（如Android、ios）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "app_version",
+  "my_desc": "app版本(分组维度)",
+  "ref_desc": "应用版本",
+  "my_logic": "直取 wxs_application_funnel.app_version，t0聚合维度",
+  "ref_logic": "客户使用的应用版本号",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "app_group",
+  "my_desc": "app分组(分组维度)",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 wxs_application_funnel.app_group，t0聚合维度",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "app_date",
+  "my_desc": "申请日期(分组维度)",
+  "ref_desc": "申请日期",
+  "my_logic": "直取 wxs_application_funnel.app_date，t0聚合维度",
+  "ref_logic": "每笔订单申请日期",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "app_week",
+  "my_desc": "申请周(分组维度)",
+  "ref_desc": "申请周",
+  "my_logic": "直取 wxs_application_funnel.app_week，t0聚合维度",
+  "ref_logic": "每笔订单申请日期所在周（按周起始日划分）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "app_month",
+  "my_desc": "申请月(分组维度)",
+  "ref_desc": "申请月",
+  "my_logic": "直取 wxs_application_funnel.app_month，t0聚合维度",
+  "ref_logic": "每笔订单申请日期所在月份",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "double_loan",
+  "my_desc": "客群类型(本表固定复贷)",
+  "ref_desc": "是否为复贷",
+  "my_logic": "常量 '复贷'",
+  "ref_logic": "标识是否为复贷（0-否，1-是，与is_reloan含义相同）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "09复贷规则集中率.sql",
+  "table": "mx.fd_rule_hit_pct",
+  "field": "update_time",
+  "my_desc": "更新时间",
+  "ref_desc": "记录更新时间",
+  "my_logic": "SUBSTR(CAST(CURRENT_TIMESTAMP AS VARCHAR),1,24)",
+  "ref_logic": "记录最后更新的具体时间(精确到毫秒)",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "biz_id",
+  "my_desc": "进件订单业务ID",
+  "ref_desc": "业务ID",
+  "my_logic": "直取 mx.wxs_application_funnel.biz_id",
+  "ref_logic": "订单唯一标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "cust_id",
+  "my_desc": "客户ID",
+  "ref_desc": "客户ID",
+  "my_logic": "直取 mx.wxs_application_funnel.cust_id",
+  "ref_logic": "身份证+app唯一",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "app_group",
+  "my_desc": "进件渠道组（如yawey/Mexcredo）",
+  "ref_desc": "应用分组",
+  "my_logic": "直取 mx.wxs_application_funnel.app_group",
+  "ref_logic": "app分组编码(如yawey属于YW）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "release_time",
+  "my_desc": "放款时间",
+  "ref_desc": "放款时间",
+  "my_logic": "直取 mx.wxs_application_funnel.release_time",
+  "ref_logic": "每笔贷款实际放款时间",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "update_time",
+  "my_desc": "更新时间（取当前时间戳前24字符）",
+  "ref_desc": "记录更新时间",
+  "my_logic": "substr(cast(current_timestamp as varchar),1,24)",
+  "ref_logic": "记录最后更新的具体时间(精确到毫秒)",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "grantcredit_amount",
+  "my_desc": "授信额度（转decimal）",
+  "ref_desc": "授信额度",
+  "my_logic": "cast(grantcredit_amount as decimal)",
+  "ref_logic": "系统授予客户的信用额度",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "grantcredit_7d_amount",
+  "my_desc": "7日内授信额度（转decimal）",
+  "ref_desc": "7天产品授信额度",
+  "my_logic": "cast(grantcredit_7d_amount as decimal)",
+  "ref_logic": "贷款期限为7天，赋予客户的授信总额（需转换为数值类型）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "baseinfo_userprof_degree",
+  "my_desc": "用户学历",
+  "ref_desc": "用户学历",
+  "my_logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.baseinfo_userprof_degree（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+  "ref_logic": "用户学历评分",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "use_time",
+  "my_desc": "提额券使用时间",
+  "ref_desc": "使用时间",
+  "my_logic": "直取 mx.darren_coupon_detail.use_time",
+  "ref_logic": "",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "app_version",
+  "my_desc": "APP版本号",
+  "ref_desc": "应用版本",
+  "my_logic": "直取 mx.wxs_application_funnel.app_version",
+  "ref_logic": "客户使用的应用版本号",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "APP_DATE",
+  "my_desc": "进件日期",
+  "ref_desc": "申请日期",
+  "my_logic": "直取 mx.wxs_application_funnel.APP_DATE",
+  "ref_logic": "每笔订单申请日期",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "APP_WEEK",
+  "my_desc": "进件周",
+  "ref_desc": "申请周",
+  "my_logic": "直取 mx.wxs_application_funnel.APP_WEEK",
+  "ref_logic": "每笔订单申请日期所在周（按周起始日划分）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "APP_MONTH",
+  "my_desc": "进件月",
+  "ref_desc": "申请月",
+  "my_logic": "直取 mx.wxs_application_funnel.APP_MONTH",
+  "ref_logic": "每笔订单申请日期所在月份",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "app",
+  "my_desc": "APP标识",
+  "ref_desc": "应用标识",
+  "my_logic": "直取 mx.wxs_application_funnel.app",
+  "ref_logic": "客户使用的APP包名",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "tenant",
+  "my_desc": "租户（yawey等）",
+  "ref_desc": "租户名称",
+  "my_logic": "直取 mx.wxs_application_funnel.tenant",
+  "ref_logic": "租户简称",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "source",
+  "my_desc": "来源",
+  "ref_desc": "系统",
+  "my_logic": "直取 mx.wxs_application_funnel.source",
+  "ref_logic": "申请来源（如Android、ios）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "apply_amount",
+  "my_desc": "申请金额",
+  "ref_desc": "申请金额",
+  "my_logic": "直取 mx.wxs_application_funnel.apply_amount",
+  "ref_logic": "客户本次申请的金额（单位：比索）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_fu_anti_fraud",
+  "my_desc": "是否进反欺诈",
+  "ref_desc": "是否进入复贷反欺诈",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_fu_anti_fraud",
+  "ref_logic": "标识是否进入复贷反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_fu_anti_fraud_passed",
+  "my_desc": "反欺诈是否通过",
+  "ref_desc": "复贷反欺诈是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_fu_anti_fraud_passed",
+  "ref_logic": "标识复贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_fu_anti_fraud_weak",
+  "my_desc": "是否进弱反欺诈",
+  "ref_desc": "是否进入复贷弱规则反欺诈",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_fu_anti_fraud_weak",
+  "ref_logic": "标识是否进入复贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_fu_anti_fraud_weak_passed",
+  "my_desc": "弱反欺诈是否通过",
+  "ref_desc": "复贷弱规则反欺诈是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_fu_anti_fraud_weak_passed",
+  "ref_logic": "标识复贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_fu_model",
+  "my_desc": "是否进模型节点",
+  "ref_desc": "是否进入复贷模型",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_fu_model",
+  "ref_logic": "标识是否进入复贷模型评分节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_fu_model_passed",
+  "my_desc": "模型节点是否通过",
+  "ref_desc": "是否通过复贷模型",
+  "my_logic": "直取 mx.wxs_application_funnel.if_fu_model_passed",
+  "ref_logic": "标识复贷模型评分结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_fu_sx_refuse",
+  "my_desc": "是否进授信拒绝",
+  "ref_desc": "是否进入复贷授信拒绝流程",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_fu_sx_refuse",
+  "ref_logic": "标识是否进入复贷授信拒绝复审节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_fu_sx_refuse_passed",
+  "my_desc": "授信拒绝是否通过",
+  "ref_desc": "复贷授信拒绝复审是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_fu_sx_refuse_passed",
+  "ref_logic": "标识复贷授信拒绝复审结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_sx",
+  "my_desc": "是否进授信",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_sx",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_sx_6h",
+  "my_desc": "是否进6小时授信",
+  "ref_desc": "是否进入6小时授信流程",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_sx_6h",
+  "ref_logic": "标识是否进入6小时内快速授信节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_sx_24h",
+  "my_desc": "是否进24小时授信",
+  "ref_desc": "是否进入24小时授信流程",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_sx_24h",
+  "ref_logic": "标识是否进入24小时内标准授信节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_sx_passed",
+  "my_desc": "授信是否通过",
+  "ref_desc": "是否用信",
+  "my_logic": "直取 mx.wxs_application_funnel.if_sx_passed",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_sx_passed_6h",
+  "my_desc": "6小时授信是否通过",
+  "ref_desc": "6小时授信是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_sx_passed_6h",
+  "ref_logic": "标识6小时快速授信结果（0-未通过，1-通过）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_sx_passed_24h",
+  "my_desc": "24小时授信是否通过",
+  "ref_desc": "24小时授信是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_sx_passed_24h",
+  "ref_logic": "标识24小时标准授信结果（0-未通过，1-通过）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_in_fu_external_data",
+  "my_desc": "是否进外部数据",
+  "ref_desc": "是否进入复贷外部数据验证",
+  "my_logic": "直取 mx.wxs_application_funnel.if_in_fu_external_data",
+  "ref_logic": "标识是否调用外部数据源验证复贷申请（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_fu_external_data_passed",
+  "my_desc": "外部数据是否通过",
+  "ref_desc": "复贷外部数据验证是否通过",
+  "my_logic": "直取 mx.wxs_application_funnel.if_fu_external_data_passed",
+  "ref_logic": "标识复贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "if_issue",
+  "my_desc": "是否放款",
+  "ref_desc": "是否放款标志",
+  "my_logic": "直取 mx.wxs_application_funnel.if_issue",
+  "ref_logic": "标识是否已放款（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "contract_amount",
+  "my_desc": "合同金额",
+  "ref_desc": "合同金额",
+  "my_logic": "直取 mx.wxs_application_funnel.contract_amount",
+  "ref_logic": "贷款合同签订的总金额（单位：比索）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "loan_cycle",
+  "my_desc": "借款周期",
+  "ref_desc": "贷款周期（天）",
+  "my_logic": "直取 mx.wxs_application_funnel.loan_cycle",
+  "ref_logic": "每笔贷款的总天数（如7天、14天）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "credit_no",
+  "my_desc": "进件单号",
+  "ref_desc": "信用编号",
+  "my_logic": "直取 mx.wxs_application_funnel.credit_no",
+  "ref_logic": "客户身份证唯一标识",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t0_window_1",
+  "my_desc": "T0第1窗口是否放款",
+  "ref_desc": "是否T0时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t0_window_1",
+  "ref_logic": "标识第一期贷款是否处于T0时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t0_window_2",
+  "my_desc": "T0第2窗口是否放款",
+  "ref_desc": "是否T0时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t0_window_2",
+  "ref_logic": "标识第二期贷款是否处于T0时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t0_overdue_1",
+  "my_desc": "T0第1窗口是否逾期",
+  "ref_desc": "是否T0逾期（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t0_overdue_1",
+  "ref_logic": "标识第一期贷款是否处于逾期0天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t0_overdue_2",
+  "my_desc": "T0第2窗口是否逾期",
+  "ref_desc": "是否T0逾期（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t0_overdue_2",
+  "ref_logic": "标识第二期贷款是否处于逾期0天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t0_overdue_amount_1",
+  "my_desc": "T0第1窗口逾期金额",
+  "ref_desc": "T0逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_1",
+  "ref_logic": "第一期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t0_overdue_amount_2",
+  "my_desc": "T0第2窗口逾期金额",
+  "ref_desc": "T0逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_2",
+  "ref_logic": "第二期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t0_should_amt_1",
+  "my_desc": "T0第1窗口应还金额",
+  "ref_desc": "T0应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t0_should_amt_1",
+  "ref_logic": "第一期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t0_should_amt_2",
+  "my_desc": "T0第2窗口应还金额",
+  "ref_desc": "T0应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t0_should_amt_2",
+  "ref_logic": "第二期贷款T0时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t3_window_1",
+  "my_desc": "T3第1窗口是否放款",
+  "ref_desc": "是否T3时间窗口（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t3_window_1",
+  "ref_logic": "标识第一期贷款是否处于T3时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t3_window_2",
+  "my_desc": "T3第2窗口是否放款",
+  "ref_desc": "是否T3时间窗口（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t3_window_2",
+  "ref_logic": "标识第二期贷款是否处于T3时间窗口内（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t3_overdue_1",
+  "my_desc": "T3第1窗口是否逾期",
+  "ref_desc": "是否T3逾期（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t3_overdue_1",
+  "ref_logic": "标识第一期贷款是否处于逾期3天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_t3_overdue_2",
+  "my_desc": "T3第2窗口是否逾期",
+  "ref_desc": "是否T3逾期（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.is_t3_overdue_2",
+  "ref_logic": "标识第二期贷款是否处于逾期3天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t3_overdue_amount_1",
+  "my_desc": "T3第1窗口逾期金额",
+  "ref_desc": "T3逾期金额（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_1",
+  "ref_logic": "第一期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t3_overdue_amount_2",
+  "my_desc": "T3第2窗口逾期金额",
+  "ref_desc": "T3逾期金额（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_2",
+  "ref_logic": "第二期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t3_should_amt_1",
+  "my_desc": "T3第1窗口应还金额",
+  "ref_desc": "T3应还金额（第一期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t3_should_amt_1",
+  "ref_logic": "第一期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "t3_should_amt_2",
+  "my_desc": "T3第2窗口应还金额",
+  "ref_desc": "T3应还金额（第二期）",
+  "my_logic": "直取 mx.wxs_application_funnel.t3_should_amt_2",
+  "ref_logic": "第二期贷款T3时间窗口内的应还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "credit_amount",
+  "my_desc": "授信额度",
+  "ref_desc": "授信总额",
+  "my_logic": "直取 mx.tmp_darren_product_table.credit_amount（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+  "ref_logic": "客户历史累计授信金额（单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "mid",
+  "my_desc": "会员ID",
+  "ref_desc": "客户号",
+  "my_logic": "直取 mx.wxs_application_funnel.mid",
+  "ref_logic": "手机号+app唯一",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "app_time",
+  "my_desc": "进件时间",
+  "ref_desc": "申请时间",
+  "my_logic": "直取 mx.wxs_application_funnel.app_time",
+  "ref_logic": "每笔贷款订单申请的具体时间",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "issue_date",
+  "my_desc": "放款日期",
+  "ref_desc": "放款日期",
+  "my_logic": "直取 mx.wxs_application_funnel.issue_date",
+  "ref_logic": "每笔订单实际放款日期",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "is_reloan",
+  "my_desc": "是否复贷（new/old）",
+  "ref_desc": "是否复贷",
+  "my_logic": "直取 mx.wxs_application_funnel.is_reloan",
+  "ref_logic": "标识是否为复贷订单（new/old）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "product_level",
+  "my_desc": "当前产品等级",
+  "ref_desc": "产品等级",
+  "my_logic": "直取 mx.wxs_application_funnel.product_level",
+  "ref_logic": "产品等级（例如A1）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "tenant_id",
+  "my_desc": "租户ID",
+  "ref_desc": "租户ID",
+  "my_logic": "直取 mx.wxs_application_funnel.tenant_id",
+  "ref_logic": "租户唯一",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "phone",
+  "my_desc": "手机号",
+  "ref_desc": "客户电话",
+  "my_logic": "直取 mx.wxs_application_funnel.phone",
+  "ref_logic": "客户联系电话（与phone_num重复）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "12老客V2&V3资产等级测试.sql",
+  "table": "mx.yj_test_table_250225",
+  "field": "income",
+  "my_desc": "收入特征",
+  "ref_desc": "收入",
+  "my_logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.income",
+  "ref_logic": "客户申报的收入金额",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "app_date",
+  "my_desc": "进件日",
+  "ref_desc": "申请日期",
+  "my_logic": "直取 mx.property_level_v5_2.app_date",
+  "ref_logic": "每笔订单申请日期",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "app_month",
+  "my_desc": "进件月份",
+  "ref_desc": "申请月",
+  "my_logic": "直取 mx.property_level_v5_2.app_month",
+  "ref_logic": "每笔订单申请日期所在月份",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "new_media_source",
+  "my_desc": "新媒体渠道来源",
+  "ref_desc": "获客渠道",
+  "my_logic": "直取 mx.darren_risk_wide_table.new_media_source",
+  "ref_logic": "获客渠道",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_anti_fraud_passed",
+  "my_desc": "手反欺诈通过人数",
+  "ref_desc": "首贷反欺诈是否通过",
+  "my_logic": "sum(if_shou_anti_fraud_passed)",
+  "ref_logic": "标识首贷反欺诈审核是否通过（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_anti_fraud",
+  "my_desc": "进入手反欺诈人数",
+  "ref_desc": "是否进入首贷反欺诈",
+  "my_logic": "sum(if_in_shou_anti_fraud)",
+  "ref_logic": "标识是否进入首贷反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_anti_fraud_weak_passed",
+  "my_desc": "手反欺诈弱规则通过人数",
+  "ref_desc": "首贷弱规则反欺诈是否通过",
+  "my_logic": "sum(if_shou_anti_fraud_weak_passed)",
+  "ref_logic": "标识首贷弱规则反欺诈审核结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_anti_fraud_weak",
+  "my_desc": "进入手反欺诈弱规则人数",
+  "ref_desc": "是否进入首贷弱规则反欺诈",
+  "my_logic": "sum(if_in_shou_anti_fraud_weak)",
+  "ref_logic": "标识是否进入首贷弱规则反欺诈节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_model_passed",
+  "my_desc": "手模型通过人数（iOS取反欺诈弱通过）",
+  "ref_desc": "是否通过首贷模型",
+  "my_logic": "sum(if(lower(source)='ios',if_shou_anti_fraud_weak_passed,if_shou_model_passed))",
+  "ref_logic": "标识首贷模型评分结果（0-未通过，1-通过）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_model",
+  "my_desc": "进入手模型人数（iOS取反欺诈弱）",
+  "ref_desc": "是否进入首贷模型",
+  "my_logic": "sum(if(lower(source)='ios',if_shou_anti_fraud_weak_passed,if_in_shou_model))",
+  "ref_logic": "标识是否进入首贷模型评分节点（0-否，1-是）",
+  "decision": "保留原释义（含码值细节）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_sx",
+  "my_desc": "进入首信模型人数",
+  "ref_desc": "是否进入授信流程",
+  "my_logic": "sum(if_in_sx)",
+  "ref_logic": "标识是否进入授信（SX）节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_sx_passed",
+  "my_desc": "首信模型通过人数",
+  "ref_desc": "是否用信",
+  "my_logic": "sum(if_sx_passed)",
+  "ref_logic": "标识授信节点结果（0-未通过，1-通过）",
+  "decision": "采用用户确认口径"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_sx_passed_within24h",
+  "my_desc": "首信24小时内通过人数",
+  "ref_desc": "24小时内授信通过",
+  "my_logic": "sum(if_sx_passed_within24h)",
+  "ref_logic": "是否在24小时内授信通过(0-否，1-是)",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_sx_over24h",
+  "my_desc": "首信超24小时进入人数",
+  "ref_desc": "授信超过24小时",
+  "my_logic": "sum(if_in_sx_over24h)",
+  "ref_logic": "授信流程是否超过24小时(0-否，1-是)",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_post_model",
+  "my_desc": "进入贷后模型人数",
+  "ref_desc": "是否进入贷后模型",
+  "my_logic": "sum(if(lower(source)='ios',1,if(if_sx_passed=1 and if_in_post_model is null,1,if_in_post_model)))",
+  "ref_logic": "标识是否进入贷后模型评分(0-否，1-是)",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_post_model_passed",
+  "my_desc": "贷后模型通过人数",
+  "ref_desc": "贷后模型是否通过",
+  "my_logic": "sum(if(lower(source)='ios',1,if(if_sx_passed=1 and if_post_model_passed is null,1,if_post_model_passed)))",
+  "ref_logic": "贷后模型评分结果(0-未通过，1-通过)",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_normal_check",
+  "my_desc": "进入手正常审核人数",
+  "ref_desc": "是否进入首贷常规检查",
+  "my_logic": "sum(case when if_in_shou_normal_check is null then 0 else if_in_shou_normal_check end)",
+  "ref_logic": "标识是否进入首贷常规人工检查节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_normal_rule_check",
+  "my_desc": "进入手正常规则审核人数",
+  "ref_desc": "是否进入首贷常规规则检查",
+  "my_logic": "sum(case when if_in_shou_normal_rule_check is null then 0 else if_in_shou_normal_rule_check end)",
+  "ref_logic": "标识是否进入首贷常规规则引擎检查（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_normal_rule_check_passed",
+  "my_desc": "手正常规则审核通过人数",
+  "ref_desc": "首贷常规规则检查是否通过",
+  "my_logic": "sum(case when if_shou_normal_rule_check_passed is null then 0 else if_shou_normal_rule_check_passed end)",
+  "ref_logic": "标识首贷常规规则引擎检查结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_sd_ai",
+  "my_desc": "进入SD AI审核人数",
+  "ref_desc": "是否进入首贷AI模型",
+  "my_logic": "sum(case when if_in_sd_ai is null then 0 else if_in_sd_ai end)",
+  "ref_logic": "标识是否进入首贷AI模型评分节点（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_ai_passed",
+  "my_desc": "手AI审核通过人数",
+  "ref_desc": "首贷AI模型是否通过",
+  "my_logic": "sum(case when if_shou_ai_passed is null then 0 else if_shou_ai_passed end)",
+  "ref_logic": "标识首贷AI模型评分结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_in_shou_external_data",
+  "my_desc": "进入手外部数据人数",
+  "ref_desc": "是否进入首贷外部数据验证",
+  "my_logic": "sum(if_in_shou_external_data)",
+  "ref_logic": "标识是否调用外部数据源验证首贷申请（0-否，1-是）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "if_shou_external_data_passed",
+  "my_desc": "手外部数据通过人数",
+  "ref_desc": "首贷外部数据验证是否通过",
+  "my_logic": "sum(if_shou_external_data_passed)",
+  "ref_logic": "标识首贷外部数据验证结果（0-未通过，1-通过）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "is_t0_overdue_1",
+  "my_desc": "T0窗口逾期单数",
+  "ref_desc": "是否T0逾期（第一期）",
+  "my_logic": "sum(if(b.is_t0_window_1=1,b.is_t0_overdue_1,0))",
+  "ref_logic": "标识第一期贷款是否处于逾期0天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "is_t3_overdue_1",
+  "my_desc": "T3窗口逾期单数",
+  "ref_desc": "是否T3逾期（第一期）",
+  "my_logic": "sum(if(b.is_t3_window_1=1,b.is_t3_overdue_1,0))",
+  "ref_logic": "标识第一期贷款是否处于逾期3天状态（0-否，1-是）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "t0_overdue_amount",
+  "my_desc": "T0窗口逾期金额",
+  "ref_desc": "T0逾期金额",
+  "my_logic": "sum(if(b.is_t0_window_1=1,b.t0_overdue_amount_1,0))",
+  "ref_logic": "逾期0天（即当天）未还的金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证，第1期聚合）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "t3_overdue_amount",
+  "my_desc": "T3窗口逾期金额",
+  "ref_desc": "T3逾期金额",
+  "my_logic": "sum(if(b.is_t3_window_1=1,b.t3_overdue_amount_1,0))",
+  "ref_logic": "逾期3天未还的金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证，第1期聚合）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "t0_overdue_amount_2",
+  "my_desc": "T0第二窗口逾期金额",
+  "ref_desc": "T0逾期金额（第二期）",
+  "my_logic": "sum(if(b.is_t0_window_2=1,b.t0_overdue_amount_2,0))",
+  "ref_logic": "第二期贷款逾期0天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "t3_overdue_amount_2",
+  "my_desc": "T3第二窗口逾期金额",
+  "ref_desc": "T3逾期金额（第二期）",
+  "my_logic": "sum(if(b.is_t3_window_2=1,b.t3_overdue_amount_2,0))",
+  "ref_logic": "第二期贷款逾期3天的未还金额（单位：比索）",
+  "decision": "采用窗口口径（SQL验证）"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "should_capital",
+  "my_desc": "应还本金合计",
+  "ref_desc": "应还本金",
+  "my_logic": "sum(b.should_capital)",
+  "ref_logic": "每笔订单应还本金金额（单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "should_amount",
+  "my_desc": "应还金额合计",
+  "ref_desc": "应还总额",
+  "my_logic": "sum(cast(b.should_amount as double))",
+  "ref_logic": "当前应还总额（本金+利息+罚金，单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "pre_p2_repay",
+  "my_desc": "P2前还款合计",
+  "ref_desc": "提前两天还款金额",
+  "my_logic": "sum(pre_p2_repay)",
+  "ref_logic": "提前两天还款金额（单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "p1_repay",
+  "my_desc": "P1还款合计",
+  "ref_desc": "第一期还款金额",
+  "my_logic": "sum(p1_repay)",
+  "ref_logic": "第一期的还款金额（单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.property_v5_1_feature_bin",
+  "field": "p2_repay",
+  "my_desc": "P2还款合计",
+  "ref_desc": "还款日前两天当天还款金额",
+  "my_logic": "sum(p2_repay)",
+  "ref_logic": "还款日前两天当天还款金额（单位：比索）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_wenj_approve_version_label",
+  "field": "externalid",
+  "my_desc": "进件单外部ID",
+  "ref_desc": "外部ID",
+  "my_logic": "直取 ods.s21_risk_strategy_record.externalid",
+  "ref_logic": "外部系统的关联ID",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "externalid",
+  "my_desc": "进件单外部ID",
+  "ref_desc": "外部ID",
+  "my_logic": "直取 ods.s21_risk_strategy_record.externalid（按 createtime desc 取 rk=1 最新一条）",
+  "ref_logic": "外部系统的关联ID",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "rand_no_74",
+  "my_desc": "随机号74",
+  "ref_desc": "随机数74",
+  "my_logic": "直取 mx.wenj_sd_market_base.rand_no_74",
+  "ref_logic": "随机数字段74",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "data_date",
+  "my_desc": "数据日期（当天）",
+  "ref_desc": "数据日期",
+  "my_logic": "cast(date(now()) as varchar)",
+  "ref_logic": "",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "rand_no_77",
+  "my_desc": "随机号77",
+  "ref_desc": "随机数77",
+  "my_logic": "max(json_extract_scalar(outputdata,'$.rand_no_77'))，来自 productid=195 CHAMPION 决策流",
+  "ref_logic": "随机数字段77",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "product_level",
+  "my_desc": "产品等级",
+  "ref_desc": "产品等级",
+  "my_logic": "max(cast(json_extract_scalar(outputdata,'$.product_level') as varchar))，来自 productid=195 CHAMPION 决策流",
+  "ref_logic": "产品等级（例如A1）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.sd_lucy_property_feature_base",
+  "field": "grantcredit_7d_amount",
+  "my_desc": "7日授信额度",
+  "ref_desc": "7天产品授信额度",
+  "my_logic": "max(json_extract_scalar(outputdata,'$.grantcredit_7d_amount'))，来自 productid=195 CHAMPION 决策流",
+  "ref_logic": "贷款期限为7天，赋予客户的授信总额（需转换为数值类型）",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "externalid",
+  "my_desc": "进件单外部ID",
+  "ref_desc": "外部ID",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.externalid（按 data_date desc 取 rk=1 最新一条）",
+  "ref_logic": "外部系统的关联ID",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "rand_no_74",
+  "my_desc": "随机号74",
+  "ref_desc": "随机数74",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.rand_no_74",
+  "ref_logic": "随机数字段74",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "data_date",
+  "my_desc": "数据日期",
+  "ref_desc": "数据日期",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.data_date",
+  "ref_logic": "",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "rand_no_77",
+  "my_desc": "随机号77",
+  "ref_desc": "随机数77",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.rand_no_77",
+  "ref_logic": "随机数字段77",
+  "decision": "采用参考释义"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "product_level",
+  "my_desc": "产品等级",
+  "ref_desc": "产品等级",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.product_level",
+  "ref_logic": "产品等级（例如A1）",
+  "decision": "两者一致"
+ },
+ {
+  "src_file": "13 资产等级V5_2特征指标.sql",
+  "table": "mx.lucy_property_level_v4_3",
+  "field": "grantcredit_7d_amount",
+  "my_desc": "7日授信额度",
+  "ref_desc": "7天产品授信额度",
+  "my_logic": "直取 mx.sd_lucy_property_feature_base.grantcredit_7d_amount",
+  "ref_logic": "贷款期限为7天，赋予客户的授信总额（需转换为数值类型）",
+  "decision": "采用参考释义"
+ }
+]

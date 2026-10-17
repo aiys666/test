@@ -1,0 +1,43 @@
+# 印尼经分周报 — 配置文件
+# 改SQL只改这里，脚本不用动
+
+# 路径
+template_dir: "E:/岳松个人文件/嘉银工作内容的整理/01工作内容/权责分析/墨西哥"
+output_dir: "E:/岳松个人文件/嘉银工作内容的整理/01工作内容/权责分析/墨西哥"
+
+# 文件名模板
+file_pattern: "印尼经分周报_"
+
+# SQL → Sheet 映射（前3条写入Excel数据源Sheet，第4条单独保存）
+queries:
+  - name: "投放数据(ad)"
+    sheet: "投放数据源"
+    sql: |
+      SELECT * FROM ind.ba_install_apply_result_wdk
+      WHERE ad_date >= DATE '2026-01-01'
+
+  - name: "首贷数据(new)"
+    sheet: "数据源（进件）"
+    sql: |
+      SELECT * FROM ind.ba_apply_should_result_week_new_wdk
+      WHERE app_month >= '2026-01-01'
+      LIMIT 100000
+
+  - name: "复贷数据(old)"
+    sheet: "复贷数据源"
+    sql: |
+      SELECT * FROM ind.ba_apply_should_result_week_old_wdk
+      WHERE app_month >= '2026-01-01'
+      LIMIT 100000
+
+  - name: "日度放款聚合(issue)"
+    sheet: null          # null = 不写入Excel，单独保存
+    sql: |
+      SELECT issue_date,
+        SUM(CASE WHEN grant_strategy = 'NEW' THEN if_issue ELSE 0 END) AS loan_cnt_new,
+        SUM(CASE WHEN grant_strategy = 'NEW' THEN contract_amount_usd1 ELSE 0 END) AS loan_amt_new,
+        SUM(CASE WHEN grant_strategy = 'OLD' THEN if_issue ELSE 0 END) AS loan_cnt_old,
+        SUM(CASE WHEN grant_strategy = 'OLD' THEN contract_amount_usd1 ELSE 0 END) AS loan_amt_old
+      FROM ind.ba_asset_base_info
+      WHERE issue_month >= '2026-06-01' AND if_issue = 1
+      GROUP BY 1 ORDER BY 1 LIMIT 10000

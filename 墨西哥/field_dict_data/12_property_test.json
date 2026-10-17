@@ -1,0 +1,2457 @@
+[
+ {
+  "table": "mx.yj_test_table_250225",
+  "source_file": "12老客V2&V3资产等级测试.sql",
+  "fields": [
+   {
+    "name": "biz_id",
+    "desc": "业务ID",
+    "logic": "直取 mx.wxs_application_funnel.biz_id",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件订单业务ID"
+   },
+   {
+    "name": "cust_id",
+    "desc": "客户ID",
+    "logic": "直取 mx.wxs_application_funnel.cust_id",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_group",
+    "desc": "进件渠道组（如yawey/Mexcredo）",
+    "logic": "直取 mx.wxs_application_funnel.app_group",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件渠道组（如yawey/Mexcredo）"
+   },
+   {
+    "name": "release_time",
+    "desc": "放款时间",
+    "logic": "直取 mx.wxs_application_funnel.release_time",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_group_sha256",
+    "desc": "渠道组sha256编码",
+    "logic": "直取 mx.wxs_application_funnel.app_group_sha256",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_product_level",
+    "desc": "转产线决策流取到的转产前产品（未转产线为空）",
+    "logic": "直取 mx.change_product.last_product_level（转产线决策流）",
+    "source_table": "mx.change_product",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_changepro_V5_3",
+    "desc": "转产线决策流的V5_3资产等级",
+    "logic": "直取 mx.change_product.fd_changepro_V5_3（转产线决策流）",
+    "source_table": "mx.change_product",
+    "update_freq": "每日"
+   },
+   {
+    "name": "update_time",
+    "desc": "更新时间（取当前时间戳前24字符）",
+    "logic": "substr(cast(current_timestamp as varchar),1,24)",
+    "source_table": "派生计算（基于 current_timestamp）",
+    "update_freq": "每日",
+    "desc_orig": "更新时间（取当前时间戳前24字符）"
+   },
+   {
+    "name": "grantcredit_amount",
+    "desc": "授信额度（转decimal）",
+    "logic": "cast(grantcredit_amount as decimal)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "每日",
+    "desc_orig": "授信额度（转decimal）"
+   },
+   {
+    "name": "grantcredit_7d_amount",
+    "desc": "7日内授信额度（转decimal）",
+    "logic": "cast(grantcredit_7d_amount as decimal)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "每日",
+    "desc_orig": "7日内授信额度（转decimal）"
+   },
+   {
+    "name": "if_inherit_tag",
+    "desc": "7/21额度推荐：是否延续上一笔金融属性标签（app_time≥2026-04-29恒延续；此前按hash<0.5/0.3分桶）",
+    "logic": "case when app_time>=date'2026-04-29' then '延续上一笔金融属性' when app_time>=date'2026-02-28' and hash(phone+app_group_sha256,key'20260206')<0.5 then '延续上一笔金融属性' ... else '不延续上一笔金融属性' end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.phone/app_group_sha256/app_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "v3_flag",
+    "desc": "资产等级版本标签（V3_1/V3_2/V3_3/V4/V4_2/V5_1/V5_2/V5_3/V6_1等），按进件时间分界点叠加hash(phone或credit_no+app_group_sha256)分桶",
+    "logic": "case when app_time>=date'2026-08-20' then case when hash(identity+app_group_sha256)<=0.3 then 'V6_1' else 'V5_3' end when app_time>=date'2026-06-09' then 'V5_3' ... when app_time>=date'2025-09-10' then case when hash<=0.7 then 'V3_3' else 'V4_2' end ... end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.phone/credit_no/identity/app_time/app_group）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_creditlevel_main_v3_3",
+    "desc": "V3_3主资产等级",
+    "logic": "直取 mx.tmp_darren_product_table.fd_creditlevel_main_v3_3（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_high_pass_label",
+    "desc": "高通过组标签",
+    "logic": "直取 mx.tmp_darren_product_table.fd_high_pass_label（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_creditlevel_main_v4",
+    "desc": "V4主资产等级",
+    "logic": "直取 mx.tmp_darren_product_table.fd_creditlevel_main_v4（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_creditlevel_main_v4_2",
+    "desc": "V4_2主资产等级",
+    "logic": "直取 mx.tmp_darren_product_table.fd_creditlevel_main_v4_2（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_fraud_score",
+    "desc": "V5欺诈子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.V5_fraud_score（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION（复贷资产等级决策流））",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_behavior_score",
+    "desc": "V5行为子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.V5_behavior_score（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_voteScore_charge_V5_1",
+    "desc": "V5_1投票分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.android_oldCust_voteScore_charge_V5_1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_mainCreditLevel_charge_V5_1",
+    "desc": "V5_1主资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.android_oldCust_mainCreditLevel_charge_V5_1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_midCreditLevel_charge_V5_1",
+    "desc": "V5_1中资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.android_oldCust_midCreditLevel_charge_V5_1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_ruleScore_charge_V5_1",
+    "desc": "V5_1规则分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.android_oldCust_ruleScore_charge_V5_1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b321_2026v1_p1",
+    "desc": "模型mex_b321_2026v1概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.pvalue_mex_b321_2026v1_p1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "thirdparty_izi_whatsapp_register_status",
+    "desc": "第三方izi WhatsApp注册状态",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.thirdparty_izi_whatsapp_register_status（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_system_run_too_short",
+    "desc": "系统运行时间过短标识",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.if_system_run_too_short（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "unique_email_cnt",
+    "desc": "唯一邮箱数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.unique_email_cnt（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "history_loanrec_cnt_lastprepaydays_v2",
+    "desc": "历史借款记录距上次提前还款天数v2",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.history_loanrec_cnt_lastprepaydays_v2（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_overdue_day_30d_all",
+    "desc": "近30天全部最大逾期天数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.max_overdue_day_30d_all（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_ovd_days_all",
+    "desc": "全部最大逾期天数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.max_ovd_days_all（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "af_uninstall_cnt_30d",
+    "desc": "近30天卸载次数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.af_uninstall_cnt_30d（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_repay_gap_days_app_group",
+    "desc": "最近还款间隔天数（渠道组维度）",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.last_repay_gap_days_app_group（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "minstay_repayplan_second_30d_mid",
+    "desc": "近30天还款计划最小停留秒数中值",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.minstay_repayplan_second_30d_mid（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_age",
+    "desc": "用户年龄",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.baseinfo_userprof_age（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_degree",
+    "desc": "用户学历",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.baseinfo_userprof_degree（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question3",
+    "desc": "问题3特征（问卷）",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.question3（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question6_v2",
+    "desc": "问题6_v2特征（问卷）",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.question6_v2（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_730d",
+    "desc": "730天提前多头计数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.advance_duotou_cnt_730d（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_x_19",
+    "desc": "X19提前多头计数",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.advance_duotou_cnt_x_19（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "increase_limit_batch_id",
+    "desc": "提额券批次号",
+    "logic": "直取 mx.change_product.increase_limit_batch_id（转产线决策流）",
+    "source_table": "mx.change_product",
+    "update_freq": "每日"
+   },
+   {
+    "name": "use_time",
+    "desc": "使用时间",
+    "logic": "直取 mx.darren_coupon_detail.use_time",
+    "source_table": "mx.darren_coupon_detail",
+    "update_freq": "每日",
+    "desc_orig": "提额券使用时间"
+   },
+   {
+    "name": "coupon_use_status",
+    "desc": "提额券使用状态",
+    "logic": "直取 mx.darren_coupon_detail.coupon_use_status",
+    "source_table": "mx.darren_coupon_detail",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mex_b300_2025v2",
+    "desc": "模型mex_b300_2025v2概率",
+    "logic": "直取 mx.tmp_darren_product_table.mex_b300_2025v2（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m698_old_1t3_voting_0619rh",
+    "desc": "模型m698_old_1t3_voting投票分",
+    "logic": "直取 mx.tmp_darren_product_table.m698_old_1t3_voting_0619rh（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_reloan_24h",
+    "desc": "是否结清后24小时内复贷（用于计算结清复贷率）",
+    "logic": "max(case when t2.finish_time is not null and t1.app_time>t2.finish_time and 24h<=date_diff('hour',t2.finish_time,current_time) and date_diff('hour',t2.finish_time,t1.app_time)<=24 then 1 else 0 end)，按credit_no+app_group关联",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 同credit_no/app_group自关联）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_biz_id",
+    "desc": "结清订单biz_id（未结清为空）",
+    "logic": "case when a.finish_time is not null then a.biz_id end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "first_loan_finish_people",
+    "desc": "首贷结清客户credit_no（用于首贷结清人数）",
+    "logic": "case when a.is_reloan='new' and a.finish_time is not null then a.credit_no end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "first_loan_finish_biz_id",
+    "desc": "首贷结清订单biz_id（用于首贷结清次数）",
+    "logic": "case when a.is_reloan='new' and a.finish_time is not null then a.biz_id end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_version",
+    "desc": "应用版本",
+    "logic": "直取 mx.wxs_application_funnel.app_version",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "APP版本号"
+   },
+   {
+    "name": "max_overdue_day_30d_all_strategy_test",
+    "desc": "策略测试：近30天最大逾期天数>=1标记（date≥2026-02-09）",
+    "logic": "case when date(app_date)>=date'2026-02-09' and max_overdue_day_30d_all>=1 then 1 else 0 end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + max_overdue_day_30d_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cap_1point8_strategy_test",
+    "desc": "额度cap测试：全局额度超cap1.8倍客群标记（date≥2026-03-09）",
+    "logic": "case when date(app_date)>=date'2026-03-09' and cap_test_fd_global_limit_cap*1.8<cap_test_credit_amount then 1 else 0 end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + cap_test_fd_global_limit_cap/cap_test_credit_amount）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "APP_DATE",
+    "desc": "申请日期",
+    "logic": "直取 mx.wxs_application_funnel.APP_DATE",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件日期"
+   },
+   {
+    "name": "APP_WEEK",
+    "desc": "申请周",
+    "logic": "直取 mx.wxs_application_funnel.APP_WEEK",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件周"
+   },
+   {
+    "name": "APP_MONTH",
+    "desc": "申请月",
+    "logic": "直取 mx.wxs_application_funnel.APP_MONTH",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件月"
+   },
+   {
+    "name": "app",
+    "desc": "应用标识",
+    "logic": "直取 mx.wxs_application_funnel.app",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "APP标识"
+   },
+   {
+    "name": "tenant",
+    "desc": "租户名称",
+    "logic": "直取 mx.wxs_application_funnel.tenant",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "租户（yawey等）"
+   },
+   {
+    "name": "source",
+    "desc": "系统",
+    "logic": "直取 mx.wxs_application_funnel.source",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "来源"
+   },
+   {
+    "name": "apply_amount",
+    "desc": "申请金额",
+    "logic": "直取 mx.wxs_application_funnel.apply_amount",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_anti_fraud",
+    "desc": "是否进入复贷反欺诈",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_anti_fraud",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进反欺诈"
+   },
+   {
+    "name": "if_fu_anti_fraud_passed",
+    "desc": "复贷反欺诈是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_anti_fraud_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "反欺诈是否通过"
+   },
+   {
+    "name": "if_in_fu_anti_fraud_weak",
+    "desc": "是否进入复贷弱规则反欺诈",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_anti_fraud_weak",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进弱反欺诈"
+   },
+   {
+    "name": "if_fu_anti_fraud_weak_passed",
+    "desc": "复贷弱规则反欺诈是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_anti_fraud_weak_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "弱反欺诈是否通过"
+   },
+   {
+    "name": "if_in_fu_model",
+    "desc": "是否进入复贷模型",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_model",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进模型节点"
+   },
+   {
+    "name": "if_fu_model_passed",
+    "desc": "是否通过复贷模型",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_model_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "模型节点是否通过"
+   },
+   {
+    "name": "if_in_fu_sx_refuse",
+    "desc": "是否进入复贷授信拒绝流程",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_sx_refuse",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进授信拒绝"
+   },
+   {
+    "name": "if_fu_sx_refuse_passed",
+    "desc": "复贷授信拒绝复审是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_sx_refuse_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "授信拒绝是否通过"
+   },
+   {
+    "name": "if_in_sx",
+    "desc": "是否进入授信流程",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进授信"
+   },
+   {
+    "name": "if_in_sx_6h",
+    "desc": "是否进入6小时授信流程",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx_6h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进6小时授信"
+   },
+   {
+    "name": "if_in_sx_24h",
+    "desc": "是否进入24小时授信流程",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx_24h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进24小时授信"
+   },
+   {
+    "name": "if_in_sx_48h",
+    "desc": "是否进48小时授信",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx_48h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_72h",
+    "desc": "是否进72小时授信",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx_72h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_120h",
+    "desc": "是否进120小时授信",
+    "logic": "直取 mx.wxs_application_funnel.if_in_sx_120h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed",
+    "desc": "是否用信",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "授信是否通过"
+   },
+   {
+    "name": "if_sx_passed_6h",
+    "desc": "6小时授信是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed_6h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_24h",
+    "desc": "24小时授信是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed_24h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_48h",
+    "desc": "48小时授信是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed_48h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_72h",
+    "desc": "72小时授信是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed_72h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_120h",
+    "desc": "120小时授信是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_sx_passed_120h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_anti_fraud_rerun",
+    "desc": "是否进贷后反欺诈重跑",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_post_anti_fraud_rerun",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_anti_fraud_rerun_passed",
+    "desc": "贷后反欺诈重跑是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_post_anti_fraud_rerun_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_weak_anti_fraud_rerun",
+    "desc": "是否进贷后弱反欺诈重跑",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_post_weak_anti_fraud_rerun",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_weak_anti_fraud_rerun_passed",
+    "desc": "贷后弱反欺诈重跑是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_post_weak_anti_fraud_rerun_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_model_reject_rerun",
+    "desc": "是否进贷后模型拒绝重跑",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_post_model_reject_rerun",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_model_reject_rerun_passed",
+    "desc": "贷后模型拒绝重跑是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_post_model_reject_rerun_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_external_data",
+    "desc": "是否进入复贷外部数据验证",
+    "logic": "直取 mx.wxs_application_funnel.if_in_fu_external_data",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进外部数据"
+   },
+   {
+    "name": "if_fu_external_data_passed",
+    "desc": "复贷外部数据验证是否通过",
+    "logic": "直取 mx.wxs_application_funnel.if_fu_external_data_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "外部数据是否通过"
+   },
+   {
+    "name": "if_issue",
+    "desc": "是否放款标志",
+    "logic": "直取 mx.wxs_application_funnel.if_issue",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否放款"
+   },
+   {
+    "name": "contract_amount",
+    "desc": "合同金额",
+    "logic": "直取 mx.wxs_application_funnel.contract_amount",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "loan_cycle",
+    "desc": "贷款周期（天）",
+    "logic": "直取 mx.wxs_application_funnel.loan_cycle",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "借款周期"
+   },
+   {
+    "name": "credit_no",
+    "desc": "信用编号",
+    "logic": "直取 mx.wxs_application_funnel.credit_no",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件单号"
+   },
+   {
+    "name": "is_t0_window_1",
+    "desc": "第1期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_window_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第1窗口是否放款"
+   },
+   {
+    "name": "is_t0_window_2",
+    "desc": "第2期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_window_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第2窗口是否放款"
+   },
+   {
+    "name": "is_t0_window_3",
+    "desc": "第3期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_window_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第3窗口是否放款"
+   },
+   {
+    "name": "is_t0_window_4",
+    "desc": "第4期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_window_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第4窗口是否放款"
+   },
+   {
+    "name": "is_t0_overdue_1",
+    "desc": "第1期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_overdue_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第1窗口是否逾期"
+   },
+   {
+    "name": "is_t0_overdue_2",
+    "desc": "第2期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_overdue_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第2窗口是否逾期"
+   },
+   {
+    "name": "is_t0_overdue_3",
+    "desc": "第3期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_overdue_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第3窗口是否逾期"
+   },
+   {
+    "name": "is_t0_overdue_4",
+    "desc": "第4期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t0_overdue_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第4窗口是否逾期"
+   },
+   {
+    "name": "t0_overdue_amount_1",
+    "desc": "第1期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第1窗口逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_2",
+    "desc": "第2期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第2窗口逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_3",
+    "desc": "第3期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第3窗口逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_4",
+    "desc": "第4期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_overdue_amount_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第4窗口逾期金额"
+   },
+   {
+    "name": "t0_should_amt_1",
+    "desc": "第1期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_should_amt_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第1窗口应还金额"
+   },
+   {
+    "name": "t0_should_amt_2",
+    "desc": "第2期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_should_amt_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第2窗口应还金额"
+   },
+   {
+    "name": "t0_should_amt_3",
+    "desc": "第3期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_should_amt_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第3窗口应还金额"
+   },
+   {
+    "name": "t0_should_amt_4",
+    "desc": "第4期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t0_should_amt_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0第4窗口应还金额"
+   },
+   {
+    "name": "is_t3_window_1",
+    "desc": "第1期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_window_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第1窗口是否放款"
+   },
+   {
+    "name": "is_t3_window_2",
+    "desc": "第2期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_window_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第2窗口是否放款"
+   },
+   {
+    "name": "is_t3_window_3",
+    "desc": "第3期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_window_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第3窗口是否放款"
+   },
+   {
+    "name": "is_t3_window_4",
+    "desc": "第4期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_window_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第4窗口是否放款"
+   },
+   {
+    "name": "is_t3_overdue_1",
+    "desc": "第1期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_overdue_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第1窗口是否逾期"
+   },
+   {
+    "name": "is_t3_overdue_2",
+    "desc": "第2期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_overdue_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第2窗口是否逾期"
+   },
+   {
+    "name": "is_t3_overdue_3",
+    "desc": "第3期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_overdue_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第3窗口是否逾期"
+   },
+   {
+    "name": "is_t3_overdue_4",
+    "desc": "第4期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_application_funnel.is_t3_overdue_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第4窗口是否逾期"
+   },
+   {
+    "name": "t3_overdue_amount_1",
+    "desc": "第1期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第1窗口逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_2",
+    "desc": "第2期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第2窗口逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_3",
+    "desc": "第3期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第3窗口逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_4",
+    "desc": "第4期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_overdue_amount_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第4窗口逾期金额"
+   },
+   {
+    "name": "t3_should_amt_1",
+    "desc": "第1期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_should_amt_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第1窗口应还金额"
+   },
+   {
+    "name": "t3_should_amt_2",
+    "desc": "第2期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_should_amt_2",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第2窗口应还金额"
+   },
+   {
+    "name": "t3_should_amt_3",
+    "desc": "第3期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_should_amt_3",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第3窗口应还金额"
+   },
+   {
+    "name": "t3_should_amt_4",
+    "desc": "第4期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_application_funnel.t3_should_amt_4",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3第4窗口应还金额"
+   },
+   {
+    "name": "change_used_grantamount",
+    "desc": "支用变更占用授信额",
+    "logic": "直取 mx.darren_bizid_used_grantamount.change_used_grantamount",
+    "source_table": "mx.darren_bizid_used_grantamount",
+    "update_freq": "每日"
+   },
+   {
+    "name": "risk_credit_limit",
+    "desc": "本笔占用主额",
+    "logic": "直取 mx.darren_bizid_used_grantamount.risk_credit_limit",
+    "source_table": "mx.darren_bizid_used_grantamount",
+    "update_freq": "每日"
+   },
+   {
+    "name": "oneday_used_grantamount",
+    "desc": "单日已用授信额",
+    "logic": "直取 mx.darren_day_used_grantamount.oneday_used_grantamount",
+    "source_table": "mx.darren_day_used_grantamount",
+    "update_freq": "每日"
+   },
+   {
+    "name": "credit_amount",
+    "desc": "授信总额",
+    "logic": "直取 mx.tmp_darren_product_table.credit_amount（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日",
+    "desc_orig": "授信额度"
+   },
+   {
+    "name": "daily_max_available_limit",
+    "desc": "单日可借上限",
+    "logic": "直取 mx.tmp_darren_product_table.daily_max_available_limit（来自ods.s21_risk_strategy_record productid in (432,426,331,196) CHAMPION）",
+    "source_table": "mx.tmp_darren_product_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mid",
+    "desc": "客户号",
+    "logic": "直取 mx.wxs_application_funnel.mid",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "会员ID"
+   },
+   {
+    "name": "app_time",
+    "desc": "申请时间",
+    "logic": "直取 mx.wxs_application_funnel.app_time",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件时间"
+   },
+   {
+    "name": "credit_no_new",
+    "desc": "credit_no的sha256取前8位hex转十进制（匿名化ID）",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8(credit_no))),1,8),16)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.credit_no）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_date",
+    "desc": "放款日期",
+    "logic": "直取 mx.wxs_application_funnel.issue_date",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "first_issue_date",
+    "desc": "新客首放款日期",
+    "logic": "直取 dws.dws_risk_stgy_apply_mid_tags.first_issue_date",
+    "source_table": "dws.dws_risk_stgy_apply_mid_tags",
+    "update_freq": "每日"
+   },
+   {
+    "name": "main_sanwich_loan_grp",
+    "desc": "首贷/主贷/加贷分组",
+    "logic": "case when is_reloan='new' then '首贷' when app='yawey' then '主贷' else '加贷' end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.is_reloan/app）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "is_reloan",
+    "desc": "是否复贷（new/old）",
+    "logic": "直取 mx.wxs_application_funnel.is_reloan",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否复贷（new/old）"
+   },
+   {
+    "name": "product_level",
+    "desc": "产品等级",
+    "logic": "直取 mx.wxs_application_funnel.product_level",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "当前产品等级"
+   },
+   {
+    "name": "tenant_id",
+    "desc": "租户ID",
+    "logic": "直取 mx.wxs_application_funnel.tenant_id",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "phone",
+    "desc": "客户电话",
+    "logic": "直取 mx.wxs_application_funnel.phone",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "手机号"
+   },
+   {
+    "name": "temp_grant_amount",
+    "desc": "临时授信额度",
+    "logic": "直取 mx.wxs_application_funnel.temp_grant_amount",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_name_new",
+    "desc": "产品名映射为产品等级简称（如'21天产品C_07_03_00_75'→'C_07_03_00_75'）",
+    "logic": "case when product_name='21天产品C_07_03_00_75' then 'C_07_03_00_75' when ...（共映射14种产品）else product_name end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.product_name）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_product_or_maxlimit_change_tag",
+    "desc": "产品/单日可借上限前后是否一致标签（前后不一致/前后一致）",
+    "logic": "直取 mx.tmp_darren_if_product_or_maxlimit_change_tag_table.if_product_or_maxlimit_change_tag（来自ods.s21_risk_model_record modelmainid 1067/822/1077（复贷授信拒绝决策流））",
+    "source_table": "mx.tmp_darren_if_product_or_maxlimit_change_tag_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_tenant_flag",
+    "desc": "租户维度结清还款次数分箱标签（0-2/3-5/6-9/10+）",
+    "logic": "case when repayment_clearing_count_tenant<3 then cast(...) when <6 then '[3,6)' when <10 then '[6,10)' else '10+' end",
+    "source_table": "派生计算（基于 mx.darren_behave_var.repayment_clearing_count_tenant）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_index_tenant_flag",
+    "desc": "租户维度结清还款次数指数分箱标签（0-5/5-10/10+）",
+    "logic": "case when =0 then '0' ... when <=10 then '[5,10]' when >10 then '10+' else 'other' end",
+    "source_table": "派生计算（基于 mx.darren_behave_var.repayment_clearing_count_index_tenant）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "global_limit",
+    "desc": "全局授信额度（为空取credit_amount）",
+    "logic": "case when global_limit is not null then cast(global_limit as integer) else credit_amount end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.global_limit + credit_amount）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_index_tenant",
+    "desc": "租户维度结清还款次数指数",
+    "logic": "直取 mx.darren_behave_var.repayment_clearing_count_index_tenant",
+    "source_table": "mx.darren_behave_var",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_tenant",
+    "desc": "租户维度结清还款次数",
+    "logic": "直取 mx.darren_behave_var.repayment_clearing_count_tenant",
+    "source_table": "mx.darren_behave_var",
+    "update_freq": "每日"
+   },
+   {
+    "name": "other_app_has_loan_flag",
+    "desc": "其他APP包是否有放款标记",
+    "logic": "直取 mx.darren_behave_var.other_app_has_loan_flag",
+    "source_table": "mx.darren_behave_var",
+    "update_freq": "每日"
+   },
+   {
+    "name": "other_app_has_loan_tag",
+    "desc": "其他包放款标签（其他包有放款/无放款）",
+    "logic": "case when other_app_has_loan_flag>=1 then '其他包有放款' when <=0 then '其他包无放款' end",
+    "source_table": "派生计算（基于 mx.darren_behave_var.other_app_has_loan_flag）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "other_app_has_overdue_tag",
+    "desc": "其他包在逾标签（其他包有在逾/无在逾）",
+    "logic": "case when curr_ovd_cnt_other_app_group>=1 or curr_ovd_cnt_other_app_group_90d>=1 then '其他包有在逾' when <=0 then '其他包无在逾' end",
+    "source_table": "派生计算（基于 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "other_app_has_overdue_interval_tag",
+    "desc": "其他包在逾发生区间标签（30天内/30-60天/60-90天/90天外）",
+    "logic": "case when 30d>=1 then '在逾订单发生在30天内' when 60d>=1 then '在逾订单发生在30-60天内' when 90d>=1 then '在逾订单发生在60-90天内' when 90d<=0 then '在逾订单发生在90天外' end",
+    "source_table": "派生计算（基于 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group_30d/60d/90d）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "transfer_time",
+    "desc": "转产线时间",
+    "logic": "直取 mx.change_product.transfer_time（转产线决策流）",
+    "source_table": "mx.change_product",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_biz_id",
+    "desc": "转产线后的当前订单biz_id",
+    "logic": "直取 mx.change_product.curr_biz_id（转产线决策流）",
+    "source_table": "mx.change_product",
+    "update_freq": "每日"
+   },
+   {
+    "name": "first_grantcredit_7d_amount",
+    "desc": "新客7日授信额度（首贷放款额度，转double）",
+    "logic": "cast(first_grantcredit_7d_amount as double)",
+    "source_table": "派生计算（基于 dws.dws_risk_stgy_apply_mid_tags.newcust_credit_limit）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_level_test_251205_flag",
+    "desc": "251205后首次进件评级<7客户标签（按每一笔订单观察转产线前产品）",
+    "logic": "直取 派生计算（基于 mx.wxs_application_funnel + mx.tmp_darren_product_table，取首笔fd_creditlevel_main_v4_2<7标记）.product_level_test_251205_flag",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + mx.tmp_darren_product_table，取首笔fd_creditlevel_main_v4_2<7标记）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "equal_houshou_should_interest",
+    "desc": "应收回本息合计（interest+contract_amount-amount）",
+    "logic": "直取 ods_view_presto.s02_loan.equal_houshou_should_interest",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "emcontact_curr_ovd_cnt_all_test_flag",
+    "desc": "限制新版本测试：紧急联系人当前逾期数>0标记",
+    "logic": "case when emcontact_curr_ovd_cnt_all>0 then 1 else 0 end",
+    "source_table": "派生计算（基于 emcontact_curr_ovd_cnt_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cap_1point8cap_strategy_test_flag",
+    "desc": "1.8倍cap测试组/对照组标签（date≥2026-03-09按hash分桶）",
+    "logic": "case when date(apply_time)>=date'2026-03-09' and hash(phone+app_group_sha256,key'20260309')>=0.5 then '1.8倍cap对照组' else '1.8倍cap测试组' end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.phone/app_group_sha256/apply_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_test_flag",
+    "desc": "临额发放测试：测试组发临额/对照组不发临额（date<2026-02-09且评级≤6且上笔授信<已用+200）",
+    "logic": "case when date(apply_time)<date'2026-02-09' and fd_creditlevel_main_v4_2_snapshot<=6 and last_credit_amount<last_used_credit_amount+200 then case when hash(credit_no+app_group_sha256,key'20251230')>0.5 then '测试组-发临额' else '对照组-不发临额' end end",
+    "source_table": "派生计算（基于 mx.tmp_darren_temp_limit_table + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "strategy_temp_limit_test_flag",
+    "desc": "临额发放策略测试标记（2026-02-09后发临额记1，之前按hash分桶）",
+    "logic": "case when temp_credit_amount_issue_tag=1 and date(apply_time)>=date'2026-02-09' then 1 when temp_credit_amount_issue_tag=1 and date(apply_time)<date'2026-02-09' then case when hash(credit_no+app_group_sha256,key'20251230')>0.5 then 1 else 0 end end",
+    "source_table": "派生计算（基于 mx.tmp_darren_temp_limit_table + mx.wxs_application_funnel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_credit_amount_strategy_test_flag",
+    "desc": "临额发放策略测试（2026-08-10起分桶：20260810-V5_3策略/20260518-V5_2策略）",
+    "logic": "case when date(apply_time)>=date'2026-08-10' then case when hash(credit_no+app_group_sha256,key'20260811')>0.7 then '20260518-V5_2策略' else '20260810-V5_3策略' end end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "strategy_temp_limit_interval_test_flag",
+    "desc": "临额间隔策略测试（测试组十天间隔组/对照组五天间隔组）",
+    "logic": "case when date(apply_time)>=date'2026-03-09' then '测试组-十天间隔组' when date(apply_time)>=date'2026-02-09' then case when hash(credit_no+app_group_sha256,key'20260204')>0.5 then '测试组-十天间隔组' else '对照组-五天间隔组' end end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_credit_amount_issue_tag",
+    "desc": "临额发放标签",
+    "logic": "直取 mx.tmp_darren_temp_limit_table.temp_credit_amount_issue_tag（来自ods.s21_risk_model_record modelmainid=1386（临额发放判断标签决策树））",
+    "source_table": "mx.tmp_darren_temp_limit_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "real_issue_amount",
+    "desc": "实际放款金额合计",
+    "logic": "直取 ods_view_presto.s02_loan.real_issue_amount",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "loan_contract_amount",
+    "desc": "放款合同金额合计",
+    "logic": "直取 ods_view_presto.s02_loan.loan_contract_amount",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b320_2026v1_long_p1_group",
+    "desc": "模型mex_b320_2026v1_long概率15档分组（1.<0.1977 至 15.>=0.7050）",
+    "logic": "case when <0.1977 then '1. <0.1977' when <0.2416 then '2. 0.1977-0.2416' ... when >=0.7050 then '15. >=0.7050' end",
+    "source_table": "派生计算（基于 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.pvalue_mex_b320_2026v1_long_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b320_2026v1_long_p1",
+    "desc": "模型mex_b320_2026v1_long概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_1_table.pvalue_mex_b320_2026v1_long_p1（来自ods.s21_risk_strategy_record strategymainid=533 CHAMPION）",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_midCreditLevel_charge_V5_2",
+    "desc": "V5_2中资产等级",
+    "logic": "直取 mx.android_oldcust_main_creditlevel_charge_v5_2_param_table.android_oldCust_midCreditLevel_charge_V5_2",
+    "source_table": "mx.android_oldcust_main_creditlevel_charge_v5_2_param_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_mainCreditLevel_charge_V5_2",
+    "desc": "V5_2主资产等级",
+    "logic": "直取 mx.android_oldcust_main_creditlevel_charge_v5_2_param_table.android_oldCust_mainCreditLevel_charge_V5_2",
+    "source_table": "mx.android_oldcust_main_creditlevel_charge_v5_2_param_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_3_fraud_score",
+    "desc": "V5_3欺诈子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.V5_3_fraud_score",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_3_behavior_score",
+    "desc": "V5_3行为子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.V5_3_behavior_score",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_ruleScore_charge_V5_3",
+    "desc": "V5_3规则分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.android_oldCust_ruleScore_charge_V5_3",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_voteScore_charge_V5_3",
+    "desc": "V5_3投票分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.android_oldCust_voteScore_charge_V5_3",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_mainCreditLevel_charge_V5_3",
+    "desc": "V5_3主资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.android_oldCust_mainCreditLevel_charge_V5_3",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_midCreditLevel_charge_V5_3",
+    "desc": "V5_3中资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V5_3_table.android_oldCust_midCreditLevel_charge_V5_3",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V5_3_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_all",
+    "desc": "当前逾期订单数（全部）",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_all（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_other_app_group_30d",
+    "desc": "其他包近30天当前逾期订单数",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group_30d（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_other_app_group_60d",
+    "desc": "其他包近60天当前逾期订单数",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group_60d（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_other_app_group_90d",
+    "desc": "其他包近90天当前逾期订单数",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group_90d（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_this_app_group",
+    "desc": "本包当前逾期订单数",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_this_app_group（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_other_app_group",
+    "desc": "其他包当前逾期订单数",
+    "logic": "直取 mx.tmp_curr_ovd_table.curr_ovd_cnt_other_app_group（来自ods.s21_risk_model_record modelmainid in (282,301)）",
+    "source_table": "mx.tmp_curr_ovd_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_use_creditamount_score_v1",
+    "desc": "用信额度评分v1",
+    "logic": "直取 mx.tmp_darren_new_temp_limit_table.fd_use_creditamount_score_v1（来自ods.s21_risk_model_record modelmainid=1523）",
+    "source_table": "mx.tmp_darren_new_temp_limit_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_use_creditamount_type",
+    "desc": "用信额度类型",
+    "logic": "直取 mx.tmp_darren_new_temp_limit_table.fd_use_creditamount_type（来自ods.s21_risk_model_record modelmainid=1523）",
+    "source_table": "mx.tmp_darren_new_temp_limit_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_136",
+    "desc": "策略提前多头K136特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_k_136",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_292",
+    "desc": "策略提前多头K292特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_k_292",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_104",
+    "desc": "策略提前多头K104特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_k_104",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "beh_main_reject_applypct_day60",
+    "desc": "行为主拒申请占比day60特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.beh_main_reject_applypct_day60",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "beh2_o_create_reject_pct_d7",
+    "desc": "行为2创建拒绝占比d7特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.beh2_o_create_reject_pct_d7",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_amlta_d180_record_date_unique_cnt",
+    "desc": "策略AMLTA D180去重日期数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_amlta_d180_record_date_unique_cnt",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlta_d60_daydiff_median",
+    "desc": "策略动态AMLTA D60日差中位数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_dyna_amlta_d60_daydiff_median",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d21_b_cnt",
+    "desc": "策略动态AMLBA D21 B计数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_dyna_amlba_d21_b_cnt",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d30_c_cnt",
+    "desc": "策略动态AMLBA D30 C计数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_dyna_amlba_d30_c_cnt",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_issue_rate",
+    "desc": "结清放款率特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.finish_issue_rate",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_loan_count_1w",
+    "desc": "策略北京一周放款数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_bj_loan_count_1w",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question5",
+    "desc": "问题5特征（问卷）",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.question5",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "msg2_loandue_addpctall_day1",
+    "desc": "短信2贷款到期新增占比day1特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.msg2_loandue_addpctall_day1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_behavior_subscore_charge_V6_1",
+    "desc": "V6_1行为子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_behavior_subscore_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "emcontact_curr_ovd_cnt_all",
+    "desc": "紧急联系人当前逾期订单数",
+    "logic": "直取 mx.tmp_darren_model_table.emcontact_curr_ovd_cnt_all（来自ods.s21_risk_model_record modelmainid=301）",
+    "source_table": "mx.tmp_darren_model_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d30_f2_daydiff_max",
+    "desc": "策略动态AMLBA D30 F2日差最大值特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_dyna_amlba_d30_f2_daydiff_max",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d60_f3_cnt",
+    "desc": "策略动态AMLBA D60 F3计数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_dyna_amlba_d60_f3_cnt",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_overdue_subscore_charge_V6_1",
+    "desc": "V6_1逾期子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_overdue_subscore_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "apply_hour",
+    "desc": "进件小时（2-5为凌晨时段）",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.apply_hour",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "history_loanrec_time_apply",
+    "desc": "历史借款记录距进件时间特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.history_loanrec_time_apply",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "af_uninstall_cnt_lf",
+    "desc": "卸载次数lf特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.af_uninstall_cnt_lf",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "unique_phone",
+    "desc": "唯一手机号数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.unique_phone",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_fraud_subscore_charge_V6_1",
+    "desc": "V6_1欺诈子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_fraud_subscore_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_55",
+    "desc": "策略提前多头X55特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_x_55",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_12",
+    "desc": "策略提前多头X12特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_x_12",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_34",
+    "desc": "策略提前多头X34特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_advance_gd_x_34",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_loan1_inst_cnt_day7",
+    "desc": "APP首贷7日分期数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.app_loan1_inst_cnt_day7",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app3_mix_loan1_cfinst_cnt_d30",
+    "desc": "APP3混合首贷30日合作机构数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.app3_mix_loan1_cfinst_cnt_d30",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_count_1w",
+    "desc": "策略北京一周申请数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_bj_apply_count_1w",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_jgs_12m",
+    "desc": "策略北京12月申请机构数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_bj_apply_jgs_12m",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_jgs_1w",
+    "desc": "策略北京1周申请机构数特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.stgy_bj_apply_jgs_1w",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_apply_subscore_charge_V6_1",
+    "desc": "V6_1申请子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_apply_subscore_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "income",
+    "desc": "收入",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.income",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日",
+    "desc_orig": "收入特征"
+   },
+   {
+    "name": "baseinfo_has_car",
+    "desc": "是否有车特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.baseinfo_has_car",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_has_house",
+    "desc": "是否有房特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.baseinfo_has_house",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_marry",
+    "desc": "婚姻状态特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.baseinfo_marry",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_employee_type",
+    "desc": "就业类型特征",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.baseinfo_employee_type",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_income_subscore_charge_V6_1",
+    "desc": "V6_1收入子分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_income_subscore_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_rule_score_charge_V6_1",
+    "desc": "V6_1规则分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_rule_score_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b311_2025v1_p1",
+    "desc": "模型mex_b311_2025v1概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.pvalue_mex_b311_2025v1_p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b321_2026v2_p1",
+    "desc": "模型mex_b321_2026v2概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.pvalue_mex_b321_2026v2_p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m696_old_1t3_bj_iz_0530_p1",
+    "desc": "模型m696_old_1t3_bj_iz概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.m696_old_1t3_bj_iz_0530_p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m687_old_1t3_ad_tengo_0709p1",
+    "desc": "模型m687_old_1t3_ad_tengo概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.m687_old_1t3_ad_tengo_0709p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b329_2026v1_byid_p1",
+    "desc": "模型mex_b329_2026v1_byid概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.pvalue_mex_b329_2026v1_byid_p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_voting_score_charge_V6_1",
+    "desc": "V6_1投票分",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_voting_score_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b320_2026v2_p1",
+    "desc": "模型mex_b320_2026v2概率p1",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.pvalue_mex_b320_2026v2_p1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_midCreditLevel_charge_V6_1",
+    "desc": "V6_1中资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_midCreditLevel_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_mainCreditLevel_charge_V6_1",
+    "desc": "V6_1主资产等级",
+    "logic": "直取 mx.android_oldCust_mainCreditLevel_charge_V6_1_table.android_oldCust_mainCreditLevel_charge_V6_1",
+    "source_table": "mx.android_oldCust_mainCreditLevel_charge_V6_1_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "is_loop_limit_expired",
+    "desc": "循环额度是否过期标签",
+    "logic": "直取 mx.tmp_darren_relimit_table.is_loop_limit_expired（来自ods.s21_risk_model_record modelmainid=1065（循环贷判断决策树））",
+    "source_table": "mx.tmp_darren_relimit_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cap_test_fd_global_limit_cap",
+    "desc": "全局额度cap值（cap测试用）",
+    "logic": "直取 mx.tmp_darren_limit_cap_table.cap_test_fd_global_limit_cap（来自ods.s21_risk_model_record modelid in (4404,4596)（复贷授信拒绝决策流））",
+    "source_table": "mx.tmp_darren_limit_cap_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cap_test_credit_amount",
+    "desc": "授信额度（cap测试用）",
+    "logic": "直取 mx.tmp_darren_limit_cap_table.cap_test_credit_amount（来自ods.s21_risk_model_record modelid in (4404,4596)）",
+    "source_table": "mx.tmp_darren_limit_cap_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "one_click_loan_tag",
+    "desc": "一键借款标签",
+    "logic": "直取 mx.wxs_application_funnel.one_click_loan_tag",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "tagg_0819",
+    "desc": "0819离线发临额（在贷人群）标签",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.tagg_0819",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0819_tag",
+    "desc": "0819临额标签（仅2026-08-18至+5天进件窗口内取值）",
+    "logic": "case when app_date>=date'2026-08-18' and app_date<=date_add('day',+5,date'2026-08-18') then offline_temp.temp_limit_tag_0819 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_main_credit_limit_0820",
+    "desc": "0820当前主授信额度（无在贷人群）",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.curr_main_credit_limit_0820",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0820_tag",
+    "desc": "0820临额标签（无在贷人群，2026-08-19起5天窗口）",
+    "logic": "case when app_date>=date'2026-08-19' and app_date<=date_add('day',+5,date'2026-08-19') then offline_temp.temp_limit_tag_0820 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "tagg_0729",
+    "desc": "0729离线发临额（在贷人群）标签",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.tagg_0729",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0729_tag",
+    "desc": "0729临额标签（2026-07-28起5天窗口）",
+    "logic": "case when app_date>=date'2026-07-28' and app_date<=date_add('day',+5,date'2026-07-28') then offline_temp.temp_limit_tag_0729 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_main_credit_limit_0730",
+    "desc": "0730当前主授信额度（无在贷人群）",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.curr_main_credit_limit_0730",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0730_tag",
+    "desc": "0730临额标签（无在贷人群，2026-07-29起5天窗口）",
+    "logic": "case when app_date>=date'2026-07-29' and app_date<=date_add('day',+5,date'2026-07-29') then offline_temp.temp_limit_tag_0730 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "tagg_0805",
+    "desc": "0805离线发临额（在贷人群）标签",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.tagg_0805",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0805_tag",
+    "desc": "0805临额标签（2026-08-04起5天窗口）",
+    "logic": "case when app_date>=date'2026-08-04' and app_date<=date_add('day',+5,date'2026-08-04') then offline_temp.temp_limit_tag_0805 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_main_credit_limit_0806",
+    "desc": "0806当前主授信额度（无在贷人群）",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.curr_main_credit_limit_0806",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0806_tag",
+    "desc": "0806临额标签（无在贷人群，2026-08-05起5天窗口）",
+    "logic": "case when app_date>=date'2026-08-05' and app_date<=date_add('day',+5,date'2026-08-05') then offline_temp.temp_limit_tag_0806 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "tagg_0812",
+    "desc": "0812离线发临额（在贷人群）标签",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.tagg_0812",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0812_tag",
+    "desc": "0812临额标签（2026-08-11起5天窗口）",
+    "logic": "case when app_date>=date'2026-08-11' and app_date<=date_add('day',+5,date'2026-08-11') then offline_temp.temp_limit_tag_0812 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_main_credit_limit_0813",
+    "desc": "0813当前主授信额度（无在贷人群）",
+    "logic": "直取 mx.yuhan_temp_limit_base_table_his.curr_main_credit_limit_0813",
+    "source_table": "mx.yuhan_temp_limit_base_table_his",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_limit_0813_tag",
+    "desc": "0813临额标签（无在贷人群，2026-08-12起5天窗口）",
+    "logic": "case when app_date>=date'2026-08-12' and app_date<=date_add('day',+5,date'2026-08-12') then offline_temp.temp_limit_tag_0813 end",
+    "source_table": "派生计算（基于 mx.yuhan_temp_limit_base_table_his + mx.wxs_application_funnel.app_date）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_product_origin",
+    "desc": "最近一次额度变更来源标签（C001新客授信/C002单期结清调额/C005转产线/C007再授信/C009老客授信/C011用信页挽留弹窗/C012支用转产）",
+    "logic": "case when change_event_type='C001' then '新客授信' ... when change_event_type='C012' then '支用转产' end",
+    "source_table": "派生计算（基于 ods.s05_user_creditlimit_change_record（关联 ods.s05_creditx_order））",
+    "update_freq": "每日"
+   },
+   {
+    "name": "change_flag",
+    "desc": "24H/48H转产线执行标签（01.24H转产/02.48H转产/03.24H转产(之前)）",
+    "logic": "case when app_time>=cast('2026-07-02 04:00:00.000' as timestamp) and cast(rand_no_72 as double)<=6 then '01.24H转产' when ... when tt2.mid is not null then '03.24H转产(之前)' else '' end",
+    "source_table": "派生计算（基于 dwd.dwd_mem_info.random_no第72位 + mx.wxs_application_funnel.app_time + mx.change_product）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m699_rh_new_bin",
+    "desc": "mex_b300_2025v2模型概率分箱（9档）",
+    "logic": "case when mex_b300_2025v2<=0.163083 then '(-inf,0.163083]' when <=0.188569 then '(0.163083,0.188569]' when <=0.21973 then '(0.188569,0.21973]' when <=0.255985 then '(0.21973,0.255985]' when <=0.279371 then '(0.255985,0.279371]' when <=0.302361 then '(0.279371,0.302361]' when <=0.341002 then '(0.302361,0.341002]' when <=0.371907 then '(0.341002,0.371907]' else '(0.371907,inf]' end",
+    "source_table": "派生计算（基于 mex_b300_2025v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_level_change",
+    "desc": "转产线前后产品拼接（转产前产品-转产后产品）",
+    "logic": "concat(last_product_level,'-',product_level)",
+    "source_table": "派生计算（基于 mx.change_product.last_product_level + mx.wxs_application_funnel.product_level）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "change_product_tag",
+    "desc": "是否转产线标签",
+    "logic": "case when curr_biz_id is not null then '转产线' else '未转产线' end",
+    "source_table": "派生计算（基于 mx.change_product.curr_biz_id）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "randd",
+    "desc": "hash随机分组值(0-1)",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20251106'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.credit_no + app_group_sha256）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "daily_max_limit_tag",
+    "desc": "日限额AB分组标签（进件角度单日可借上限差异测试）",
+    "logic": "case when app_time>=date'2026-04-03' and v3_flag in ('V5_2') then case when hash(phone+app_group_sha256,key'20251217')>=0.7 then 'v5_2测试组' else 'v5_2冠军组' end when app_time>=date'2026-02-09' and v3_flag in ('V4_2','V5_1') then ... v4_2/v5_1测试组冠军组 when app_time>=date'2025-12-16' and v3_flag in ('V4_2','原V3_3现V4_2') then ... when app_time>=date'2025-10-29' ... v4_2/v3_3测试组冠军组 else case when hash(phone+app_group_sha256,key'20251010')<0.5 then '冠军组' else '测试组' end end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.phone/app_time/v3_flag + app_group_sha256）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "thirdparty_izi_whatsapp_register_status_score",
+    "desc": "thirdparty_izi_whatsapp_register_status特征分箱打分",
+    "logic": "case when =0 then '-1 [=0]' when =1 then '0 [=1]' end",
+    "source_table": "派生计算（基于 thirdparty_izi_whatsapp_register_status）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_system_run_too_short_score",
+    "desc": "if_system_run_too_short特征分箱打分",
+    "logic": "case when =1 then '0 [=1]' when =0 then '0 [=0]' end",
+    "source_table": "派生计算（基于 if_system_run_too_short）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "unique_email_cnt_score",
+    "desc": "unique_email_cnt特征分箱打分",
+    "logic": "case when >1 then '-1 [>1]' when <=1 then '0 [≤1]' end",
+    "source_table": "派生计算（基于 unique_email_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "history_loanrec_cnt_lastprepaydays_v2_score",
+    "desc": "history_loanrec_cnt_lastprepaydays_v2特征分箱打分",
+    "logic": "case when <=-30 then '-10 [≤-30]' when <=-2 then '-8 [-30<x≤-2]' when <=-1 then '-5 [-2<x≤-1]' when <=0 then '-2 [-1<x≤0]' when >0 then '0 [>0]' end",
+    "source_table": "派生计算（基于 history_loanrec_cnt_lastprepaydays_v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_overdue_day_30d_all_score",
+    "desc": "max_overdue_day_30d_all特征分箱打分",
+    "logic": "case when <0 then '-3 [<0]' when >=0 then '0 [≥0]' end",
+    "source_table": "派生计算（基于 max_overdue_day_30d_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_ovd_days_all_score",
+    "desc": "max_ovd_days_all特征分箱打分",
+    "logic": "case when >3 then '-2 [>3]' when >0 then '-1 [0<x≤3]' when <=0 then '0 [≤0]' end",
+    "source_table": "派生计算（基于 max_ovd_days_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "af_uninstall_cnt_30d_score",
+    "desc": "af_uninstall_cnt_30d特征分箱打分",
+    "logic": "case when <1 then '0 [<1]' when <2 then '-2 [1≤x<2]' when >=2 then '-3 [≥2]' end",
+    "source_table": "派生计算（基于 af_uninstall_cnt_30d）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_repay_gap_days_app_group_score",
+    "desc": "last_repay_gap_days_app_group特征分箱打分",
+    "logic": "case when <1 then '0 [<1]' when <14 then '1 [1≤x<14]' when <30 then '0 [14≤x<30]' when >=30 then '-3 [≥30]' end",
+    "source_table": "派生计算（基于 last_repay_gap_days_app_group）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "minstay_repayplan_second_30d_mid_score",
+    "desc": "minstay_repayplan_second_30d_mid特征分箱打分",
+    "logic": "case when <10 then '0 [<10]' when >=10 then '1 [≥10]' else '0 [else]' end",
+    "source_table": "派生计算（基于 minstay_repayplan_second_30d_mid）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_age_score",
+    "desc": "baseinfo_userprof_age特征分箱打分",
+    "logic": "case when <35 then '-1 [<35]' when <=60 then '0 [35≤x≤60]' when >60 then '3 [>60]' end",
+    "source_table": "派生计算（基于 baseinfo_userprof_age）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_degree_score",
+    "desc": "baseinfo_userprof_degree特征分箱打分",
+    "logic": "case when <=3 then '-1 [≤3]' when <=4 then '0 [3<x≤4]' when <=5 then '1 [4<x≤5]' when <=6 then '3 [5<x≤6]' end",
+    "source_table": "派生计算（基于 baseinfo_userprof_degree）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question3_score",
+    "desc": "question3特征分箱打分",
+    "logic": "case when >5 then '1 [>5]' when <=5 then '0 [≤5]' end",
+    "source_table": "派生计算（基于 question3）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question6_v2_score",
+    "desc": "question6_v2特征分箱打分",
+    "logic": "case when >=10 then '2 [≥10]' when <10 then '0 [<10]' end",
+    "source_table": "派生计算（基于 question6_v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_x_19_score",
+    "desc": "advance_duotou_cnt_x_19特征分箱打分",
+    "logic": "case when <2 then '0 [<2]' when <=4 then '1 [2≤x≤4]' when <=6 then '-2 [4<x≤6]' when >6 then '-8 [>6]' end",
+    "source_table": "派生计算（基于 advance_duotou_cnt_x_19）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_730d_score",
+    "desc": "advance_duotou_cnt_730d特征分箱打分",
+    "logic": "case when <=0 then '0 [≤0]' when <=2 then '-1 [0<x≤2]' when <=11 then '0 [2<x≤11]' when >11 then '-1 [>11]' end",
+    "source_table": "派生计算（基于 advance_duotou_cnt_730d）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_3_fraud_group_score",
+    "desc": "V5_3欺诈子分分组打分",
+    "logic": "case when <=-10 then '-7 [≤-10]' when <=-5 then '-5 [-10<x≤-5]' when <=-2 then '-1 [-5<x≤-2]' when >-2 then '0 [>-2]' end",
+    "source_table": "派生计算（基于 V5_3_fraud_score）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "V5_3_behavior_group_score",
+    "desc": "V5_3行为子分分组打分",
+    "logic": "case when >=3 then '2 [≥3]' when >=-1 then '0 [-1≤x<3]' when >=-3 then '-2 [-3≤x<-1]' when >=-8 then '-3 [-8≤x<-3]' when <-8 then '-5 [<-8]' end",
+    "source_table": "派生计算（基于 V5_3_behavior_score）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "model_698_score",
+    "desc": "m698_old_1t3_voting_0619rh模型概率分箱打分",
+    "logic": "case when <0.185 then '2 [<0.185]' when <0.31 then '-1 [0.185≤x<0.31]' when <0.455 then '-6 [0.31≤x<0.455]' when >=0.455 then '-12 [≥0.455]' end",
+    "source_table": "派生计算（基于 m698_old_1t3_voting_0619rh）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "model_699_score",
+    "desc": "mex_b300_2025v2模型概率分箱打分",
+    "logic": "case when <0.18 then '1 [<0.18]' when <0.39 then '-2 [0.18≤x<0.39]' when <0.475 then '-6 [0.39≤x<0.475]' when >=0.475 then '-12 [≥0.475]' end",
+    "source_table": "派生计算（基于 mex_b300_2025v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "model_p2_1t_score",
+    "desc": "pvalue_mex_b321_2026v1_p1模型概率分箱打分",
+    "logic": "case when <0.1762 then '2 [<0.1762]' when <0.2381 then '-4 [0.1762≤x<0.2381]' when <0.3287 then '-9 [0.2381≤x<0.3287]' when >=0.3287 then '-15 [≥0.3287]' end",
+    "source_table": "派生计算（基于 pvalue_mex_b321_2026v1_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_voteScore_charge_V5_3_bin",
+    "desc": "V5_3投票分分箱标签",
+    "logic": "case when >-4 then '1 [>-4]' when >-14 then '2 [>-14]' when >-27 then '3 [>-27]' end",
+    "source_table": "派生计算（基于 android_oldCust_voteScore_charge_V5_3）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_ruleScore_charge_V5_3_bin",
+    "desc": "V5_3规则分分箱标签",
+    "logic": "case when >0 then '1 [>0]' when >-1 then '2 [>-1]' when >-3 then '3 [>-3]' when >-7 then '4 [>-7]' end",
+    "source_table": "派生计算（基于 android_oldCust_ruleScore_charge_V5_3）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_level_test_260701",
+    "desc": "260701起转产线产品测试分组（头部/中尾部 × base/test，B/C产品）",
+    "logic": "case when app_time>=date'2026-07-01' then case when last_product_level is not null and hash(credit_no+app_group_sha256,key'20251107')<=0.5 and fd_changepro_V5_3>=1 and <=7 then 'base_头部_B_07_03_00_60' when ... when fd_changepro_V5_3>=8 then 'base_中尾部_B_07_03_00_60' when hash>0.5 and fd_changepro_V5_3>=1 and <=7 then 'test_头部_C_15_03_00_85' when hash>0.5 and fd_changepro_V5_3>=8 then 'test_中尾部_C_07_04_00_85' else '未转产' end end",
+    "source_table": "派生计算（基于 mx.change_product.last_product_level + mx.change_product.fd_changepro_V5_3 + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_level_change_test_260722",
+    "desc": "260722起转产线分档测试（base/test × 1-4档产品）",
+    "logic": "case when app_time>=date'2026-07-22' and hash(credit_no+app_group_sha256,key'20260512')<=0.7 then case when last_product_level is not null and hash(credit_no+app_group_sha256,key'20251107')<=0.5 and fd_changepro_V5_3>=1 and <=2 then 'base_1档_B_07_03_00_60' when ... fd_changepro_V5_3>10 then 'test_4档_B_07_02_00_75' else '未转产' end end",
+    "source_table": "派生计算（基于 mx.change_product.last_product_level + mx.change_product.fd_changepro_V5_3 + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "change_flag1",
+    "desc": "24h/48h用信与转产标签（未进24h/24h用信/执行24h或48h未用信转产）",
+    "logic": "case when if_in_sx_24h<>1 then '01.距离授信不足24h' when if_in_sx_24h=1 and if_SX_passed_24h=1 then '02.24h用信' when if_in_sx_24h=1 and change_flag='01.24H转产' and app_time<date'2026-07-16' then '03.执行24h未用信转产' when if_in_sx_24h=1 and change_flag<>'01.24H转产' and app_time<date'2026-07-16' then '04.执行48h未用转产' when if_in_sx_24h=1 and app_time>=date'2026-07-16' then '03.执行24h未用信转产' else '' end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx_24h/if_SX_passed_24h + change_flag）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_test_0722",
+    "desc": "260722产品测试分组（base/test × 1-4档，按COALESCE(last_product_level,product_level)匹配产品档）",
+    "logic": "case when app_time>=date'2026-07-22' then case when COALESCE(last_product_level,product_level)='C_07_04_00_75' and hash(credit_no+app_group_sha256,key'20260512')<=0.7 then 'base_1档_C_07_04_00_75' when COALESCE(last_product_level,product_level)='D_1_03' and hash>0.7 then 'test_1档_D_1_03' ... when ='D_1_06' and hash>0.7 then 'test_4档_D_1_06' end end",
+    "source_table": "派生计算（基于 mx.change_product.last_product_level + mx.wxs_application_funnel.product_level + hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "product_random_0722",
+    "desc": "260722随机分组（base组/test组，按hash<=0.7/ >0.7）",
+    "logic": "case when app_time>=date'2026-07-22' and hash(credit_no+app_group_sha256,key'20260512')<=0.7 then 'base组' when app_time>=date'2026-07-22' and hash>0.7 then 'test组' end",
+    "source_table": "派生计算（基于 hash(credit_no,app_group_sha256)）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_34_score",
+    "desc": "stgy_advance_gd_x_34特征分箱打分",
+    "logic": "case when >=4 then '-1 [>=4]' when <4 then '0 [<4]' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_x_34）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_12_score",
+    "desc": "stgy_advance_gd_x_12特征分箱打分",
+    "logic": "case when <5 then '0 [<5]' when >=5 then '-1 [>=5]' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_x_12）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_x_55_score",
+    "desc": "stgy_advance_gd_x_55特征分箱打分",
+    "logic": "case when <=1 then '0 [≤1]' when in (2,3) then '1 [2或3]' when >=4 then '-1 [≥4]' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_x_55）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_jgs_12m_score",
+    "desc": "stgy_bj_apply_jgs_12m特征分箱打分",
+    "logic": "case when =-98 or =0 then '-1 [=-98或0]' when >0 then '0 [>0]' end",
+    "source_table": "派生计算（基于 stgy_bj_apply_jgs_12m）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_jgs_1w_score",
+    "desc": "stgy_bj_apply_jgs_1w特征分箱打分",
+    "logic": "case when =-98 then '0 [=-98]' when between 0 and 3 then '1 [0≤x≤3]' when >=4 then '-2 [≥4]' end",
+    "source_table": "派生计算（基于 stgy_bj_apply_jgs_1w）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_apply_count_1w_score",
+    "desc": "stgy_bj_apply_count_1w特征分箱打分",
+    "logic": "case when =-98 then '0 [=-98]' when between 0 and 2 then '0 [0≤x≤2]' when between 3 and 7 then '-1 [3≤x≤7]' when >=8 then '-2 [≥8]' end",
+    "source_table": "派生计算（基于 stgy_bj_apply_count_1w）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_loan1_inst_cnt_day7_score",
+    "desc": "app_loan1_inst_cnt_day7特征分箱打分",
+    "logic": "case when =0 then '1 [=0]' when =1 then '0 [=1]' when =2 then '-1 [=2]' when between 3 and 5 then '-2 [3≤x≤5]' when between 6 and 9 then '-3 [6≤x≤9]' when >=10 then '-4 [≥10]' end",
+    "source_table": "派生计算（基于 app_loan1_inst_cnt_day7）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app3_mix_loan1_cfinst_cnt_d30_score",
+    "desc": "app3_mix_loan1_cfinst_cnt_d30特征分箱打分",
+    "logic": "case when =0 then '1 [=0]' when =1 then '0 [=1]' when =2 then '-1 [=2]' when between 3 and 4 then '-2 [3≤x≤4]' when between 5 and 9 then '-3 [5≤x≤9]' when >=10 then '-4 [≥10]' end",
+    "source_table": "派生计算（基于 app3_mix_loan1_cfinst_cnt_d30）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_x_19_score_v6",
+    "desc": "advance_duotou_cnt_x_19特征分箱打分（V6版，与旧版重名改_v6）",
+    "logic": "case when <2 then '0 [<2]' when between 2 and 4 then '1 [2≤x≤4]' when >4 and <=6 then '-2 [4<x≤6]' when >6 then '-8 [>6]' end",
+    "source_table": "派生计算（基于 advance_duotou_cnt_x_19）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "advance_duotou_cnt_730d_score_v6",
+    "desc": "advance_duotou_cnt_730d特征分箱打分（V6版）",
+    "logic": "case when <=0 then '0 [≤0]' when >0 and <=2 then '-1 [0<x≤2]' when >2 and <=11 then '0 [2<x≤11]' when >11 then '-1 [>11]' end",
+    "source_table": "派生计算（基于 advance_duotou_cnt_730d）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "beh2_o_create_reject_pct_d7_score",
+    "desc": "beh2_o_create_reject_pct_d7特征分箱打分",
+    "logic": "case when <=0 then '0 [≤0]' when >0 then '-3 [>0]' else '0' end",
+    "source_table": "派生计算（基于 beh2_o_create_reject_pct_d7）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "beh_main_reject_applypct_day60_score",
+    "desc": "beh_main_reject_applypct_day60特征分箱打分",
+    "logic": "case when >=0 and <0.3 then '0 [0≤x<0.3]' when >=0.3 and <0.6 then '-1 [0.3≤x<0.6]' when >=0.6 and <0.9 then '-2 [0.6≤x<0.9]' when >=0.9 then '-3 [≥0.9]' else '0' end",
+    "source_table": "派生计算（基于 beh_main_reject_applypct_day60）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlta_d60_daydiff_median_score",
+    "desc": "stgy_dyna_amlta_d60_daydiff_median特征分箱打分",
+    "logic": "case when <-98 then '-1 [<-98]' when <0 then '-2 [-98≤x<0]' when <=15 then '-1 [0≤x≤15]' when <=25 then '0 [15<x≤25]' when >25 then '1 [>25]' else '0' end",
+    "source_table": "派生计算（基于 stgy_dyna_amlta_d60_daydiff_median）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_amlta_d180_record_date_unique_cnt_score",
+    "desc": "stgy_amlta_d180_record_date_unique_cnt特征分箱打分",
+    "logic": "case when <-98 then '-2 [<-98]' when <=0 then '0 [-98≤x≤0]' when <=20 then '-1 [0<x≤20]' when <=47 then '0 [20<x≤47]' when <=99 then '1 [47<x≤99]' when >99 then '1 [>99]' else '0' end",
+    "source_table": "派生计算（基于 stgy_amlta_d180_record_date_unique_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d30_c_cnt_score",
+    "desc": "stgy_dyna_amlba_d30_c_cnt特征分箱打分",
+    "logic": "case when <=0 then '0 [≤0]' when >0 then '-1 [>0]' else '0' end",
+    "source_table": "派生计算（基于 stgy_dyna_amlba_d30_c_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d21_b_cnt_score",
+    "desc": "stgy_dyna_amlba_d21_b_cnt特征分箱打分",
+    "logic": "case when <-98 then '-1 [<-98]' when <=0 then '-2 [-98≤x≤0]' when >0 then '0 [>0]' else '0' end",
+    "source_table": "派生计算（基于 stgy_dyna_amlba_d21_b_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_104_score",
+    "desc": "stgy_advance_gd_k_104特征分箱打分",
+    "logic": "case when <=3 then '-1 [≤3]' when >3 and <=31 then '0 [3<x≤31]' when >31 then '1 [>31]' else '0' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_k_104）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_136_score",
+    "desc": "stgy_advance_gd_k_136特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when >-999 and <=5 then '-1 [-999<x≤5]' when >5 then '1 [>5]' else '0' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_k_136）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_advance_gd_k_292_score",
+    "desc": "stgy_advance_gd_k_292特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when >-999 and <=2 then '-1 [-999<x≤2]' when >2 and <=7 then '0 [2<x≤7]' when >7 then '2 [>7]' else '0' end",
+    "source_table": "派生计算（基于 stgy_advance_gd_k_292）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_bj_loan_count_1w_score",
+    "desc": "stgy_bj_loan_count_1w特征分箱打分",
+    "logic": "case when <=-98 then '0 [≤-98]' when >-98 and <=0 then '-1 [-98<x≤0]' when >0 and <=9 then '0 [0<x≤9]' when >9 then '-2 [>9]' else '0' end",
+    "source_table": "派生计算（基于 stgy_bj_loan_count_1w）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_repay_gap_days_app_group_score_v6",
+    "desc": "last_repay_gap_days_app_group特征分箱打分（V6版）",
+    "logic": "case when <=0 then '-1 [≤0]' when <7 then '0 [0<x<7]' when <14 then '1 [7≤x<14]' when <21 then '1 [14≤x<21]' when >=21 then '-1 [≥21]' else '0' end",
+    "source_table": "派生计算（基于 last_repay_gap_days_app_group）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_issue_rate_score",
+    "desc": "finish_issue_rate特征分箱打分",
+    "logic": "case when <0.5 then '-2 [<0.5]' when <0.7 then '-1 [0.5≤x<0.7]' when <0.8 then '1 [0.7≤x<0.8]' when >=0.8 then '2 [≥0.8]' else '0' end",
+    "source_table": "派生计算（基于 finish_issue_rate）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "msg2_loandue_addpctall_day1_score",
+    "desc": "msg2_loandue_addpctall_day1特征分箱打分",
+    "logic": "case when >=0 and <=0.01 then '0 [0≤x≤0.01]' when >0.01 and <=0.02 then '-1 [0.01<x≤0.02]' when >0.02 then '-2 [>0.02]' else '0' end",
+    "source_table": "派生计算（基于 msg2_loandue_addpctall_day1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question3_score_v6",
+    "desc": "question3特征分箱打分（V6版）",
+    "logic": "case when <=4 then '0 [≤4]' when >4 and <=6 then '1 [4<x≤6]' when >6 then '2 [>6]' else '0' end",
+    "source_table": "派生计算（基于 question3）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question5_score",
+    "desc": "question5特征分箱打分",
+    "logic": "case when <=3 then '0 [≤3]' when >3 then '2 [>3]' else '0' end",
+    "source_table": "派生计算（基于 question5）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "question6_v2_score_v6",
+    "desc": "question6_v2特征分箱打分（V6版）",
+    "logic": "case when <=3 then '0 [≤3]' when >3 and <=10 then '1 [3<x≤10]' when >10 then '2 [>10]' else '0' end",
+    "source_table": "派生计算（基于 question6_v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d60_f3_cnt_score",
+    "desc": "stgy_dyna_amlba_d60_f3_cnt特征分箱打分",
+    "logic": "case when <=-99 then '0 [≤-99]' when >-99 and <=0 then '-2 [-99<x≤0]' when >0 and <=1 then '-1 [0<x≤1]' when >1 then '-2 [>1]' else '0' end",
+    "source_table": "派生计算（基于 stgy_dyna_amlba_d60_f3_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_ovd_days_all_score_v6",
+    "desc": "max_ovd_days_all特征分箱打分（V6版）",
+    "logic": "case when <=0 then '0 [≤0]' when >0 and <=3 then '-1 [0<x≤3]' when >3 then '-2 [>3]' else '0' end",
+    "source_table": "派生计算（基于 max_ovd_days_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "emcontact_curr_ovd_cnt_all_score",
+    "desc": "emcontact_curr_ovd_cnt_all特征分箱打分",
+    "logic": "case when <=0 then '0 [≤0]' when >0 then '-2 [>0]' else '0' end",
+    "source_table": "派生计算（基于 emcontact_curr_ovd_cnt_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "stgy_dyna_amlba_d30_f2_daydiff_max_score",
+    "desc": "stgy_dyna_amlba_d30_f2_daydiff_max特征分箱打分",
+    "logic": "case when <=-99 then '0 [≤-99]' when >-99 and <1 then '-2 [-99<x<1]' when >=1 and <2 then '0 [1≤x<2]' when >=2 and <3 then '0 [2≤x<3]' when >=3 then '-1 [≥3]' else '0' end",
+    "source_table": "派生计算（基于 stgy_dyna_amlba_d30_f2_daydiff_max）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_overdue_day_30d_all_score_v6",
+    "desc": "max_overdue_day_30d_all特征分箱打分（V6版）",
+    "logic": "case when <=-999 then '-3 [≤-999]' when >-999 and <=0 then '0 [-999<x≤0]' when >0 and <=1 then '-1 [0<x≤1]' when >1 then '-2 [>1]' else '0' end",
+    "source_table": "派生计算（基于 max_overdue_day_30d_all）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "history_loanrec_cnt_lastprepaydays_v2_score_v6",
+    "desc": "history_loanrec_cnt_lastprepaydays_v2特征分箱打分（V6版）",
+    "logic": "case when >0 then '0 [>0]' when >-1 and <=0 then '-1 [-1<x≤0]' when >-2 and <=-1 then '-2 [-2<x≤-1]' when >-30 and <=-2 then '-3 [-30<x≤-2]' when <=-30 then '-6 [≤-30]' else '0' end",
+    "source_table": "派生计算（基于 history_loanrec_cnt_lastprepaydays_v2）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "unique_email_cnt_score_v6",
+    "desc": "unique_email_cnt特征分箱打分（V6版）",
+    "logic": "case when <=1 then '0 [≤1]' when >1 and <=2 then '-1 [1<x≤2]' when >2 then '-2 [>2]' else '0' end",
+    "source_table": "派生计算（基于 unique_email_cnt）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "unique_phone_score",
+    "desc": "unique_phone特征分箱打分",
+    "logic": "case when <=1 then '0 [≤1]' when >1 and <=2 then '-2 [1<x≤2]' when >2 then '-3 [>2]' else '0' end",
+    "source_table": "派生计算（基于 unique_phone）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "af_uninstall_cnt_30d_score_v6",
+    "desc": "af_uninstall_cnt_30d特征分箱打分（V6版）",
+    "logic": "case when <1 then '0 [<1]' when >=1 and <2 then '-2 [1≤x<2]' when >=2 then '-3 [≥2]' else '0' end",
+    "source_table": "派生计算（基于 af_uninstall_cnt_30d）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "af_uninstall_cnt_lf_score",
+    "desc": "af_uninstall_cnt_lf特征分箱打分",
+    "logic": "case when <=0 then '0 [≤0]' when >0 then '-1 [>0]' else '0' end",
+    "source_table": "派生计算（基于 af_uninstall_cnt_lf）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "minstay_repayplan_second_30d_mid_score_v6",
+    "desc": "minstay_repayplan_second_30d_mid特征分箱打分（V6版）",
+    "logic": "case when <10 then '0 [<10]' when >=10 then '1 [≥10]' else '0' end",
+    "source_table": "派生计算（基于 minstay_repayplan_second_30d_mid）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_hour_score",
+    "desc": "进件时段打分（凌晨2-5点记-1）",
+    "logic": "case when apply_hour>=2 and apply_hour<=5 then '-1 [2≤x≤5]' else '0' end",
+    "source_table": "派生计算（基于 apply_hour）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_age_score_v6",
+    "desc": "baseinfo_userprof_age特征分箱打分（V6版）",
+    "logic": "case when >=18 and <=36 then '-2 [18≤x≤36]' when >=37 and <=55 then '0 [37≤x≤55]' when >55 then '3 [>55]' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_userprof_age）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_userprof_degree_score_v6",
+    "desc": "baseinfo_userprof_degree特征分箱打分（V6版）",
+    "logic": "case when <=3 then '-1 [≤3]' when =4 then '0 [=4]' when =5 then '1 [=5]' when >=6 then '3 [≥6]' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_userprof_degree）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "income_score",
+    "desc": "income特征分箱打分",
+    "logic": "case when =-1 then '-2 [=-1]' when <10 then '0 [<10]' when >=10 then '3 [≥10]' else '0' end",
+    "source_table": "派生计算（基于 income）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_employee_type_score",
+    "desc": "baseinfo_employee_type特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when <=-1 then '0 [≤-1]' when <=3 then '-2 [≤3]' when =4 then '0 [=4]' when is null then '0' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_employee_type）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_marry_score",
+    "desc": "baseinfo_marry特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when <=0 then '-1 [≤0]' when =1 then '0 [=1]' when =2 then '1 [=2]' when in (3,4) then '0 [3或4]' when is null then '0' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_marry）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_has_house_score",
+    "desc": "baseinfo_has_house特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when in (0,1,2) then '0 [0,1,2]' when =3 then '-1 [=3]' when =4 then '-1 [=4]' when is null then '0' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_has_house）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "baseinfo_has_car_score",
+    "desc": "baseinfo_has_car特征分箱打分",
+    "logic": "case when <=-999 then '0 [≤-999]' when =0 then '1 [=0]' when =1 then '-1 [=1]' when is null then '0' else '0' end",
+    "source_table": "派生计算（基于 baseinfo_has_car）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m687_old_1t3_ad_tengo_0709p1_score",
+    "desc": "m687_old_1t3_ad_tengo_0709p1模型概率分箱打分",
+    "logic": "case when <0.17 then '1 [<0.17]' when >=0.17 then '-1 [≥0.17]' else '0' end",
+    "source_table": "派生计算（基于 m687_old_1t3_ad_tengo_0709p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m698_old_1t3_voting_0619rh_score",
+    "desc": "m698_old_1t3_voting_0619rh模型概率分箱打分",
+    "logic": "case when <0.212 then '1 [<0.212]' when >=0.212 then '-1 [≥0.212]' else '0' end",
+    "source_table": "派生计算（基于 m698_old_1t3_voting_0619rh）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "m696_old_1t3_bj_iz_0530_p1_score",
+    "desc": "m696_old_1t3_bj_iz_0530_p1模型概率分箱打分",
+    "logic": "case when <0.296 then '1 [<0.296]' when >=0.296 then '-1 [≥0.296]' else '0' end",
+    "source_table": "派生计算（基于 m696_old_1t3_bj_iz_0530_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b311_2025v1_p1_score",
+    "desc": "pvalue_mex_b311_2025v1_p1模型概率分箱打分",
+    "logic": "case when <0.19 then '1 [<0.19]' when >=0.19 then '-1 [≥0.19]' else '0' end",
+    "source_table": "派生计算（基于 pvalue_mex_b311_2025v1_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b329_2026v1_byid_p1_score",
+    "desc": "pvalue_mex_b329_2026v1_byid_p1模型概率分箱打分",
+    "logic": "case when <0.303 then '1 [<0.303]' when >=0.303 and <0.457 then '-1 [0.303≤x<0.457]' when >=0.457 then '-4 [≥0.457]' else '0' end",
+    "source_table": "派生计算（基于 pvalue_mex_b329_2026v1_byid_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b320_2026v1_long_p1_score",
+    "desc": "pvalue_mex_b320_2026v1_long_p1模型概率分箱打分",
+    "logic": "case when <0.319 then '1 [<0.319]' when >=0.319 and <0.508 then '-1 [0.319≤x<0.508]' when >=0.508 then '-4 [≥0.508]' else '0' end",
+    "source_table": "派生计算（基于 pvalue_mex_b320_2026v1_long_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b321_2026v2_p1_score",
+    "desc": "pvalue_mex_b321_2026v2_p1模型概率分箱打分",
+    "logic": "case when <0.137 then '3 [<0.137]' when >=0.137 and <0.259 then '-2 [0.137≤x<0.259]' when >=0.259 and <0.409 then '-5 [0.259≤x<0.409]' when >=0.409 then '-10 [≥0.409]' else '0' end",
+    "source_table": "派生计算（基于 pvalue_mex_b321_2026v2_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "pvalue_mex_b321_2026v1_p1_score",
+    "desc": "pvalue_mex_b321_2026v1_p1模型概率分箱打分",
+    "logic": "case when <0.1672 then '1 [<0.1672]' when >=0.1672 and <0.2381 then '-2 [0.1672≤x<0.2381]' when >=0.2381 and <0.3287 then '-5 [0.2381≤x<0.3287]' when >=0.3287 then '-8 [≥0.3287]' else '0' end",
+    "source_table": "派生计算（基于 pvalue_mex_b321_2026v1_p1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_behavior_subscore_charge_V6_1_score",
+    "desc": "V6_1行为子分分组打分",
+    "logic": "case when <-9 then '-8 [<-9]' when >=-9 and <-4 then '-4 [-9≤x<-4]' when >=-4 and <-1 then '-2 [-4≤x<-1]' when >=-1 and <3 then '0 [-1≤x<3]' when >=3 then '3 [≥3]' else '0' end",
+    "source_table": "派生计算（基于 android_oldCust_behavior_subscore_charge_V6_1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_fraud_subscore_charge_V6_1_score",
+    "desc": "V6_1欺诈子分分组打分",
+    "logic": "case when <-5 then '-5 [<-5]' when >=-5 and <-3 then '-3 [-5≤x<-3]' when >=-3 and <-1 then '-2 [-3≤x<-1]' when >=-1 then '0 [≥-1]' else '0' end",
+    "source_table": "派生计算（基于 android_oldCust_fraud_subscore_charge_V6_1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_overdue_subscore_charge_V6_1_score",
+    "desc": "V6_1逾期子分分组打分",
+    "logic": "case when <-8 then '-15 [<-8]' when >=-8 and <-4 then '-8 [-8≤x<-4]' when >=-4 and <-1 then '-1 [-4≤x<-1]' when >=-1 then '0 [≥-1]' else '0' end",
+    "source_table": "派生计算（基于 android_oldCust_overdue_subscore_charge_V6_1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_apply_subscore_charge_V6_1_score",
+    "desc": "V6_1申请子分分组打分",
+    "logic": "case when <-13 then '-10 [<-13]' when >=-13 and <-7 then '-5 [-13≤x<-7]' when >=-7 and <1 then '-2 [-7≤x<1]' when >=1 and <4 then '0 [1≤x<4]' when >=4 then '2 [≥4]' else '0' end",
+    "source_table": "派生计算（基于 android_oldCust_apply_subscore_charge_V6_1）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_income_subscore_charge_V6_1_score",
+    "desc": "V6_1收入子分分组打分",
+    "logic": "case when <-4 then '-5 [<-4]' when >=-4 and <1 then '-2 [-4≤x<1]' when >=1 and <4 then '0 [1≤x<4]' when >=4 then '2 [≥4]' else '0' end",
+    "source_table": "派生计算（基于 android_oldCust_income_subscore_charge_V6_1）",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

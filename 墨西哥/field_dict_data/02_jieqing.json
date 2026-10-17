@@ -1,0 +1,267 @@
+[
+ {
+  "table": "mx.darren_jieqing_dt_table",
+  "source_file": "02墨西哥风险结清表.sql（源文件为空，依据学习文档整理）",
+  "note": "依据《墨西哥风险SQL三表学习文档.md》第二部分 + 《墨西哥风险结清表_漏洞清单.md》整理。字段主要来自三部分：(1) t0~t9中间表字段（源头 s21_risk_strategy_record / s21_risk_model_record 的 outputdata JSON解析）；(2) 步骤10的AB测试标签（派生计算）；(3) 步骤11关联 wxs_application_funnel 的进件字段。待确认事项：a) t9文档称10个特征字段但实际只列出9个（含2个与t1/t2重复），未列全1个待补；b) 中间表实际为t0~t15（漏洞清单），t4/t5/t6/t10~t15字段文档未给出，待补；c) 部分AB标签只给出token与关联字段，具体分组阈值/标签取值为通用规则，待确认。",
+  "fields": [
+   {
+    "name": "credit_amount",
+    "desc": "授信总额",
+    "logic": "来自 {t0中间表: ods.s21_risk_strategy_record, productid=428 结清授信决策流 outputdata}，口径见文档第二部分步骤2-9",
+    "source_table": "ods.s21_risk_strategy_record",
+    "update_freq": "每日",
+    "desc_orig": "结清后的授信额度"
+   },
+   {
+    "name": "daily_max_available_limit",
+    "desc": "日最大可用额度",
+    "logic": "来自 {t0中间表: ods.s21_risk_strategy_record, productid=428 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_strategy_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "is_settle_adjust_quota_flag",
+    "desc": "是否触发结清调额决策树（结清调额标签）",
+    "logic": "来自 {t1中间表: ods.s21_risk_model_record, modelmainid=1063 outputdata}；同时为t9结清调额综合特征之一（字段与t1重复），口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "settle_adjust_quota_cnt",
+    "desc": "成功调额次数",
+    "logic": "来自 {t2中间表: ods.s21_risk_model_record, modelmainid=1364 低额首次结清规则 outputdata}；同时为t9特征之一（字段与t2重复），口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_credit_amount",
+    "desc": "上次授信额度",
+    "logic": "来自 {t2中间表: ods.s21_risk_model_record, modelmainid=1364 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "global_limit",
+    "desc": "全局额度（全局额度cap）",
+    "logic": "来自 {t3中间表: ods.s21_risk_model_record, modelId=2402等 全局额度cap决策流 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "add_cap",
+    "desc": "额度cap加成（提额cap相关）",
+    "logic": "来自 {t3中间表: ods.s21_risk_model_record, modelId=2402等 全局额度cap决策流 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "uncapped",
+    "desc": "是否不设上限标记",
+    "logic": "来自 {t3中间表: ods.s21_risk_model_record, modelId=2402等 全局额度cap决策流 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sx_credit_amount",
+    "desc": "复贷授信决策流的额度",
+    "logic": "来自 {t7中间表: ods.s21_risk_strategy_record, productid=196 复贷授信决策流 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_strategy_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "android_oldCust_mainCreditLevel_charge_V5_1",
+    "desc": "V5_1资产等级（主信用等级）",
+    "logic": "来自 {t8中间表: ods.s21_risk_model_record, modelmainid=1436 outputdata}，V5主信用等级（老客资产等级打分），口径见文档及《老客资产等级测试_指标口径详解.md》",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_credit_amount_change_day_gap",
+    "desc": "上次额度变化距今天数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征 outputdata}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_all",
+    "desc": "当前总逾期次数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_this_app_group",
+    "desc": "当前本app_group逾期次数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "curr_ovd_cnt_other_app_group_90d",
+    "desc": "90天内其他app_group逾期次数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_overdue_day_30d_all",
+    "desc": "30天内最大逾期天数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档；首次结清筛选条件用：max_overdue_day_30d_all<=2",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "last_credit_increase_day_gap",
+    "desc": "上次提额距今天数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "hist_loanrec_cnt_issue_days_last_jieqing",
+    "desc": "上次结清到放款天数",
+    "logic": "来自 {t9中间表: ods.s21_risk_model_record, modelmainid=1063 结清调额综合特征}，口径见文档",
+    "source_table": "ods.s21_risk_model_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "new_limit_flag",
+    "desc": "提额组/对照组 AB标签（首次结清提额实验）",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20250909'||credit_no||app_group_sha256))),1,4),16)/65536；>=0.5为'v5_3.提额组'，<0.5为'v5_3.对照组'（阈值0.5，50/50）",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 credit_no/app_group_sha256 + 盐值'20250909'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "global_limit_cap_test_tag",
+    "desc": "全局额度cap测试组/冠军组 AB标签",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20251215'||phone||app_group_sha256))),1,4),16)/65536；>=0.7为'v5_3-全局额度cap测试组'，<0.7为'v5_3-全局额度cap冠军组'（阈值0.7，30/70）",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 phone/app_group_sha256 + 盐值'20251215'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "single_increase_limit_cap_test_tag",
+    "desc": "单次提幅cap测试组/冠军组 AB标签",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20251216'||phone||app_group_sha256))),1,4),16)/65536；分组为测试组/冠军组，阈值0.7为通用规则（文档未明确该标签具体阈值，待确认）",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 phone/app_group_sha256 + 盐值'20251216'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "daily_max_limit_tag",
+    "desc": "日最大可用额度测试组/冠军组 AB标签（按单日可借上限策略分桶）",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20251217'||phone||app_group_sha256))),1,4),16)/65536；按进件时间分层+hash分桶（阈值0.5/0.7），标记为测试组/冠军组等，具体标签值待确认",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 phone/app_group_sha256 + 盐值'20251217'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "limit_recommend_grp",
+    "desc": "额度推荐v2分组 AB标签",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20250606'||phone||'yawey'))),1,4),16)/65536；key为phone+'yawey'（非app_group_sha256），具体分组阈值/标签值待确认",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 phone + 盐值'20250606'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "first_settle_sha256",
+    "desc": "首次结清hash分组标签",
+    "logic": "from_base(substr(to_hex(sha256(to_utf8('20260624'||credit_no||app_group_sha256))),1,4),16)/65536；token='20260624'，关联字段=credit_no+app_group_sha256，具体分组阈值/标签值待确认",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 credit_no/app_group_sha256 + 盐值'20260624'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "v3_flag",
+    "desc": "资产等级版本分流标签（V3_3/V4_2/V5_1/V5_2/V5_3等）",
+    "logic": "按app_time匹配版本上线时间窗（如2026-08-20起V5_3/V6_1 70/30分桶），部分窗口内hash分桶决定归属版本；token='20260521'/'20260401'/'20260205'/'20250908'，key=phone+app_group_sha256，口径详见《老客资产等级测试_指标口径详解.md》",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 的 phone/app_group_sha256 + 版本时间窗+盐值）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "jq_mid",
+    "desc": "结清用户的mid（主表关联键，结清后进件关联用）",
+    "logic": "来自 darren_jieqing_dt_base_table 主表（经 darren_identity_mid_base_table identity↔mid映射），关联 wxs_application_funnel.mid",
+    "source_table": "mx.darren_jieqing_dt_base_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "settle_time",
+    "desc": "结清时间（结清后5天内进件关联的时间起点）",
+    "logic": "来自主表，用于关联条件 t0.settle_time < t1.create_time 且 date_diff('day',settle_time,create_time)<5；⚠️漏洞1：实际实现取的是首贷app_time而非真实结清时间（文档标注的严重漏洞，待确认修复后口径）",
+    "source_table": "mx.darren_jieqing_dt_base_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "create_time",
+    "desc": "结清后5天内进件记录的创建时间",
+    "logic": "来自 {mx.wxs_application_funnel（is_settle_adjust_quota_flag=1的进件）}，关联条件为 settle_time < create_time 且 date_diff<5",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "结清后5天内进件记录的创建时间"
+   },
+   {
+    "name": "app_time",
+    "desc": "申请时间",
+    "logic": "来自 {mx.wxs_application_funnel}，后续时间窗口统计(date_diff(settle_time,app_time))的基础",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件时间"
+   },
+   {
+    "name": "biz_id",
+    "desc": "业务ID",
+    "logic": "来自 {mx.wxs_application_funnel}，关联进件主表",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件ID"
+   },
+   {
+    "name": "jq_phone",
+    "desc": "结清用户的phone",
+    "logic": "来自 {mx.wxs_application_funnel: phone AS jq_phone，按mid取最新一条（漏洞10的group by去重口径）}",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "jq_app_group_sha256",
+    "desc": "结清用户的app_group_sha256",
+    "logic": "来自 {mx.wxs_application_funnel: app_group_sha256，按mid取最新一条}，AB测试hash分组用",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "jq_credit_no",
+    "desc": "结清用户的credit_no",
+    "logic": "来自 {mx.wxs_application_funnel: credit_no AS jq_credit_no，按mid取最新一条}，AB测试hash分组用（new_limit_flag/first_settle_sha256的key）",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "identity",
+    "desc": "用户身份标识（identity↔mid映射）",
+    "logic": "来自步骤1 mx.darren_identity_mid_base_table：ods.s01_mem_base_info.identity LEFT JOIN ods.s01_mem_member_account(mb_cust_id=cust_id)，一个identity可能对应多个mid",
+    "source_table": "ods.s01_mem_base_info / mx.darren_identity_mid_base_table",
+    "update_freq": "每日",
+    "desc_orig": "用户身份标识（identity↔mid映射）"
+   },
+   {
+    "name": "mid",
+    "desc": "客户号",
+    "logic": "来自 mx.darren_identity_mid_base_table（ods.s01_mem_member_account）",
+    "source_table": "ods.s01_mem_member_account / mx.darren_identity_mid_base_table",
+    "update_freq": "每日",
+    "desc_orig": "会员ID"
+   },
+   {
+    "name": "repayment_clearing_count_index",
+    "desc": "结清次数统计（mid维度）",
+    "logic": "t12中间表：ods.s02_loan_repayment 按 customer_id(jq_mid) 关联统计结清次数；只统计同一mid的结清次数（漏洞4：与identity维度口径不一致，待确认）",
+    "source_table": "ods.s02_loan_repayment",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_index_all",
+    "desc": "结清次数统计（identity维度）",
+    "logic": "t13中间表：ods.s02_loan_repayment 按 identity 关联统计结清次数；统计同一identity（可能多mid）的结清次数（漏洞4：与mid维度口径不一致，待确认）",
+    "source_table": "ods.s02_loan_repayment",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

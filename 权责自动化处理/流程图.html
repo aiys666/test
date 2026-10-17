@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>经营计划自动化系统 — 流程图</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  body {
+    font-family: -apple-system, "Microsoft YaHei", sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 { text-align: center; color: #e94560; margin-bottom: 10px; }
+  .subtitle { text-align: center; color: #888; margin-bottom: 40px; }
+
+  .section {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 30px;
+    border: 1px solid #0f3460;
+  }
+  .section h2 {
+    color: #e94560;
+    margin-top: 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #0f3460;
+  }
+
+  .mermaid {
+    display: flex;
+    justify-content: center;
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+  }
+
+  /* TOC 侧边栏 */
+  nav {
+    position: fixed;
+    left: 20px;
+    top: 100px;
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    max-width: 180px;
+  }
+  nav a { color: #0ea5e9; display: block; padding: 3px 0; text-decoration: none; }
+  nav a:hover { color: #e94560; }
+
+  @media (max-width: 900px) { nav { display: none; } }
+</style>
+</head>
+<body>
+
+<h1>🏗️ 经营计划自动化系统</h1>
+<p class="subtitle">全流程架构 · 数据流向 · 核心算法 · 表关系</p>
+
+<nav>
+  <a href="#s1">1. 全流程架构图</a>
+  <a href="#s2">2. 简化数据流向</a>
+  <a href="#s3">3. 每月操作流程</a>
+  <a href="#s4">4. MOB转化率算法</a>
+  <a href="#s5">5. 权责公式链</a>
+  <a href="#s6">6. 数据库表关系</a>
+  <a href="#s7">7. 文件结构树</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s1">
+<h2>1. 全流程架构图</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph INPUT["📥 外部输入"]
+        RISK_XLSX["📊 风险产品坏账.xlsx<br/><i>风险团队每月提供</i>"]
+        FB_DB[("🗄️ Presto 数据库<br/>ind.ba_asset_base_info<br/>dwd.dwd_loan_info<br/>ind.xly_application_funnel")]
+        ACCRUAL_XLSX["📊 权责近两个月<br/>的数据预估.xlsx<br/><i>上月预估结果</i>"]
+    end
+
+    CONFIG["⚙️ config.yaml<br/><i>每月只需修改此文件</i>"]:::configNode
+
+    subgraph STEP1["🔵 Step 1 — 风险坏账数据转化"]
+        S1A["📖 解析 Excel<br/>第3行=期限表头, 第4行起=数据<br/>7种产品 × 4种策略 × 多期限"]
+        S1B["🏷️ 产品映射<br/>常规→R | 本金→M | 无忧贷→NR<br/>优享贷→NF | 放心贷→NW<br/>策略: NEW首贷 / OLD复贷"]
+        S1C["📄 生成 CSV + INSERT SQL<br/>写入 ind.ba_bad_debt_rate_lookup"]
+    end
+
+    subgraph STEP2["🟢 Step 2 — 首贷+复贷进件量预估"]
+        S2A["📖 查询 Presto<br/>首贷: issue_month / grant_strategy='NEW'<br/>复贷: 首贷放款时间 JOIN 复贷进件"]
+        S2B["🧮 MOB 转化率矩阵<br/>复贷笔数 / 首贷笔数<br/>按 cohort × MOB 展开 (0~45)"]
+        S2C["📐 MA 平滑<br/>MOB0: 跳过当月取2期平均<br/>MOB1+: 取最新1期<br/>无数据: 沿用前一MOB的MA"]
+        S2D["🔧 分段调整系数<br/>MOB0 / MOB1-3 / MOB4-13 / MOB14+<br/>循环贷 & 非循环贷分别调"]
+        S2E["📊 预估 = 首贷量 × MA × 调整系数<br/>当月 + 下月 两个目标月"]
+        S2F["📁 输出: 复贷进件量预估.xlsx<br/>参数配置 / 首贷 / loop预复贷 / normal复贷<br/>cohort矩阵 / 汇总 共7个Sheet"]
+    end
+
+    subgraph STEP3["🟡 Step 3 — 权责月度预估"]
+        S3A["📖 加载 Excel 模板<br/>含数据区布局 + SUMIFS 底部汇总公式"]
+        S3B["✏️ 从 config.yaml 写入死数"]
+        S3C["J:进件量 | K:机审 | L:确认 | M:后置<br/>O:签名 | S:件均(万IDR) | V:T30坏账率<br/>Q:各期限分布系数(优先当月,无则回退)"]
+        S3D["🔗 公式链自动联动<br/>N=K×M → P=L×N×O → R=J×P×Q<br/>T=S/汇率×10000 → U=T×R → X=U×V"]
+        S3E["📁 输出: 权责两个月数据预估_{月份}.xlsx"]
+    end
+
+    subgraph STEP4["🟠 Step 4 — 预估数据入库"]
+        S4A["📖 读取 Step3 输出 xlsx<br/>动态定位 F列='月份' 表头<br/>合并单元格填充"]
+        S4B["📋 提取 25 个字段<br/>stat_month / grant_strategy / is_reloan2<br/>product_tag / loan_cycle / apply_cnt..."]
+        S4C["📦 合并为 1 条批量 INSERT<br/>替代68条逐条插入"]
+        S4D["✏️ DROP + CREATE + INSERT<br/>写入 ind.ba_loan_forecast"]
+        S4E["✅ 验证: SELECT COUNT GROUP BY<br/>行数对比"]
+    end
+
+    subgraph STEP5["🔴 Step 5 — 数据校验"]
+        S5A["🔍 ba_loan_forecast 行数<br/>按月份+策略分组统计"]
+        S5B["🔍 坏账率覆盖率<br/>非零值 / 总数"]
+        S5C["🔍 月份放款金额<br/>首贷$ / 复贷$ / 合计$"]
+        S5D["🔍 资产底表近期汇总<br/>issue_month 快照"]
+        S5E["📋 校验报告.txt<br/>✓通过 / ⚠警告 / ✗错误"]
+    end
+
+    subgraph OUTPUT["📤 最终交付物"]
+        O1["📁 复贷进件量预估.xlsx"]
+        O2["📁 权责两个月数据预估.xlsx"]
+        O3["🗄️ ba_loan_forecast 表"]
+        O4["🗄️ ba_bad_debt_rate_lookup 表"]
+        O5["📋 校验报告.txt"]
+    end
+
+    RISK_XLSX --> S1A
+    FB_DB --> S2A
+    ACCRUAL_XLSX --> S3A
+    CONFIG -.-> S1A
+    CONFIG -.-> S2A
+    CONFIG -.-> S2B
+    CONFIG -.-> S2D
+    CONFIG -.-> S3B
+    CONFIG -.-> S3C
+    CONFIG -.-> S4A
+    CONFIG -.-> S5A
+    CONFIG -.-> S5C
+
+    S1A --> S1B --> S1C
+    S2A --> S2B --> S2C --> S2D --> S2E --> S2F
+    S3A --> S3B --> S3C --> S3D --> S3E
+    S3E --> S4A
+    S4A --> S4B --> S4C --> S4D --> S4E
+    S5A --> S5E
+    S5B --> S5E
+    S5C --> S5E
+    S5D --> S5E
+
+    S2F --> O1
+    S3E --> O2
+    S4D --> O3
+    S1C --> O4
+    S5E --> O5
+
+    classDef configNode fill:#1a1a2e,stroke:#e94560,color:#fff,stroke-width:3px
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s2">
+<h2>2. 简化数据流向</h2>
+<div class="mermaid">
+flowchart LR
+    A["🔧 config.yaml<br/>每月修改"]:::config
+
+    B1["风险坏账.xlsx"] --> C1["Step1<br/>坏账转化"]
+    B2["Presto DB"] --> C2["Step2<br/>复贷预估"]
+    B3["模板.xlsx"] --> C3["Step3<br/>权责预估"]
+
+    A -.-> C1
+    A -.-> C2
+    A -.-> C3
+    A -.-> C4
+    A -.-> C5
+
+    C1 --> D1[("ba_bad_debt_rate_lookup")]
+    C2 --> E1["📁 复贷预估.xlsx"]
+    C3 --> E2["📁 权责预估.xlsx"]
+    E2 --> C4["Step4<br/>数据入库"]
+    C4 --> D2[("ba_loan_forecast")]
+    D1 --> C5["Step5<br/>数据校验"]
+    D2 --> C5
+    C5 --> F["📋 校验报告"]
+
+    classDef config fill:#1a1a2e,stroke:#e94560,color:#fff,stroke-width:2px
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s3">
+<h2>3. 每月操作流程</h2>
+<div class="mermaid">
+flowchart TD
+    A["👤 风险团队返回坏账数据"] --> B["✏️ 更新 config.yaml<br/>进件量 / 汇率 / K-L-M / S-V / Q"]
+
+    B --> C["▶️ 运行: python pipeline.py"]
+
+    C --> D{执行模式}
+    D -->|全量执行| E1["Step1 → Step2 → Step3<br/>→ Step4 → Step5<br/>一键依次执行"]
+    D -->|单步调试| E2["python pipeline.py<br/>--step 3"]
+    D -->|预检查| E3["python pipeline.py<br/>--dry-run"]
+
+    E1 --> F["📤 输出文件<br/>+ 数据库表<br/>+ 校验报告"]
+
+    F --> G{校验通过?}
+    G -->|✓ 全部通过| H["✅ 提交经营计划"]
+    G -->|✗ 有差异| I["🔍 检查差异<br/>调整参数重新跑"]
+
+    I --> B
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s4">
+<h2>4. 🧮 Step 2 核心算法 — MOB 转化率计算</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph DATA["📥 历史数据源"]
+        FL["首贷历史<br/>cohort月 × 放款笔数"]
+        RL["复贷矩阵<br/>cohort月 × MOB × loan_type2 × 进件量"]
+    end
+
+    subgraph CALC["🧮 calc_mob_rates()"]
+        M1["对每个 (loan_type, MOB) 组合:<br/>rate = 复贷笔数 / 首贷笔数<br/>按 cohort 从新到旧排列"]
+        M2["返回: {mob: [rate_newest, rate_2nd, ...], ...}"]
+    end
+
+    subgraph MA["📐 calc_ma_rate()"]
+        MA1["MOB = 0 (当月):<br/>跳过 rates[0]当月未走完数据<br/>取 rates[1:3] 2期平均"]
+        MA2["MOB ≥ 1 (历史月):<br/>取 rates[0] 最新1期"]
+        MA3["无数据 MOB (长尾):<br/>向前搜索有数据的MOB<br/>沿用其MA值(不衰减)"]
+    end
+
+    subgraph ADJUST["🔧 调整与预估"]
+        A1["分段调整系数 (config.yaml)<br/>MOB0 | MOB1-3 | MOB4-13 | MOB14+<br/>loop循环贷 & normal非循环贷 独立"]
+        A2["调整后转化率 = MA × 调整系数"]
+        A3["预估进件量 = 首贷量 × 调整后转化率<br/>按目标月 → 倒推cohort月 → 取对应MA"]
+    end
+
+    subgraph OUTPUT["📊 输出"]
+        O1["46个MOB × 2种loan_type<br/>= 92条/月 × 2个月<br/>= 184条预估记录"]
+        O2["按预估月份分组汇总<br/>loop + normal = 复贷合计"]
+    end
+
+    FL --> M1
+    RL --> M1
+    M1 --> M2
+    M2 --> MA1
+    M2 --> MA2
+    MA1 --> MA3
+    MA2 --> MA3
+    MA3 --> A1
+    A1 --> A2 --> A3
+    A3 --> O1 --> O2
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s5">
+<h2>5. 🧮 Step 3 核心算法 — 权责公式链</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph DEAD["📥 死数输入 (来自 config.yaml)"]
+        J["J: 进件量<br/><i>总进件量</i>"]
+        K["K: 机审通过率<br/><i>约 0.26~0.61</i>"]
+        L["L: 确认借款率<br/><i>约 0.81~1.0</i>"]
+        M["M: 后置通过率<br/><i>约 0.52~0.99</i>"]
+        O["O: 签名放款率<br/><i>首贷0.97 / 复贷0.99</i>"]
+        Q["Q: 各期限分布系数<br/><i>各期Q之和≈1</i>"]
+        S["S: 件均(万IDR)"]
+        V["V: T30坏账率"]
+
+        K --> F1
+        M --> F1
+        L --> F2
+        O --> F2
+    end
+
+    subgraph CHAIN["🔗 公式链 (Excel自动计算)"]
+        F1["N = K × M<br/><i>机审通过率 × 后置通过率</i>"]
+        F2["P = L × N × O<br/><i>确认率 × 机审后置 × 签名放款率</i>"]
+        F3["R = J × P × Q<br/><i>进件量 × 全流程率 × Q分布<br/>→ 放款笔数</i>"]
+        F4["T = S / 汇率 × 10000<br/><i>件均(万盾) → 件均($)</i>"]
+        F5["U = T × R<br/><i>件均$ × 放款笔数<br/>→ 放款金额($)</i>"]
+        F6["W = T × R<br/><i>件均权重 = 放款金额</i>"]
+        F7["X = W × V<br/><i>放款金额 × T30坏账率<br/>→ 坏账金额($)</i>"]
+    end
+
+    subgraph RESULT["📊 汇总输出 (SUMIFS自动联动)"]
+        R1["放款笔数"]
+        R2["放款金额($)"]
+        R3["坏账金额($)"]
+        R4["年化坏账率 = 坏账$ / 业绩$"]
+    end
+
+    J --> F3
+    Q --> F3
+    F1 --> F2
+    F2 --> F3
+    F3 --> R1
+    S --> F4
+    F4 --> F5
+    F3 --> F5
+    F5 --> R2
+    F5 --> F6
+    V --> F7
+    F6 --> F7
+    F7 --> R3
+    R2 --> R4
+    R3 --> R4
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s6">
+<h2>6. 🗄️ 数据库表关系 (ER图)</h2>
+<div class="mermaid">
+erDiagram
+    ind_ba_asset_base_info {
+        VARCHAR issue_month "放款月份"
+        VARCHAR grant_strategy "NEW首贷 OLD复贷"
+        BIGINT mid "用户ID"
+        BIGINT biz_id "订单ID"
+        INT if_issue "是否放款"
+        INT if_app "是否进件"
+        DECIMAL contract_amount_usd1 "合同金额USD"
+        DECIMAL revenue "收入"
+    }
+
+    dwd_dwd_loan_info {
+        TIMESTAMP release_time "首贷放款时间"
+        BIGINT mid "用户ID"
+        VARCHAR order_no "订单号"
+    }
+
+    ind_xly_application_funnel {
+        VARCHAR biz_id "进件ID"
+        VARCHAR grant_strategy "授信策略 NEW/OLD"
+    }
+
+    ind_ba_loan_forecast {
+        VARCHAR stat_month "统计月份"
+        VARCHAR grant_strategy "NEW首贷 OLD复贷"
+        VARCHAR is_reloan2 "new/loop/normal"
+        SMALLINT loan_cycle "期限天数(30~180)"
+        VARCHAR product_tag "R/M/NR/NF/NW"
+        BIGINT apply_cnt "进件量"
+        DECIMAL t30_rate "T30坏账率"
+        DECIMAL contract_amt "业绩USD"
+        DECIMAL bad_amt "坏账USD"
+        DECIMAL annual_bad_rate "年化坏账率"
+    }
+
+    ind_ba_bad_debt_rate_lookup {
+        VARCHAR grant_month "放款月份"
+        VARCHAR product_tag "产品标签 R/M/NR/NF/NW"
+        VARCHAR period_tag "期限标签 15D/30D/F/M/NR/NF/NW"
+        VARCHAR grant_strategy "NEW首贷 OLD复贷"
+        INT loan_cycle "期限天数"
+        DOUBLE bad_debt_rate "坏账率 0~1"
+    }
+
+    dwd_dwd_loan_info ||--o| ind_xly_application_funnel : "order_no = biz_id"
+    dwd_dwd_loan_info ||--o{ ind_ba_asset_base_info : "mid = mid"
+    ind_ba_loan_forecast ||--o{ ind_ba_bad_debt_rate_lookup : "product_tag + grant_strategy"
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section" id="s7">
+<h2>7. 📁 项目文件结构树</h2>
+<div class="mermaid">
+graph TB
+    ROOT["📂 权责自动化处理/"]:::dir
+
+    ROOT --> CFG["⚙️ config.yaml<br/><i>每月只改这个</i>"]:::star
+    ROOT --> PIPE["▶️ pipeline.py<br/><i>一键执行入口</i>"]:::star
+
+    ROOT --> CORE["📂 core/"]
+    CORE --> C1["db.py<br/>统一 PrestoQuery"]
+    CORE --> C2["config.py<br/>配置加载+校验"]
+    CORE --> C3["excel_styles.py<br/>Excel样式常量"]
+
+    ROOT --> STEPS["📂 steps/"]
+    STEPS --> S1["step1_risk_bad_debt.py<br/>风险坏账转化"]
+    STEPS --> S2["step2_reloan_forecast.py<br/>复贷进件预估"]
+    STEPS --> S3["step3_accrual_estimate.py<br/>权责月度预估"]
+    STEPS --> S4["step4_db_import.py<br/>预估数据入库"]
+    STEPS --> S5["step5_validation.py<br/>数据校验"]
+
+    ROOT --> SQL["📂 sql/"]
+    SQL --> SQ1["create_ba_loan_forecast.sql"]
+    SQL --> SQ2["create_ba_bad_debt_rate_lookup.sql"]
+
+    ROOT --> TPL["📂 templates/"]
+    TPL --> T1["权责...模板.xlsx"]
+
+    ROOT --> OUT["📂 output/"]
+    OUT --> O1["2026-06/"]
+    O1 --> O2["复贷进件量预估_xxx.xlsx"]
+    O1 --> O3["权责两个月数据预估_xxx.xlsx"]
+    O1 --> O4["校验报告_xxx.txt"]
+
+    ROOT --> LEGACY["📂 legacy/<br/><i>旧脚本归档</i>"]
+
+    classDef dir fill:#16213e,stroke:#0f3460,color:#ccc
+    classDef star fill:#1a1a2e,stroke:#e94560,color:#fff,stroke-width:3px
+    classDef node fill:transparent,stroke:none,color:#666
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>📋 使用说明</h2>
+<table style="width:100%; border-collapse:collapse; color:#ccc;">
+<tr style="background:#0f3460;">
+  <th style="padding:10px; width:200px;">命令</th>
+  <th style="padding:10px;">作用</th>
+</tr>
+<tr style="border-bottom:1px solid #0f3460;">
+  <td style="padding:10px; font-family:monospace; color:#0ea5e9;">python pipeline.py</td>
+  <td style="padding:10px;">一键执行所有启用的步骤 (Step1→Step5)</td>
+</tr>
+<tr style="border-bottom:1px solid #0f3460;">
+  <td style="padding:10px; font-family:monospace; color:#0ea5e9;">python pipeline.py --step 2</td>
+  <td style="padding:10px;">只执行步骤 2 (复贷预估)</td>
+</tr>
+<tr style="border-bottom:1px solid #0f3460;">
+  <td style="padding:10px; font-family:monospace; color:#0ea5e9;">python pipeline.py --steps 1,3,4</td>
+  <td style="padding:10px;">执行步骤 1,3,4 (坏账 + 权责 + 入库)</td>
+</tr>
+<tr style="border-bottom:1px solid #0f3460;">
+  <td style="padding:10px; font-family:monospace; color:#0ea5e9;">python pipeline.py --dry-run</td>
+  <td style="padding:10px;">预检查模式，验证配置不实际执行</td>
+</tr>
+<tr style="border-bottom:1px solid #0f3460;">
+  <td style="padding:10px; font-family:monospace; color:#0ea5e9;">python pipeline.py --skip-db</td>
+  <td style="padding:10px;">跳过数据库操作，只生成本地 Excel 文件</td>
+</tr>
+</table>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+  });
+</script>
+
+</body>
+</html>

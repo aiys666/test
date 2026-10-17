@@ -1,0 +1,936 @@
+[
+ {
+  "table": "darren_risk_wide_table",
+  "source_file": "03墨西哥风险等级划分.sql",
+  "fields": [
+   {
+    "name": "a.*",
+    "desc": "直通 mx.darren_application_funnel_1 的全部字段（含 biz_id、create_time、credit_no、apply_amount 等所有列）",
+    "logic": "直取 mx.darren_application_funnel_1 全部字段",
+    "source_table": "mx.darren_application_funnel_1",
+    "update_freq": "每日",
+    "group": true
+   },
+   {
+    "name": "b_day",
+    "desc": "进件日(日期串)",
+    "logic": "substr(cast(create_time as varchar),1,10) as day（b子查询内）",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_order）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_create_time",
+    "desc": "进件创建时间",
+    "logic": "直取 b.create_time",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_release_day",
+    "desc": "放款日(日期串)",
+    "logic": "substr(cast(release_time as varchar),1,10) as release_day（b子查询内）",
+    "source_table": "派生计算（基于 ods_view_presto.s02_loan）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "t0_biz_id",
+    "desc": "业务单号（原 b 表 biz_id，避免与 a.biz_id 冲突）",
+    "logic": "t0.biz_id as t0_biz_id",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_release_time",
+    "desc": "放款时间",
+    "logic": "直取 b.release_time",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "double_loan_2",
+    "desc": "首复贷标签(优先 e 表决策流，次取 b.double_loan)",
+    "logic": "case when e.double_loan_tenant is not null then e.double_loan_tenant when e.double_loan_tenant is null and b.double_loan is not null then b.double_loan else 0 end",
+    "source_table": "派生计算（基于 ods.s21_risk_strategy_record 的 double_loan_tenant、s05_creditx_order 的 double_loan）",
+    "update_freq": "每日",
+    "desc_orig": "首复贷标签(优先 e 表决策流，次取 b.double_loan)"
+   },
+   {
+    "name": "b_phone_num",
+    "desc": "手机号",
+    "logic": "直取 b.phone_num",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_credit_no",
+    "desc": "信用编号",
+    "logic": "直取 b.credit_no",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_cust_name",
+    "desc": "客户姓名",
+    "logic": "直取 b.cust_name",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_card_no",
+    "desc": "证件卡号",
+    "logic": "直取 b.card_no",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_cust_id",
+    "desc": "客户ID",
+    "logic": "直取 b.cust_id",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_mid",
+    "desc": "媒体渠道ID",
+    "logic": "直取 b.mid",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_tenant_id",
+    "desc": "租户ID",
+    "logic": "直取 b.tenant_id",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_app_name",
+    "desc": "产品名称",
+    "logic": "直取 b.app_name",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_source",
+    "desc": "来源",
+    "logic": "直取 b.source",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_app_channel",
+    "desc": "渠道ID",
+    "logic": "直取 b.app_channel",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_group",
+    "desc": "应用分组",
+    "logic": "直取 b.app_group",
+    "source_table": "ods.s08_app_category_mapping",
+    "update_freq": "每日",
+    "desc_orig": "渠道分组"
+   },
+   {
+    "name": "b_app_version",
+    "desc": "App版本",
+    "logic": "直取 b.app_version",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_apply_period",
+    "desc": "申请期数",
+    "logic": "直取 b.apply_period",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_apply_amount",
+    "desc": "申请金额",
+    "logic": "直取 b.apply_amount",
+    "source_table": "ods_view_presto.s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_product_level",
+    "desc": "产品等级",
+    "logic": "cast(json_extract(grantcredit_info, '$.product_level') as varchar)",
+    "source_table": "ods_view_presto.s09_os_credit_snapshot",
+    "update_freq": "每日"
+   },
+   {
+    "name": "new_media_source",
+    "desc": "获客渠道",
+    "logic": "case when new_media_source IN ('vfine_int','dc1','jc','创蓝') then '小渠道' else new_media_source end",
+    "source_table": "mx.gm_attribution_detail",
+    "update_freq": "每日",
+    "desc_orig": "新媒体来源（小渠道归并）"
+   },
+   {
+    "name": "campaign_name",
+    "desc": "营销活动名（按 campaign 关键字映射）",
+    "logic": "case when lower(campaign) like '%cpf07%' then 'cpf07' when lower(campaign) like '%cpf10%' then 'cpf10' when lower(campaign) like '%cpf06%' then 'cpf06' when lower(campaign) like '%cpx05%' then 'X05' when lower(campaign) like '%cpx07%' or lower(campaign) like '%cpx%' then 'X07' when lower(campaign) like '%cpv%2%' and lower(campaign) like '%bin1to8%' then 'cpv2_bin1to8' when lower(campaign) like '%cpv%2%' and lower(campaign) like '%weighted%' then 'cpv2_weighted' when lower(campaign) like '%cpv%' then 'cpv' else '其他' end",
+    "source_table": "mx.gm_attribution_detail",
+    "update_freq": "每日",
+    "desc_orig": "营销活动名（按 campaign 关键字映射）"
+   },
+   {
+    "name": "if_in_shou_anti_fraud",
+    "desc": "首贷强反欺诈节点是否命中(0/1)",
+    "logic": "p1子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷强反欺诈节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_passed",
+    "desc": "首贷强反欺诈节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷强反欺诈节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_shou_anti_fraud_refused",
+    "desc": "首贷强反欺诈节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷强反欺诈节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_fu_anti_fraud",
+    "desc": "复贷强反欺诈节点是否命中(0/1)",
+    "logic": "p2子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷强反欺诈节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_passed",
+    "desc": "复贷强反欺诈节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷强反欺诈节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_fu_anti_fraud_refused",
+    "desc": "复贷强反欺诈节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷强反欺诈节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_shou_anti_fraud_weak",
+    "desc": "首贷弱反欺诈节点是否命中(0/1)",
+    "logic": "p3子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷弱反欺诈节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_passed",
+    "desc": "首贷弱反欺诈节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷弱反欺诈节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_refused",
+    "desc": "首贷弱反欺诈节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷弱反欺诈节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_fu_anti_fraud_weak",
+    "desc": "复贷弱反欺诈节点是否命中(0/1)",
+    "logic": "p4子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷弱反欺诈节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_weak_passed",
+    "desc": "复贷弱反欺诈节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷弱反欺诈节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_fu_anti_fraud_weak_refused",
+    "desc": "复贷弱反欺诈节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷弱反欺诈节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_shou_model",
+    "desc": "首贷模型拒绝节点是否命中(0/1)",
+    "logic": "p5子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷模型拒绝节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_model_passed",
+    "desc": "首贷模型拒绝节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷模型拒绝节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_shou_model_refused",
+    "desc": "首贷模型拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷模型拒绝节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_fu_model",
+    "desc": "复贷模型拒绝节点是否命中(0/1)",
+    "logic": "p6子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷模型拒绝节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_model_passed",
+    "desc": "复贷模型拒绝节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷模型拒绝节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_fu_model_refused",
+    "desc": "复贷模型拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷模型拒绝节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_shou_normal_check",
+    "desc": "首贷初审/人审节点是否命中(0/1)",
+    "logic": "p7子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷初审/人审节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_passed",
+    "desc": "首贷初审/人审节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷初审/人审节点通过标记(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_refused",
+    "desc": "首贷初审/人审节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷初审/人审节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_canceled",
+    "desc": "首贷初审/人审节点取消标记(0/1)",
+    "logic": "case when (sum(case when approve_result='CANCELED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷初审/人审节点取消标记(0/1)"
+   },
+   {
+    "name": "if_shou_manual_check_pending",
+    "desc": "首贷人工审核待处理标记(0/1)",
+    "logic": "case when (sum(case when approve_result is null then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷人工审核待处理标记(0/1)"
+   },
+   {
+    "name": "if_in_fu_manual_check",
+    "desc": "复贷初审(人审)节点是否命中(0/1)",
+    "logic": "p8子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷初审(人审)节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_passed",
+    "desc": "复贷初审节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷初审节点通过标记(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_refused",
+    "desc": "复贷初审节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷初审节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_canceled",
+    "desc": "复贷初审节点取消标记(0/1)",
+    "logic": "case when (sum(case when approve_result='CANCELED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷初审节点取消标记(0/1)"
+   },
+   {
+    "name": "if_fu_manual_check_pending",
+    "desc": "复贷人工审核待处理标记(0/1)",
+    "logic": "case when (sum(case when approve_result is null then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷人工审核待处理标记(0/1)"
+   },
+   {
+    "name": "if_in_shou_external_data",
+    "desc": "首贷三方数据节点是否命中(0/1)",
+    "logic": "p9子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷三方数据节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_external_data_passed",
+    "desc": "首贷三方数据节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷三方数据节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_shou_external_data_refused",
+    "desc": "首贷三方数据节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷三方数据节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_shou_external_data_review",
+    "desc": "首贷三方数据节点人工复核标记(0/1)",
+    "logic": "case when (sum(case when json_extract_scalar(context_result, '$.myDecisionResult')='review' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_external_data",
+    "desc": "复贷三方数据节点是否命中(0/1)",
+    "logic": "p10子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷三方数据节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_external_data_passed",
+    "desc": "复贷三方数据节点通过标记(0/1)，无拒绝即通过",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) is null then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷三方数据节点通过标记(0/1)，无拒绝即通过"
+   },
+   {
+    "name": "if_fu_external_data_refused",
+    "desc": "复贷三方数据节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷三方数据节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_shou_normal_rule_check",
+    "desc": "首贷人审规则节点是否命中(0/1)",
+    "logic": "p11子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则节点是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_normal_rule_check_passed",
+    "desc": "首贷人审规则节点通过标记(0/1)，myDecisionResult='Normal'",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='Normal' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则节点通过标记(0/1)，myDecisionResult='Normal'"
+   },
+   {
+    "name": "if_shou_normal_rule_check_canceled",
+    "desc": "首贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='cancel' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'"
+   },
+   {
+    "name": "if_shou_normal_rule_check_refused",
+    "desc": "首贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='reject' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'"
+   },
+   {
+    "name": "if_fu_normal_rule_check_passed",
+    "desc": "复贷人审规则节点通过标记(0/1)，myDecisionResult 为空",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar) is null then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则节点通过标记(0/1)，myDecisionResult 为空"
+   },
+   {
+    "name": "if_fu_normal_rule_check_canceled",
+    "desc": "复贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='cancel' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则节点取消标记(0/1)，myDecisionResult='cancel'"
+   },
+   {
+    "name": "if_fu_normal_rule_check_refused",
+    "desc": "复贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'",
+    "logic": "case when (sum(case when cast(json_extract(context_result, '$.myDecisionResult') as varchar)='reject' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则节点拒绝标记(0/1)，myDecisionResult='reject'"
+   },
+   {
+    "name": "if_in_sd_ai",
+    "desc": "电核规则节点(AI)是否命中(0/1)",
+    "logic": "p13子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "电核规则节点(AI)是否命中(0/1)"
+   },
+   {
+    "name": "if_shou_ai_passed",
+    "desc": "电核规则节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "电核规则节点通过标记(0/1)"
+   },
+   {
+    "name": "if_shou_ai_pending",
+    "desc": "电核规则节点待处理标记(0/1)",
+    "logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "电核规则节点待处理标记(0/1)"
+   },
+   {
+    "name": "if_in_fd_ai",
+    "desc": "FDAI 节点是否命中(0/1)",
+    "logic": "p14子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "FDAI 节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_ai_passed",
+    "desc": "FDAI 节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "FDAI 节点通过标记(0/1)"
+   },
+   {
+    "name": "if_fu_ai_refused",
+    "desc": "FDAI 节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "FDAI 节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_fu_ai_pending",
+    "desc": "FDAI 节点待处理标记(0/1)",
+    "logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "FDAI 节点待处理标记(0/1)"
+   },
+   {
+    "name": "if_in_sx",
+    "desc": "授信等待节点是否命中(0/1)",
+    "logic": "p15子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "授信等待节点是否命中(0/1)"
+   },
+   {
+    "name": "if_sx_passed",
+    "desc": "授信等待节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "授信等待节点通过标记(0/1)"
+   },
+   {
+    "name": "if_sx_waiting",
+    "desc": "授信等待节点等待中标记(0/1)",
+    "logic": "case when (sum(case when approve_result='WAITING' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "授信等待节点等待中标记(0/1)"
+   },
+   {
+    "name": "if_in_post_model",
+    "desc": "首贷后置模型拒绝节点是否命中(0/1)",
+    "logic": "p16子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷后置模型拒绝节点是否命中(0/1)"
+   },
+   {
+    "name": "if_post_model_passed",
+    "desc": "首贷后置模型拒绝节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷后置模型拒绝节点通过标记(0/1)"
+   },
+   {
+    "name": "if_post_model_refused",
+    "desc": "首贷后置模型拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "首贷后置模型拒绝节点拒绝标记(0/1)"
+   },
+   {
+    "name": "if_in_fu_sx_refuse",
+    "desc": "复贷授信拒绝节点是否命中(0/1)",
+    "logic": "p17子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷授信拒绝节点是否命中(0/1)"
+   },
+   {
+    "name": "if_fu_sx_refuse_passed",
+    "desc": "复贷授信拒绝节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "复贷授信拒绝节点通过标记(0/1)"
+   },
+   {
+    "name": "if_fu_sx_refuse_refused",
+    "desc": "复贷授信拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_shou_free_model",
+    "desc": "首贷免费模型拒绝节点是否命中(0/1)",
+    "logic": "p18子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_free_model_passed",
+    "desc": "首贷免费模型拒绝节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_free_model_refused",
+    "desc": "首贷免费模型拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_shou_anti_fraud_rerun",
+    "desc": "首贷后置强反重跑节点是否命中(0/1)",
+    "logic": "p19子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_anti_fraud_rerun_passed",
+    "desc": "首贷后置强反重跑节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_anti_fraud_rerun_refused",
+    "desc": "首贷后置强反重跑节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_shou_anti_fraud_weak_rerun",
+    "desc": "首贷后置弱反重跑节点是否命中(0/1)",
+    "logic": "p20子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_rerun_passed",
+    "desc": "首贷后置弱反重跑节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_rerun_refused",
+    "desc": "首贷后置弱反重跑节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_shou_post_model_reject_rerun",
+    "desc": "首贷后置模型拒绝重跑节点是否命中(0/1)",
+    "logic": "p21子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_post_model_reject_rerun_passed",
+    "desc": "首贷后置模型拒绝重跑节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_post_model_reject_rerun_refused",
+    "desc": "首贷后置模型拒绝重跑节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_shou_loan_refuse",
+    "desc": "放款拒绝节点是否命中(0/1)",
+    "logic": "p22子查询固定置 1",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_loan_refuse_reject_passed",
+    "desc": "放款拒绝节点通过标记(0/1)",
+    "logic": "case when (sum(case when approve_result='PASSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_shou_loan_refuse_reject_refused",
+    "desc": "放款拒绝节点拒绝标记(0/1)",
+    "logic": "case when (sum(case when approve_result='REFUSED' then 1 end)) >= 1 then 1 else 0 end",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_grantcredit_7d_amount",
+    "desc": "7天授信额度",
+    "logic": "cast(json_extract(grantcredit_info, '$.grantcredit_7d_amount') as varchar)",
+    "source_table": "ods_view_presto.s09_os_credit_snapshot",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_grantcredit_14d_amount",
+    "desc": "14天授信额度",
+    "logic": "cast(json_extract(grantcredit_info, '$.grantcredit_14d_amount') as varchar)",
+    "source_table": "ods_view_presto.s09_os_credit_snapshot",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_contract_amount",
+    "desc": "合同金额",
+    "logic": "直取 b.contract_amount",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_should_capital",
+    "desc": "应还本金合计",
+    "logic": "sum(cast(should_capital as double))",
+    "source_table": "ods_view_presto.s02_loan_repayment",
+    "update_freq": "每日"
+   },
+   {
+    "name": "b_should_interest",
+    "desc": "应还利息合计",
+    "logic": "sum(cast(should_interest as double))",
+    "source_table": "ods_view_presto.s02_loan_repayment",
+    "update_freq": "每日"
+   },
+   {
+    "name": "camera_id",
+    "desc": "摄像头/相机ID（放款流水标识）",
+    "logic": "直取 b.camera_id",
+    "source_table": "ods_view_presto.s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "摄像头/相机ID（放款流水标识）"
+   },
+   {
+    "name": "apply_phase",
+    "desc": "申请期数对应的区间（如月/日区间）",
+    "logic": "interval_start as apply_phase（按 apply_period 关联 s03_product_due.did）",
+    "source_table": "ods.s03_product_due",
+    "update_freq": "每日",
+    "desc_orig": "申请期数对应的区间（如月/日区间）"
+   },
+   {
+    "name": "if_sx_passed_within24h",
+    "desc": "首贷授信等待节点24小时内通过标记(0/1)",
+    "logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=24*60 AND date_diff('minute',create_time,now)>=24*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日",
+    "desc_orig": "首贷授信等待节点24小时内通过标记(0/1)"
+   },
+   {
+    "name": "if_sx_passed_within48h",
+    "desc": "首贷授信等待节点48小时内通过标记(0/1)",
+    "logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=48*60 AND date_diff('minute',create_time,now)>=48*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_within72h",
+    "desc": "首贷授信等待节点72小时内通过标记(0/1)",
+    "logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=72*60 AND date_diff('minute',create_time,now)>=72*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_within120h",
+    "desc": "首贷授信等待节点120小时内通过标记(0/1)",
+    "logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=120*60 AND date_diff('minute',create_time,now)>=120*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_within11h",
+    "desc": "首贷授信等待节点11小时内通过标记(0/1)",
+    "logic": "CASE WHEN approve_result='PASSED' AND date_diff('minute',create_time,update_time)<=11*60 AND date_diff('minute',create_time,now)>=11*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_over24h",
+    "desc": "授信等待节点超过24小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)>=24*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日",
+    "desc_orig": "授信等待节点超过24小时标记(0/1)"
+   },
+   {
+    "name": "if_in_sx_over48h",
+    "desc": "授信等待节点超过48小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)>=48*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_over72h",
+    "desc": "授信等待节点超过72小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)>=72*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_over120h",
+    "desc": "授信等待节点超过120小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)>=120*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_over11h",
+    "desc": "授信等待节点超过11小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)>=11*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_within24h",
+    "desc": "授信等待节点未超过24小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)<24*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_within48h",
+    "desc": "授信等待节点未超过48小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)<48*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_within72h",
+    "desc": "授信等待节点未超过72小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)<72*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_within120h",
+    "desc": "授信等待节点未超过120小时标记(0/1)",
+    "logic": "CASE WHEN date_diff('minute',create_time,now)<120*60 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 ods_view_presto.s05_creditx_processor_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sx_time",
+    "desc": "授信等待节点创建时间",
+    "logic": "直取 c.create_time",
+    "source_table": "ods_view_presto.s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "creditno_appchan",
+    "desc": "信用号渠道",
+    "logic": "CONCAT(a.credit_no, b.app_channel)",
+    "source_table": "派生计算（基于 mx.darren_application_funnel_1 与 ods_view_presto.s05_creditx_order）",
+    "update_freq": "每日",
+    "desc_orig": "信用号+渠道拼接标识"
+   },
+   {
+    "name": "credit_amount",
+    "desc": "授信总额",
+    "logic": "max(cast(json_extract_scalar(outputdata, '$.credit_amount') as double))",
+    "source_table": "mx.tmp_wenj_product_table（源为 ods.s21_risk_strategy_record，productid in (195,196,217,304)，strategytype='CHAMPION'）",
+    "update_freq": "每日",
+    "desc_orig": "高通过组授信额度"
+   },
+   {
+    "name": "daily_max_available_limit",
+    "desc": "高通过组日最大可用额度",
+    "logic": "max(cast(json_extract_scalar(outputdata, '$.daily_max_available_limit') as double))",
+    "source_table": "mx.tmp_wenj_product_table（源为 ods.s21_risk_strategy_record，productid in (195,196,217,304)，strategytype='CHAMPION'）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "table_update_time",
+    "desc": "表更新时间(秒级时间戳串)",
+    "logic": "substr(cast(current_timestamp as varchar),1,19)",
+    "source_table": "派生计算（current_timestamp）",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

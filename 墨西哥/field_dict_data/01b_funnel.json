@@ -1,0 +1,1061 @@
+[
+ {
+  "table": "mx.wxs_application_funnel_1",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "（直通 s09_os_credit_snapshot 全部字段）",
+    "desc": "授信快照直通段（子查询a，外层 select a.*）：id(进件id/授信快照id)、create_time、create_date、cust_id、identity、device_id、mid、tenant_id、tenant(tenant_id→hola/yawey/tengo)、app_channel、risk_level、product_day、grant_score、name、longitude、latitude、product_level、grantcredit_7d/14d/15d/30d_amount、global_7d_limit、global_limit、credit_amount_sx、daily_max_available_limit_sx、email、phone、fpid等",
+    "logic": "直通 s09_os_credit_snapshot（子查询a），字段清单见 a 子查询 select 列表",
+    "source_table": "s09_os_credit_snapshot",
+    "update_freq": "每日"
+   },
+   {
+    "name": "reloan_num",
+    "desc": "复贷期数/第几贷（首贷=1，复贷=历史放款次数+1）",
+    "logic": "直取 mx.wxs_reloan.reloan_num",
+    "source_table": "mx.wxs_reloan",
+    "update_freq": "每日",
+    "desc_orig": "复贷期数/第几贷（首贷=1，复贷=历史放款次数+1）"
+   },
+   {
+    "name": "grant_strategy",
+    "desc": "首贷/复贷标记",
+    "logic": "直取 mx.wxs_reloan.grant_strategy（首贷/复贷）",
+    "source_table": "mx.wxs_reloan",
+    "update_freq": "每日",
+    "desc_orig": "首贷/复贷标记"
+   },
+   {
+    "name": "channel_category",
+    "desc": "渠道大类(FB/google/apple/tz/qudao/yunying/organic)",
+    "logic": "按 a2.media_source(register_success) 的 CASE WHEN：facebook→FB, google→google, Apple Search Ads→apple, organic/dc1/tz1-5/tanzhi→tz, luxmediakx_int等12个→qudao, Tengo_to_Yawey_all/yawey_to_tengo_all/direction_toApp/SMS等运营→yunying, else→organic",
+    "source_table": "派生计算（基于 ods.s08_appsflyer_push_data）",
+    "update_freq": "每日",
+    "desc_orig": "渠道大类(FB/google/apple/tz/qudao/yunying/organic)"
+   },
+   {
+    "name": "app",
+    "desc": "APP名(hola/hola se/hola max/hola pro/yawey/yawey_plus/yawey_ultra/yawey_max/tengo/voltrix/tengo_plus/tengo_ultra/tengo_max/pf)",
+    "logic": "按 a.app_channel(channel_uuid) 的 CASE WHEN 映射：fe939ba4→hola, faa92afe→hola se, 4cc31ae6→hola max, db0d289f→hola pro, 56c660de→yawey, cdf58da5→yawey_plus, 9922eb08→yawey_ultra, ab9981d2→yawey_max, 2930a02e→tengo, 91379659→voltrix, cbcf1f5e→tengo_plus, e5a5940e→tengo_ultra, 6d21fe7d→tengo_max, 026f5e80→pf，else→e.app_name",
+    "source_table": "派生计算（基于 s09_os_credit_snapshot.app_channel, ods.s08_app_category_mapping.app_name）",
+    "update_freq": "每日",
+    "desc_orig": "APP名(hola/hola se/hola max/hola pro/yawey/yawey_plus/yawey_ultra/yawey_max/tengo/voltrix/tengo_plus/tengo_ultra/tengo_max/pf)"
+   },
+   {
+    "name": "app_group",
+    "desc": "应用分组",
+    "logic": "直取 e.app_group (ods.s08_app_category_mapping)",
+    "source_table": "ods.s08_app_category_mapping",
+    "update_freq": "每日",
+    "desc_orig": "APP分组（如YW等）"
+   },
+   {
+    "name": "app_group_sha256",
+    "desc": "APP分组(sha256化)，YW→yawey",
+    "logic": "case when e.app_group='YW' then 'yawey' else e.app_group end",
+    "source_table": "派生计算（基于 ods.s08_app_category_mapping.app_group）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_id",
+    "desc": "应用ID",
+    "logic": "b.biz_id (s05_creditx_order)",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "进件单号"
+   },
+   {
+    "name": "cust_name",
+    "desc": "客户姓名",
+    "logic": "直取 b.cust_name",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "phone_num",
+    "desc": "客户电话号码",
+    "logic": "直取 b.phone_num",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "客户手机号"
+   },
+   {
+    "name": "product_type",
+    "desc": "产品类型",
+    "logic": "直取 b.product_type",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_time",
+    "desc": "申请时间",
+    "logic": "b.create_time as app_time",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "申请时间（即进件时间）"
+   },
+   {
+    "name": "apply_time",
+    "desc": "申请时间(另一口径字段)",
+    "logic": "直取 b.apply_time",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "申请时间(另一口径字段)"
+   },
+   {
+    "name": "status",
+    "desc": "进件状态（0申请/1执行中/372已通过/425已拒绝）",
+    "logic": "直取 b.status",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "进件状态（0申请/1执行中/372已通过/425已拒绝）"
+   },
+   {
+    "name": "is_loan",
+    "desc": "是否贷款",
+    "logic": "直取 b.is_loan",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "是否放款标记"
+   },
+   {
+    "name": "product_name",
+    "desc": "产品名称",
+    "logic": "直取 b.product_name",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "产品名称"
+   },
+   {
+    "name": "double_loan",
+    "desc": "是否为复贷",
+    "logic": "直取 b.double_loan",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "复贷次数标记"
+   },
+   {
+    "name": "source",
+    "desc": "系统",
+    "logic": "直取 b.source",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "进件来源"
+   },
+   {
+    "name": "is_reloan",
+    "desc": "是否复贷(old/new)",
+    "logic": "CASE：double_loan_tenant=1→old, =0→new, null时若 app_channel 在复贷APP列表(cdf58da5/cbcf1f5e等11个uuid)→old，否则按 b.double_loan>0→old, =0→new",
+    "source_table": "派生计算（基于 mx.tmp_darren_double_loan_tag_table.double_loan_tenant, s09_os_credit_snapshot.app_channel, s05_creditx_order.double_loan）",
+    "update_freq": "每日",
+    "desc_orig": "是否复贷(old/new)"
+   },
+   {
+    "name": "repayment",
+    "desc": "还款方式",
+    "logic": "直取 b.repayment",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "apply_period",
+    "desc": "申请周期",
+    "logic": "直取 b.apply_period",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "申请期数"
+   },
+   {
+    "name": "app_version",
+    "desc": "应用版本",
+    "logic": "直取 b.app_version",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "APP版本号"
+   },
+   {
+    "name": "grantcredit_amount",
+    "desc": "授信额度",
+    "logic": "直取 b.grantcredit_amount",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "temp_grant_amount",
+    "desc": "临时授信额度",
+    "logic": "直取 b.temp_grant_amount",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日"
+   },
+   {
+    "name": "loan_cycle",
+    "desc": "产品期限(天)",
+    "logic": "ceil(c.loan_cycle)",
+    "source_table": "派生计算（基于 s02_loan.loan_cycle）",
+    "update_freq": "每日",
+    "desc_orig": "产品期限(天)"
+   },
+   {
+    "name": "contract_amount",
+    "desc": "合同金额",
+    "logic": "直取 c.contract_amount (s02_loan)",
+    "source_table": "s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "amount",
+    "desc": "实际金额（冗余字段）",
+    "logic": "直取 c.amount",
+    "source_table": "s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "实际放款金额"
+   },
+   {
+    "name": "haircut_amount",
+    "desc": "前砍金额",
+    "logic": "直取 c.haircut_amount",
+    "source_table": "s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "砍头息"
+   },
+   {
+    "name": "release_time",
+    "desc": "放款时间",
+    "logic": "直取 c.release_time",
+    "source_table": "s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cancel_time",
+    "desc": "取消时间",
+    "logic": "直取 c.cancel_time",
+    "source_table": "s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_time",
+    "desc": "结清时间",
+    "logic": "直取 c.finish_time",
+    "source_table": "s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "loan_state",
+    "desc": "放款状态（0待审核/1已放款/2正常结清/3核销/4取消/5放款失败/6审核拒绝/7放款中）",
+    "logic": "c.state as loan_state",
+    "source_table": "s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "放款状态（0待审核/1已放款/2正常结清/3核销/4取消/5放款失败/6审核拒绝/7放款中）"
+   },
+   {
+    "name": "loan_indexs",
+    "desc": "贷款期数",
+    "logic": "直取 c.loan_indexs",
+    "source_table": "s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "分期期数"
+   },
+   {
+    "name": "if_app",
+    "desc": "是否进件(0/1)",
+    "logic": "CASE WHEN b.biz_id IS NOT NULL THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s05_creditx_order.biz_id）",
+    "update_freq": "每日",
+    "desc_orig": "是否进件(0/1)"
+   },
+   {
+    "name": "if_pass",
+    "desc": "是否机审通过(0/1)",
+    "logic": "CASE WHEN b.status=372 then 1 else 0 end",
+    "source_table": "派生计算（基于 s05_creditx_order.status）",
+    "update_freq": "每日",
+    "desc_orig": "是否机审通过(0/1)"
+   },
+   {
+    "name": "IF_BID",
+    "desc": "是否发标(0/1)",
+    "logic": "CASE WHEN b.is_loan='1' THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s05_creditx_order.is_loan）",
+    "update_freq": "每日",
+    "desc_orig": "是否发标(0/1)"
+   },
+   {
+    "name": "if_cancel",
+    "desc": "是否取消(0/1)",
+    "logic": "CASE WHEN c.cancel_time IS NOT NULL THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan.cancel_time）",
+    "update_freq": "每日",
+    "desc_orig": "是否取消(0/1)"
+   },
+   {
+    "name": "if_issue",
+    "desc": "是否放款(0/1)",
+    "logic": "CASE WHEN d.should_time IS NOT NULL THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 mx.wxs_overdue_basetable.should_time）",
+    "update_freq": "每日",
+    "desc_orig": "是否放款(0/1)"
+   },
+   {
+    "name": "apply_amount",
+    "desc": "用户申请额度(千元)",
+    "logic": "cast(b.apply_amount/1000 as decimal)",
+    "source_table": "派生计算（基于 s05_creditx_order.apply_amount）",
+    "update_freq": "每日",
+    "desc_orig": "用户申请额度(千元)"
+   },
+   {
+    "name": "approve_amount",
+    "desc": "审批额度(千元)",
+    "logic": "cast(b.approve_amount/1000 as decimal)",
+    "source_table": "派生计算（基于 s05_creditx_order.approve_amount）",
+    "update_freq": "每日",
+    "desc_orig": "审批额度(千元)"
+   },
+   {
+    "name": "issue_amount",
+    "desc": "放款金额(实际)",
+    "logic": "CASE WHEN d.should_capital IS NOT NULL then cast(c.amount as decimal) else 0 end",
+    "source_table": "派生计算（基于 mx.wxs_overdue_basetable.should_capital, s02_loan.amount）",
+    "update_freq": "每日",
+    "desc_orig": "放款金额(实际)"
+   },
+   {
+    "name": "should_amount",
+    "desc": "应还总额",
+    "logic": "cast(d.should_capital as decimal)",
+    "source_table": "派生计算（基于 mx.wxs_overdue_basetable.should_capital）",
+    "update_freq": "每日",
+    "desc_orig": "应还金额"
+   },
+   {
+    "name": "repay_amount",
+    "desc": "还款金额",
+    "logic": "cast(d.fact_capital as decimal)",
+    "source_table": "派生计算（基于 mx.wxs_overdue_basetable.fact_capital）",
+    "update_freq": "每日",
+    "desc_orig": "实还本金"
+   },
+   {
+    "name": "app_date",
+    "desc": "申请日期",
+    "logic": "date(b.create_time)",
+    "source_table": "派生计算（基于 s05_creditx_order.create_time）",
+    "update_freq": "每日",
+    "desc_orig": "进件日"
+   },
+   {
+    "name": "app_week",
+    "desc": "申请周",
+    "logic": "date_trunc('week',date(b.create_time))",
+    "source_table": "派生计算（基于 s05_creditx_order.create_time）",
+    "update_freq": "每日",
+    "desc_orig": "进件周"
+   },
+   {
+    "name": "app_month",
+    "desc": "申请月",
+    "logic": "date_trunc('month',date(b.create_time))",
+    "source_table": "派生计算（基于 s05_creditx_order.create_time）",
+    "update_freq": "每日",
+    "desc_orig": "进件月"
+   },
+   {
+    "name": "issue_date",
+    "desc": "放款日期",
+    "logic": "date(c.release_time)",
+    "source_table": "派生计算（基于 s02_loan.release_time）",
+    "update_freq": "每日",
+    "desc_orig": "放款日"
+   },
+   {
+    "name": "issue_week",
+    "desc": "放款周",
+    "logic": "date_trunc('week',date(c.release_time))",
+    "source_table": "派生计算（基于 s02_loan.release_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_month",
+    "desc": "放款月",
+    "logic": "date_trunc('month',date(c.release_time))",
+    "source_table": "派生计算（基于 s02_loan.release_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "deadline",
+    "desc": "截止日期",
+    "logic": "date(d.should_time)",
+    "source_table": "派生计算（基于 mx.wxs_overdue_basetable.should_time）",
+    "update_freq": "每日",
+    "desc_orig": "到期日"
+   },
+   {
+    "name": "（直通 wxs_overdue_basetable 全部字段）",
+    "desc": "贷后基表直通段（外层 select d.*）：应还/实还(本金/利息/罚息)、应还总额now_should_amt、逾期金额(now/t0/t3/t7/t14/t30_OVERDUE_AMOUNT)、窗口标记is_t0/t3/t7/t14/t30_window、提前/按时还款金额(pre_p2/p2/p2_repaytt/p1/p0_repay)、是否逾期IS_NOW_OVERDUE、在逾天数now_overdue_days、vintage系列(应还/逾期/在逾天数/is_xxx_overdue/t_xxx_should_amt等)",
+    "logic": "直通 mx.wxs_overdue_basetable，字段清单见该表条目",
+    "source_table": "mx.wxs_overdue_basetable",
+    "update_freq": "每日"
+   },
+   {
+    "name": "credit_no",
+    "desc": "信用编号",
+    "logic": "裸字段直取（未加表别名，应为 s05_creditx_order 或 s09 快照字段，来源待确认）",
+    "source_table": "待确认（s05_creditx_order 或 s09_os_credit_snapshot）",
+    "update_freq": "每日",
+    "desc_orig": "授信编号"
+   },
+   {
+    "name": "one_click_loan_tag",
+    "desc": "一键贷标签",
+    "logic": "直取 g.one_click_loan_tag (mx.tmp_one_click_loan_tag)",
+    "source_table": "mx.tmp_one_click_loan_tag",
+    "update_freq": "每日"
+   },
+   {
+    "name": "fd_high_pass_label",
+    "desc": "FD高分标签",
+    "logic": "直取 f.fd_high_pass_label (mx.tmp_darren_double_loan_tag_table)",
+    "source_table": "mx.tmp_darren_double_loan_tag_table",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sd_high_pass_label",
+    "desc": "SD高分标签",
+    "logic": "直取 f.sd_high_pass_label",
+    "source_table": "mx.tmp_darren_double_loan_tag_table",
+    "update_freq": "每日"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_application_funnel_2",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "BIZ_ID",
+    "desc": "进件单号（与 funnel_1.app_id 关联）",
+    "logic": "直取 b.biz_id (s05_creditx_order)",
+    "source_table": "s05_creditx_order",
+    "update_freq": "每日",
+    "desc_orig": "进件单号（与 funnel_1.app_id 关联）"
+   },
+   {
+    "name": "if_in_shou_anti_fraud",
+    "desc": "是否进入首贷强反欺诈节点(0/1)",
+    "logic": "p1子查询(current_processor='首贷强反欺诈')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷强反欺诈节点(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_passed",
+    "desc": "首贷强反欺诈是否通过(0/1)",
+    "logic": "sum(case when approve_result='REFUSED' then 1 end) is null→1，即无REFUSED记录视为通过",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷强反欺诈是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_refused",
+    "desc": "首贷强反欺诈是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷强反欺诈是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_fu_anti_fraud",
+    "desc": "是否进入复贷强反欺诈节点(0/1)",
+    "logic": "p2子查询(current_processor='复贷强反欺诈')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷强反欺诈节点(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_passed",
+    "desc": "复贷强反欺诈是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷强反欺诈是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_refused",
+    "desc": "复贷强反欺诈是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷强反欺诈是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_shou_anti_fraud_weak",
+    "desc": "是否进入首贷弱反欺诈节点(0/1)",
+    "logic": "p3子查询(current_processor='首贷弱反欺诈')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷弱反欺诈节点(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_passed",
+    "desc": "首贷弱反欺诈是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷弱反欺诈是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_anti_fraud_weak_refused",
+    "desc": "首贷弱反欺诈是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷弱反欺诈是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_fu_anti_fraud_weak",
+    "desc": "是否进入复贷弱反欺诈节点(0/1)",
+    "logic": "p4子查询(current_processor='复贷弱反欺诈')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷弱反欺诈节点(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_weak_passed",
+    "desc": "复贷弱反欺诈是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷弱反欺诈是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_anti_fraud_weak_refused",
+    "desc": "复贷弱反欺诈是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷弱反欺诈是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_shou_model",
+    "desc": "是否进入首贷模型拒绝节点(0/1)",
+    "logic": "p5子查询(current_processor='首贷模型拒绝')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷模型拒绝节点(0/1)"
+   },
+   {
+    "name": "if_shou_model_passed",
+    "desc": "首贷模型是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷模型是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_model_refused",
+    "desc": "首贷模型是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷模型是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_fu_model",
+    "desc": "是否进入复贷模型拒绝节点(0/1)",
+    "logic": "p6子查询(current_processor='复贷模型拒绝')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷模型拒绝节点(0/1)"
+   },
+   {
+    "name": "if_fu_model_passed",
+    "desc": "复贷模型是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷模型是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_model_refused",
+    "desc": "复贷模型是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷模型是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_shou_normal_check",
+    "desc": "是否进入首贷人审节点(0/1)",
+    "logic": "p7子查询(current_processor in '首贷初审','人审节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷人审节点(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_passed",
+    "desc": "首贷人审是否通过(0/1)",
+    "logic": "approve_result='PASSED'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_refused",
+    "desc": "首贷人审是否拒绝(0/1)",
+    "logic": "approve_result='REFUSED'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审是否拒绝(0/1)"
+   },
+   {
+    "name": "if_shou_normal_check_canceled",
+    "desc": "首贷人审是否取消(0/1)",
+    "logic": "approve_result='CANCELED'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审是否取消(0/1)"
+   },
+   {
+    "name": "if_shou_manual_check_pending",
+    "desc": "首贷人审是否待处理(0/1)",
+    "logic": "approve_result is null 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审是否待处理(0/1)"
+   },
+   {
+    "name": "if_in_fu_manual_check",
+    "desc": "是否进入复贷人审节点(0/1)",
+    "logic": "p8子查询(current_processor='复贷初审')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷人审节点(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_passed",
+    "desc": "复贷人审是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_refused",
+    "desc": "复贷人审是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审是否拒绝(0/1)"
+   },
+   {
+    "name": "if_fu_normal_check_canceled",
+    "desc": "复贷人审是否取消(0/1)",
+    "logic": "CANCELED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审是否取消(0/1)"
+   },
+   {
+    "name": "if_fu_manual_check_pending",
+    "desc": "复贷人审是否待处理(0/1)",
+    "logic": "approve_result is null 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审是否待处理(0/1)"
+   },
+   {
+    "name": "if_in_shou_external_data",
+    "desc": "是否进入首贷三方节点(0/1)",
+    "logic": "p9子查询(current_processor='首贷三方节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷三方节点(0/1)"
+   },
+   {
+    "name": "if_shou_external_data_passed",
+    "desc": "首贷三方是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷三方是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_external_data_refused",
+    "desc": "首贷三方是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷三方是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_fu_external_data",
+    "desc": "是否进入复贷三方节点(0/1)",
+    "logic": "p10子查询(current_processor='复贷三方节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷三方节点(0/1)"
+   },
+   {
+    "name": "if_fu_external_data_passed",
+    "desc": "复贷三方是否通过(0/1)",
+    "logic": "无REFUSED记录→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷三方是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_external_data_refused",
+    "desc": "复贷三方是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷三方是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_shou_normal_rule_check",
+    "desc": "是否进入人审规则节点(首贷)(0/1)",
+    "logic": "p11子查询(current_processor='人审规则节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入人审规则节点(首贷)(0/1)"
+   },
+   {
+    "name": "if_shou_normal_rule_check_passed",
+    "desc": "首贷人审规则是否通过(0/1)",
+    "logic": "json_extract(context_result,'$.myDecisionResult') is null 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_normal_rule_check_canceled",
+    "desc": "首贷人审规则是否取消(0/1)",
+    "logic": "myDecisionResult='cancel'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则是否取消(0/1)"
+   },
+   {
+    "name": "if_shou_normal_rule_check_refused",
+    "desc": "首贷人审规则是否拒绝(0/1)",
+    "logic": "myDecisionResult='reject'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "首贷人审规则是否拒绝(0/1)"
+   },
+   {
+    "name": "if_fu_normal_rule_check_passed",
+    "desc": "复贷人审规则是否通过(0/1)",
+    "logic": "p12子查询(current_processor='复贷人审规则')，myDecisionResult is null记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_normal_rule_check_canceled",
+    "desc": "复贷人审规则是否取消(0/1)",
+    "logic": "myDecisionResult='cancel'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则是否取消(0/1)"
+   },
+   {
+    "name": "if_fu_normal_rule_check_refused",
+    "desc": "复贷人审规则是否拒绝(0/1)",
+    "logic": "myDecisionResult='reject'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.context_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷人审规则是否拒绝(0/1)"
+   },
+   {
+    "name": "if_in_SD_AI",
+    "desc": "是否进入电核规则节点(SD AI)(0/1)",
+    "logic": "p13子查询(current_processor='电核规则节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入电核规则节点(SD AI)(0/1)"
+   },
+   {
+    "name": "if_shou_AI_passed",
+    "desc": "电核AI是否通过(0/1)",
+    "logic": "approve_result='PASSED'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "电核AI是否通过(0/1)"
+   },
+   {
+    "name": "if_shou_AI_PENDING",
+    "desc": "电核AI是否待处理(0/1)",
+    "logic": "approve_result='WAITING'记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "电核AI是否待处理(0/1)"
+   },
+   {
+    "name": "if_in_FD_AI",
+    "desc": "是否进入FD AI节点(0/1)",
+    "logic": "p14子查询(current_processor='FDAI')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入FD AI节点(0/1)"
+   },
+   {
+    "name": "if_FU_AI_passed",
+    "desc": "FD AI是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "FD AI是否通过(0/1)"
+   },
+   {
+    "name": "if_FU_AI_refused",
+    "desc": "FD AI是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "FD AI是否拒绝(0/1)"
+   },
+   {
+    "name": "if_FU_AI_PENDING",
+    "desc": "FD AI是否待处理(0/1)",
+    "logic": "WAITING记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "FD AI是否待处理(0/1)"
+   },
+   {
+    "name": "if_in_sx",
+    "desc": "是否进入首贷/复贷授信等待节点(0/1)",
+    "logic": "p15子查询(current_processor in '首贷授信等待节点','复贷授信等待节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷/复贷授信等待节点(0/1)"
+   },
+   {
+    "name": "if_SX_passed",
+    "desc": "授信等待是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "授信等待是否通过(0/1)"
+   },
+   {
+    "name": "if_SX_WAITING",
+    "desc": "授信等待中(0/1)",
+    "logic": "WAITING记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "授信等待中(0/1)"
+   },
+   {
+    "name": "if_in_fu_normal_rule_check",
+    "desc": "是否进入复贷人审规则节点(0/1)",
+    "logic": "p12子查询('复贷人审规则')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷人审规则节点(0/1)"
+   },
+   {
+    "name": "if_shou_ai_refused",
+    "desc": "电核AI是否拒绝(首贷)(0/1)",
+    "logic": "p13，REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "电核AI是否拒绝(首贷)(0/1)"
+   },
+   {
+    "name": "if_in_fu_sx_refuse",
+    "desc": "是否进入复贷授信拒绝节点(0/1)",
+    "logic": "p16子查询(current_processor='复贷授信拒绝')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入复贷授信拒绝节点(0/1)"
+   },
+   {
+    "name": "if_fu_sx_refuse_passed",
+    "desc": "复贷授信拒绝节点是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷授信拒绝节点是否通过(0/1)"
+   },
+   {
+    "name": "if_fu_sx_refuse_WAITING",
+    "desc": "复贷授信拒绝节点是否等待(0/1)",
+    "logic": "WAITING记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日",
+    "desc_orig": "复贷授信拒绝节点是否等待(0/1)"
+   },
+   {
+    "name": "if_in_sx_6h",
+    "desc": "授信等待>6小时仍无结果标记(0/1)",
+    "logic": "date_diff('minute',create_time,now)>=6*60 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.create_time）",
+    "update_freq": "每日",
+    "desc_orig": "授信等待>6小时仍无结果标记(0/1)"
+   },
+   {
+    "name": "if_in_sx_24h",
+    "desc": "授信等待>24小时仍无结果标记(0/1)",
+    "logic": "date_diff>=24*60 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.create_time）",
+    "update_freq": "每日",
+    "desc_orig": "授信等待>24小时仍无结果标记(0/1)"
+   },
+   {
+    "name": "if_in_sx_48h",
+    "desc": "授信等待>48小时仍无结果标记(0/1)",
+    "logic": "date_diff>=48*60 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.create_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_72h",
+    "desc": "授信等待>72小时仍无结果标记(0/1)",
+    "logic": "date_diff>=72*60 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.create_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_120h",
+    "desc": "授信等待>120小时仍无结果标记(0/1)",
+    "logic": "date_diff>=120*60 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.create_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_SX_passed_6h",
+    "desc": "授信通过但耗时>6h才出结果标记(0/1)",
+    "logic": "PASSED 且 update_time-create_time<=6h 且 距now>=6h 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result/create_time/update_time）",
+    "update_freq": "每日",
+    "desc_orig": "授信通过但耗时>6h才出结果标记(0/1)"
+   },
+   {
+    "name": "if_SX_passed_24h",
+    "desc": "授信通过但耗时>24h才出结果标记(0/1)",
+    "logic": "PASSED 且 <=24h 且 距now>=24h 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result/create_time/update_time）",
+    "update_freq": "每日",
+    "desc_orig": "授信通过但耗时>24h才出结果标记(0/1)"
+   },
+   {
+    "name": "if_SX_passed_48h",
+    "desc": "授信通过但耗时>48h才出结果标记(0/1)",
+    "logic": "PASSED 且 <=48h 且 距now>=48h 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result/create_time/update_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_SX_passed_72h",
+    "desc": "授信通过但耗时>72h才出结果标记(0/1)",
+    "logic": "PASSED 且 <=72h 且 距now>=72h 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result/create_time/update_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_SX_passed_120h",
+    "desc": "授信通过但耗时>120h才出结果标记(0/1)",
+    "logic": "PASSED 且 <=120h 且 距now>=120h 记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result/create_time/update_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_anti_fraud_rerun",
+    "desc": "是否进入复贷后置强反重跑节点(0/1)",
+    "logic": "p17子查询(current_processor='复贷后置强反重跑节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_anti_fraud_rerun_passed",
+    "desc": "复贷后置强反重跑是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_anti_fraud_rerun_refused",
+    "desc": "复贷后置强反重跑是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_weak_anti_fraud_rerun",
+    "desc": "是否进入复贷后置弱反重跑节点(0/1)",
+    "logic": "p18子查询(current_processor='复贷后置弱反重跑节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_weak_anti_fraud_rerun_passed",
+    "desc": "复贷后置弱反重跑是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_weak_anti_fraud_rerun_refused",
+    "desc": "复贷后置弱反重跑是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_fu_post_model_reject_rerun",
+    "desc": "是否进入复贷后置模型拒绝重跑节点(0/1)",
+    "logic": "p19子查询(current_processor='复贷后置模型拒绝重跑节点')，进入即1",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_model_reject_rerun_passed",
+    "desc": "复贷后置模型拒绝重跑是否通过(0/1)",
+    "logic": "PASSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_fu_post_model_reject_rerun_refused",
+    "desc": "复贷后置模型拒绝重跑是否拒绝(0/1)",
+    "logic": "REFUSED记录>=1→1",
+    "source_table": "派生计算（基于 s05_creditx_processor_record.approve_result）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_post_model",
+    "desc": "是否进入首贷后置模型拒绝节点(0/1)",
+    "logic": "p20子查询(current_processor='首贷后置模型拒绝节点')，进入即1（注：p20内 if_post_model_passed/refused 未在外层SELECT输出）",
+    "source_table": "s05_creditx_processor_record",
+    "update_freq": "每日",
+    "desc_orig": "是否进入首贷后置模型拒绝节点(0/1)"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_application_funnel",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "（直通 wxs_application_funnel_1 全部字段）",
+    "desc": "funnel_1 全部字段：授信快照a.*、reloan_num/grant_strategy、channel_category/app、进件/放款/贷后直通d.*、金额与日期派生字段、标签等",
+    "logic": "直通 mx.wxs_application_funnel_1，字段清单见 funnel_1 条目",
+    "source_table": "mx.wxs_application_funnel_1",
+    "update_freq": "每日"
+   },
+   {
+    "name": "（直通 wxs_application_funnel_2 全部字段）",
+    "desc": "funnel_2 全部字段：BIZ_ID 及各审批节点 if_in/if_xxx_passed/refused/pending 标志位",
+    "logic": "直通 mx.wxs_application_funnel_2，字段清单见 funnel_2 条目",
+    "source_table": "mx.wxs_application_funnel_2",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

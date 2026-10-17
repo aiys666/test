@@ -1,0 +1,16 @@
+login ok
+
+=== Q1 double_group按combo行数分布 ===
+rows_per_combo combos
+             1   2933
+             2   1794
+             3    539
+             4    163
+
+=== Q2 网格规模 ===
+cohorts max_wob grid_rows months
+    269      78     21251     24
+
+=== Q3 rnk>1导致的null数 ===
+total_dg_combos combos_with_multi extra_rows_beyond_rnk1
+           5429              2496                   3361

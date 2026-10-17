@@ -1,0 +1,5140 @@
+[
+ {
+  "table": "mx.wxs_reloan",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "id",
+    "desc": "进件id(授信快照id)",
+    "logic": "直取 s09_os_credit_snapshot.id",
+    "source_table": "s09_os_credit_snapshot",
+    "update_freq": "每日",
+    "desc_orig": "进件id(授信快照id)"
+   },
+   {
+    "name": "reloan_num",
+    "desc": "本次进件前的放款笔数+1(首贷=1)",
+    "logic": "CASE WHEN issue_num IS NULL THEN 1 ELSE issue_num END；issue_num=count(t2.biz_id)+1，t2为同一mid在本次进件之前(create_time>release_time)已放款(state in (1,2))的订单",
+    "source_table": "派生计算（基于 s09_os_credit_snapshot、s02_loan）",
+    "update_freq": "每日",
+    "desc_orig": "本次进件前的放款笔数+1(首贷=1)"
+   },
+   {
+    "name": "grant_strategy",
+    "desc": "首贷/复贷标记",
+    "logic": "CASE WHEN issue_num IS NULL THEN '首贷' ELSE '复贷' END",
+    "source_table": "派生计算（基于 s09_os_credit_snapshot、s02_loan）",
+    "update_freq": "每日",
+    "desc_orig": "首贷/复贷标记"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_risk_ttl",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "camera_id",
+    "desc": "订单id(放款订单号)",
+    "logic": "直取 s02_loan.camera_id",
+    "source_table": "s02_loan",
+    "update_freq": "每日",
+    "desc_orig": "订单id(放款订单号)"
+   },
+   {
+    "name": "release_time",
+    "desc": "放款时间",
+    "logic": "直取 s02_loan.release_time",
+    "source_table": "s02_loan",
+    "update_freq": "每日"
+   },
+   {
+    "name": "should_time",
+    "desc": "应还日期(按订单取最大应还日)",
+    "logic": "直取 t2.should_time = max(a.should_time)，a为s02_loan_repayment按camera_id分组(state in (1,2,3))",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "应还日期(按订单取最大应还日)"
+   },
+   {
+    "name": "should_capital",
+    "desc": "应还本金(按订单合计)",
+    "logic": "直取 t2.should_capital = sum(a.should_capital)",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "应还本金(按订单合计)"
+   },
+   {
+    "name": "should_interest",
+    "desc": "应还利息(按订单合计)",
+    "logic": "直取 t2.should_interest = sum(a.should_interest)",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "应还利息(按订单合计)"
+   },
+   {
+    "name": "should_fine",
+    "desc": "应还罚息(按订单合计)",
+    "logic": "直取 t2.should_fine = sum(a.should_fine)",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "应还罚息(按订单合计)"
+   },
+   {
+    "name": "fact_capital",
+    "desc": "实还本金(按订单合计)",
+    "logic": "直取 t3.fact_capital = sum(a.fact_capital)，a为s02_loan_repayment_detail按camera_id分组",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "实还本金(按订单合计)"
+   },
+   {
+    "name": "fact_interest",
+    "desc": "实还利息(按订单合计)",
+    "logic": "直取 t3.fact_interest = sum(a.fact_interest)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "实还利息(按订单合计)"
+   },
+   {
+    "name": "fact_fine",
+    "desc": "实还罚息(按订单合计)",
+    "logic": "直取 t3.fact_fine = sum(a.fact_fine)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "实还罚息(按订单合计)"
+   },
+   {
+    "name": "now_should_amt",
+    "desc": "当前应还总额(本金+利息)",
+    "logic": "直取 t2.now_should_amt = should_capital + should_interest",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "当前应还总额(本金+利息)"
+   },
+   {
+    "name": "t0_should_amt",
+    "desc": "T0窗口应还总额(应还日已到)",
+    "logic": "直取 t2.t0_should_amt = CASE WHEN date(should_time)<current_date THEN should_capital+should_interest END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口应还总额(应还日已到)"
+   },
+   {
+    "name": "t3_should_amt",
+    "desc": "T3窗口应还总额(应还日+3天已到)",
+    "logic": "直取 t2.t3_should_amt = CASE WHEN date(should_time)+interval'3'day<current_date THEN should_capital+should_interest END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口应还总额(应还日+3天已到)"
+   },
+   {
+    "name": "t7_should_amt",
+    "desc": "T7窗口应还总额(应还日+7天已到)",
+    "logic": "直取 t2.t7_should_amt = CASE WHEN date(should_time)+interval'7'day<current_date THEN should_capital+should_interest END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口应还总额(应还日+7天已到)"
+   },
+   {
+    "name": "t14_should_amt",
+    "desc": "T14窗口应还总额(应还日+14天已到)",
+    "logic": "直取 t2.t14_should_amt = CASE WHEN date(should_time)+interval'14'day<current_date THEN should_capital+should_interest END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口应还总额(应还日+14天已到)"
+   },
+   {
+    "name": "t30_should_amt",
+    "desc": "T30窗口应还总额(应还日+30天已到)",
+    "logic": "直取 t2.t30_should_amt = CASE WHEN date(should_time)+interval'30'day<current_date THEN should_capital+should_interest END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口应还总额(应还日+30天已到)"
+   },
+   {
+    "name": "now_fact_amt",
+    "desc": "当前实还总额(本金+利息)",
+    "logic": "直取 t3.now_fact_amt = sum(fact_capital + fact_interest)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "当前实还总额(本金+利息)"
+   },
+   {
+    "name": "t0_fact_amt",
+    "desc": "T0窗口实还总额(截至应还日)",
+    "logic": "直取 t3.t0_fact_amt = sum(CASE WHEN date(fact_time)<=date(should_time) THEN fact_capital+fact_interest END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口实还总额(截至应还日)"
+   },
+   {
+    "name": "t3_fact_amt",
+    "desc": "T3窗口实还总额(截至应还日+3天)",
+    "logic": "直取 t3.t3_fact_amt = sum(CASE WHEN date(fact_time)<=interval'3'day+date(should_time) THEN fact_capital+fact_interest END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口实还总额(截至应还日+3天)"
+   },
+   {
+    "name": "t7_fact_amt",
+    "desc": "T7窗口实还总额(截至应还日+7天)",
+    "logic": "直取 t3.t7_fact_amt = sum(CASE WHEN date(fact_time)<=interval'7'day+date(should_time) THEN fact_capital+fact_interest END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口实还总额(截至应还日+7天)"
+   },
+   {
+    "name": "t14_fact_amt",
+    "desc": "T14窗口实还总额(截至应还日+14天)",
+    "logic": "直取 t3.t14_fact_amt = sum(CASE WHEN date(fact_time)<=interval'14'day+date(should_time) THEN fact_capital+fact_interest END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口实还总额(截至应还日+14天)"
+   },
+   {
+    "name": "t30_fact_amt",
+    "desc": "T30窗口实还总额(截至应还日+30天)",
+    "logic": "直取 t3.t30_fact_amt = sum(CASE WHEN date(fact_time)<=interval'30'day+date(should_time) THEN fact_capital+fact_interest END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口实还总额(截至应还日+30天)"
+   },
+   {
+    "name": "t0_should_num",
+    "desc": "T0窗口应还期数标记(应还日已到=1)",
+    "logic": "直取 t2.t0_should_num = CASE WHEN date(should_time)<current_date THEN 1 ELSE 0 END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口应还期数标记(应还日已到=1)"
+   },
+   {
+    "name": "t3_should_num",
+    "desc": "T3窗口应还期数标记(应还日+3天已到=1)",
+    "logic": "直取 t2.t3_should_num = CASE WHEN date(should_time)+interval'3'day<current_date THEN 1 ELSE 0 END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口应还期数标记(应还日+3天已到=1)"
+   },
+   {
+    "name": "t7_should_num",
+    "desc": "T7窗口应还期数标记(应还日+7天已到=1)",
+    "logic": "直取 t2.t7_should_num = CASE WHEN date(should_time)+interval'7'day<current_date THEN 1 ELSE 0 END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口应还期数标记(应还日+7天已到=1)"
+   },
+   {
+    "name": "t14_should_num",
+    "desc": "T14窗口应还期数标记(应还日+14天已到=1)",
+    "logic": "直取 t2.t14_should_num = CASE WHEN date(should_time)+interval'14'day<current_date THEN 1 ELSE 0 END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口应还期数标记(应还日+14天已到=1)"
+   },
+   {
+    "name": "t30_should_num",
+    "desc": "T30窗口应还期数标记(应还日+30天已到=1)",
+    "logic": "直取 t2.t30_should_num = CASE WHEN date(should_time)+interval'30'day<current_date THEN 1 ELSE 0 END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口应还期数标记(应还日+30天已到=1)"
+   },
+   {
+    "name": "pre_p2_repay",
+    "desc": "提前超过2天还款金额(本+息)",
+    "logic": "直取 t3.pre_p2_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))>2 THEN fact_capital+fact_interest ELSE 0 END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "提前超过2天还款金额(本+息)"
+   },
+   {
+    "name": "p2_repay",
+    "desc": "提前2天还款金额(本+息)",
+    "logic": "直取 t3.p2_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=2 THEN fact_capital+fact_interest ELSE 0 END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "提前2天还款金额(本+息)"
+   },
+   {
+    "name": "p2_repaytt",
+    "desc": "提前>=2天还款金额(本+息)",
+    "logic": "直取 t3.p2_repaytt = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))>=2 THEN fact_capital+fact_interest ELSE 0 END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "提前>=2天还款金额(本+息)"
+   },
+   {
+    "name": "p1_repay",
+    "desc": "提前1天还款金额(本+息)",
+    "logic": "直取 t3.p1_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=1 THEN fact_capital+fact_interest ELSE 0 END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "提前1天还款金额(本+息)"
+   },
+   {
+    "name": "p0_repay",
+    "desc": "到期日当天还款金额(本+息)",
+    "logic": "直取 t3.p0_repay = sum(CASE WHEN date_diff('day',date(fact_time),date(should_time))=0 THEN fact_capital+fact_interest ELSE 0 END)",
+    "source_table": "s02_loan_repayment_detail",
+    "update_freq": "每日",
+    "desc_orig": "到期日当天还款金额(本+息)"
+   },
+   {
+    "name": "now_overdue_days",
+    "desc": "当前逾期天数(取各期最大,负数截为0)",
+    "logic": "直取 t4.now_overdue_days = max(greatest(overdue_days,0))；overdue_days=CASE WHEN (should_capital+should_interest)=(fact_capital+fact_interest+subtract_capital+subtract_interest) OR state in (1,3,5) THEN 0 ELSE date_diff('day',date(should_time),current_date) END",
+    "source_table": "s02_loan_repayment",
+    "update_freq": "每日"
+   },
+   {
+    "name": "is_t0_window",
+    "desc": "是否已过应还日(T0窗口)(0/1)",
+    "logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>0 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "是否已过应还日T0窗口(0/1)"
+   },
+   {
+    "name": "is_t3_window",
+    "desc": "是否已过应还日后3天(T3窗口)(0/1)",
+    "logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>3 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T3窗口(0/1)"
+   },
+   {
+    "name": "is_t7_window",
+    "desc": "是否已过应还日后7天(T7窗口)(0/1)",
+    "logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>7 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T7窗口(0/1)"
+   },
+   {
+    "name": "is_t14_window",
+    "desc": "是否已过应还日后14天(T14窗口)(0/1)",
+    "logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>14 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T14窗口(0/1)"
+   },
+   {
+    "name": "is_t30_window",
+    "desc": "是否已过应还日后30天(T30窗口)(0/1)",
+    "logic": "CASE WHEN date_diff('day',date(should_time),CURRENT_DATE)>30 THEN 1 ELSE 0 END",
+    "source_table": "派生计算（基于 s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T30窗口(0/1)"
+   },
+   {
+    "name": "now_OVERDUE_AMOUNT",
+    "desc": "当前逾期金额",
+    "logic": "CASE WHEN now_fact_amt>=now_should_amt THEN 0 WHEN now_fact_amt<now_should_amt THEN now_should_amt-now_fact_amt WHEN now_fact_amt IS NULL THEN now_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "T0_OVERDUE_AMOUNT",
+    "desc": "应还日(T0)时点逾期金额(本+息)",
+    "logic": "CASE WHEN t0_fact_amt>=now_should_amt THEN 0 WHEN t0_fact_amt<now_should_amt THEN now_should_amt-t0_fact_amt WHEN t0_fact_amt IS NULL THEN t0_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口逾期金额"
+   },
+   {
+    "name": "T3_OVERDUE_AMOUNT",
+    "desc": "应还日后3天(T3)时点逾期金额(本+息)",
+    "logic": "CASE WHEN t3_fact_amt>=now_should_amt THEN 0 WHEN t3_fact_amt<now_should_amt THEN now_should_amt-t3_fact_amt WHEN t3_fact_amt IS NULL THEN t3_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口逾期金额"
+   },
+   {
+    "name": "T7_OVERDUE_AMOUNT",
+    "desc": "应还日后7天(T7)时点逾期金额(本+息)",
+    "logic": "CASE WHEN t7_fact_amt>=now_should_amt THEN 0 WHEN t7_fact_amt<now_should_amt THEN now_should_amt-t7_fact_amt WHEN t7_fact_amt IS NULL THEN t7_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口逾期金额"
+   },
+   {
+    "name": "T14_OVERDUE_AMOUNT",
+    "desc": "应还日后14天(T14)时点逾期金额(本+息)",
+    "logic": "CASE WHEN t14_fact_amt>=now_should_amt THEN 0 WHEN t14_fact_amt<now_should_amt THEN now_should_amt-t14_fact_amt WHEN t14_fact_amt IS NULL THEN t14_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口逾期金额"
+   },
+   {
+    "name": "T30_OVERDUE_AMOUNT",
+    "desc": "应还日后30天(T30)时点逾期金额(本+息)",
+    "logic": "CASE WHEN t30_fact_amt>=now_should_amt THEN 0 WHEN t30_fact_amt<now_should_amt THEN now_should_amt-t30_fact_amt WHEN t30_fact_amt IS NULL THEN t30_should_amt END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口逾期金额"
+   },
+   {
+    "name": "IS_now_OVERDUE",
+    "desc": "当前是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN now_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "IS_T0_OVERDUE",
+    "desc": "应还日(T0)时点是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN t0_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口是否逾期"
+   },
+   {
+    "name": "IS_T3_OVERDUE",
+    "desc": "应还日后3天(T3)时点是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN t3_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口是否逾期"
+   },
+   {
+    "name": "IS_T7_OVERDUE",
+    "desc": "应还日后7天(T7)时点是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN t7_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口是否逾期"
+   },
+   {
+    "name": "IS_T14_OVERDUE",
+    "desc": "应还日后14天(T14)时点是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN t14_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口是否逾期"
+   },
+   {
+    "name": "IS_T30_OVERDUE",
+    "desc": "应还日后30天(T30)时点是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "CASE WHEN t30_fact_amt-now_should_amt>=-1 THEN 0 ELSE 1 END",
+    "source_table": "派生计算（基于 s02_loan_repayment_detail、s02_loan_repayment）",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口是否逾期"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_vintage_all4",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "id",
+    "desc": "申请记录ID",
+    "logic": "直取 mx.wxs_vintage_all31.id（group by 键）",
+    "source_table": "mx.wxs_vintage_all31",
+    "update_freq": "每日",
+    "desc_orig": "进件id"
+   },
+   {
+    "name": "overdue_cnt_1_now",
+    "desc": "第1期 当前 逾期笔数",
+    "logic": "max(if(indexs=1 and clear_now_cnt=0,1,0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 当前是否逾期(未结清) 逾期笔数"
+   },
+   {
+    "name": "should_cnt_1_pre3",
+    "desc": "第1期 应还日前3天起窗口 应还笔数",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, duem3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前3天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_pre3",
+    "desc": "第1期 应还日前3天起窗口 逾期笔数",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前3天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_pre3",
+    "desc": "第1期 应还日前3天起窗口 应还金额",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, duem3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前3期窗口 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_pre3",
+    "desc": "第1期 应还日前3天起窗口 逾期金额",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前3天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_pre2",
+    "desc": "第1期 应还日前2天起窗口 应还笔数",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, duem2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前2天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_pre2",
+    "desc": "第1期 应还日前2天起窗口 逾期笔数",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前2天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_pre2",
+    "desc": "第1期 应还日前2天起窗口 应还金额",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, duem2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前2期窗口 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_pre2",
+    "desc": "第1期 应还日前2天起窗口 逾期金额",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前2天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_pre1",
+    "desc": "第1期 应还日当天起窗口 应还笔数",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；sum(if(indexs=1, duem1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前1天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_pre1",
+    "desc": "第1期 应还日当天起窗口 逾期笔数",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前1天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_pre1",
+    "desc": "第1期 应还日当天起窗口 应还金额",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；sum(if(indexs=1, duem1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前1期窗口 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_pre1",
+    "desc": "第1期 应还日当天起窗口 逾期金额",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；sum(if(indexs=1, ovdm1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前1天 逾期金额"
+   },
+   {
+    "name": "pre_repay_tm3_amt_1",
+    "desc": "第1期 提前还款金额(本+息,到期前≥3天)",
+    "logic": "sum(if(indexs=1, repay_tm3_amt_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 提前tm3还款金额(本+息)"
+   },
+   {
+    "name": "pre_repay_tm2_amt_1",
+    "desc": "第1期 提前还款金额(本+息,到期前≥2天)",
+    "logic": "sum(if(indexs=1, repay_tm2_amt_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 提前tm2还款金额(本+息)"
+   },
+   {
+    "name": "pre_repay_tm1_amt_1",
+    "desc": "第1期 提前还款金额(本+息,到期前≥1天)",
+    "logic": "sum(if(indexs=1, repay_tm1_amt_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 提前tm1还款金额(本+息)"
+   },
+   {
+    "name": "pre_repay_tm0_amt_1",
+    "desc": "第1期 应还日当天及之前还款金额(本+息)",
+    "logic": "sum(if(indexs=1, repay_tm0_amt_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 提前tm0还款金额(本+息)"
+   },
+   {
+    "name": "should_cnt_1_0",
+    "desc": "第1期 已过应还日 应还笔数",
+    "logic": "sum(if(indexs=1, due0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_0",
+    "desc": "第1期 已过应还日 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_0",
+    "desc": "第1期 已过应还日 应还金额",
+    "logic": "sum(if(indexs=1, due0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_0",
+    "desc": "第1期 已过应还日 逾期金额",
+    "logic": "sum(if(indexs=1, ovd0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_1",
+    "desc": "第1期 逾期≥2天 应还笔数",
+    "logic": "sum(if(indexs=1, due1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_1",
+    "desc": "第1期 逾期≥2天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_1",
+    "desc": "第1期 逾期≥2天 应还金额",
+    "logic": "sum(if(indexs=1, due1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_1",
+    "desc": "第1期 逾期≥2天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_2",
+    "desc": "第1期 逾期≥3天 应还笔数",
+    "logic": "sum(if(indexs=1, due2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_2",
+    "desc": "第1期 逾期≥3天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_2",
+    "desc": "第1期 逾期≥3天 应还金额",
+    "logic": "sum(if(indexs=1, due2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_2",
+    "desc": "第1期 逾期≥3天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_3",
+    "desc": "第1期 逾期≥4天 应还笔数",
+    "logic": "sum(if(indexs=1, due3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_3",
+    "desc": "第1期 逾期≥4天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_3",
+    "desc": "第1期 逾期≥4天 应还金额",
+    "logic": "sum(if(indexs=1, due3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_3",
+    "desc": "第1期 逾期≥4天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_7",
+    "desc": "第1期 逾期≥8天 应还笔数",
+    "logic": "sum(if(indexs=1, due7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_7",
+    "desc": "第1期 逾期≥8天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_7",
+    "desc": "第1期 逾期≥8天 应还金额",
+    "logic": "sum(if(indexs=1, due7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_7",
+    "desc": "第1期 逾期≥8天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_15",
+    "desc": "第1期 逾期≥16天 应还笔数",
+    "logic": "sum(if(indexs=1, due15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_15",
+    "desc": "第1期 逾期≥16天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_15",
+    "desc": "第1期 逾期≥16天 应还金额",
+    "logic": "sum(if(indexs=1, due15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_15",
+    "desc": "第1期 逾期≥16天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 逾期金额"
+   },
+   {
+    "name": "should_cnt_1_30",
+    "desc": "第1期 逾期≥31天 应还笔数",
+    "logic": "sum(if(indexs=1, due30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_1_30",
+    "desc": "第1期 逾期≥31天 逾期笔数",
+    "logic": "sum(if(indexs=1, ovd30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 逾期笔数"
+   },
+   {
+    "name": "should_capital_1_30",
+    "desc": "第1期 逾期≥31天 应还金额",
+    "logic": "sum(if(indexs=1, due30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_1_30",
+    "desc": "第1期 逾期≥31天 逾期金额",
+    "logic": "sum(if(indexs=1, ovd30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_0",
+    "desc": "第2期 已过应还日 应还笔数",
+    "logic": "sum(if(indexs=2, due0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_0",
+    "desc": "第2期 已过应还日 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_0",
+    "desc": "第2期 已过应还日 应还金额",
+    "logic": "sum(if(indexs=2, due0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_0",
+    "desc": "第2期 已过应还日 逾期金额",
+    "logic": "sum(if(indexs=2, ovd0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_1",
+    "desc": "第2期 逾期≥2天 应还笔数",
+    "logic": "sum(if(indexs=2, due1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_1",
+    "desc": "第2期 逾期≥2天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_1",
+    "desc": "第2期 逾期≥2天 应还金额",
+    "logic": "sum(if(indexs=2, due1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_1",
+    "desc": "第2期 逾期≥2天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_2",
+    "desc": "第2期 逾期≥3天 应还笔数",
+    "logic": "sum(if(indexs=2, due2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_2",
+    "desc": "第2期 逾期≥3天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_2",
+    "desc": "第2期 逾期≥3天 应还金额",
+    "logic": "sum(if(indexs=2, due2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_2",
+    "desc": "第2期 逾期≥3天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_3",
+    "desc": "第2期 逾期≥4天 应还笔数",
+    "logic": "sum(if(indexs=2, due3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_3",
+    "desc": "第2期 逾期≥4天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_3",
+    "desc": "第2期 逾期≥4天 应还金额",
+    "logic": "sum(if(indexs=2, due3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_3",
+    "desc": "第2期 逾期≥4天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_7",
+    "desc": "第2期 逾期≥8天 应还笔数",
+    "logic": "sum(if(indexs=2, due7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_7",
+    "desc": "第2期 逾期≥8天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_7",
+    "desc": "第2期 逾期≥8天 应还金额",
+    "logic": "sum(if(indexs=2, due7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_7",
+    "desc": "第2期 逾期≥8天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_15",
+    "desc": "第2期 逾期≥16天 应还笔数",
+    "logic": "sum(if(indexs=2, due15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_15",
+    "desc": "第2期 逾期≥16天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_15",
+    "desc": "第2期 逾期≥16天 应还金额",
+    "logic": "sum(if(indexs=2, due15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_15",
+    "desc": "第2期 逾期≥16天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 逾期金额"
+   },
+   {
+    "name": "should_cnt_2_30",
+    "desc": "第2期 逾期≥31天 应还笔数",
+    "logic": "sum(if(indexs=2, due30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_2_30",
+    "desc": "第2期 逾期≥31天 逾期笔数",
+    "logic": "sum(if(indexs=2, ovd30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 逾期笔数"
+   },
+   {
+    "name": "should_capital_2_30",
+    "desc": "第2期 逾期≥31天 应还金额",
+    "logic": "sum(if(indexs=2, due30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_2_30",
+    "desc": "第2期 逾期≥31天 逾期金额",
+    "logic": "sum(if(indexs=2, ovd30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_0",
+    "desc": "第3期 已过应还日 应还笔数",
+    "logic": "sum(if(indexs=3, due0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_0",
+    "desc": "第3期 已过应还日 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_0",
+    "desc": "第3期 已过应还日 应还金额",
+    "logic": "sum(if(indexs=3, due0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_0",
+    "desc": "第3期 已过应还日 逾期金额",
+    "logic": "sum(if(indexs=3, ovd0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_1",
+    "desc": "第3期 逾期≥2天 应还笔数",
+    "logic": "sum(if(indexs=3, due1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_1",
+    "desc": "第3期 逾期≥2天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_1",
+    "desc": "第3期 逾期≥2天 应还金额",
+    "logic": "sum(if(indexs=3, due1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_1",
+    "desc": "第3期 逾期≥2天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_2",
+    "desc": "第3期 逾期≥3天 应还笔数",
+    "logic": "sum(if(indexs=3, due2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_2",
+    "desc": "第3期 逾期≥3天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_2",
+    "desc": "第3期 逾期≥3天 应还金额",
+    "logic": "sum(if(indexs=3, due2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_2",
+    "desc": "第3期 逾期≥3天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_3",
+    "desc": "第3期 逾期≥4天 应还笔数",
+    "logic": "sum(if(indexs=3, due3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_3",
+    "desc": "第3期 逾期≥4天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_3",
+    "desc": "第3期 逾期≥4天 应还金额",
+    "logic": "sum(if(indexs=3, due3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_3",
+    "desc": "第3期 逾期≥4天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_7",
+    "desc": "第3期 逾期≥8天 应还笔数",
+    "logic": "sum(if(indexs=3, due7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_7",
+    "desc": "第3期 逾期≥8天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_7",
+    "desc": "第3期 逾期≥8天 应还金额",
+    "logic": "sum(if(indexs=3, due7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_7",
+    "desc": "第3期 逾期≥8天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_15",
+    "desc": "第3期 逾期≥16天 应还笔数",
+    "logic": "sum(if(indexs=3, due15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_15",
+    "desc": "第3期 逾期≥16天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_15",
+    "desc": "第3期 逾期≥16天 应还金额",
+    "logic": "sum(if(indexs=3, due15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_15",
+    "desc": "第3期 逾期≥16天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 逾期金额"
+   },
+   {
+    "name": "should_cnt_3_30",
+    "desc": "第3期 逾期≥31天 应还笔数",
+    "logic": "sum(if(indexs=3, due30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_3_30",
+    "desc": "第3期 逾期≥31天 逾期笔数",
+    "logic": "sum(if(indexs=3, ovd30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 逾期笔数"
+   },
+   {
+    "name": "should_capital_3_30",
+    "desc": "第3期 逾期≥31天 应还金额",
+    "logic": "sum(if(indexs=3, due30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_3_30",
+    "desc": "第3期 逾期≥31天 逾期金额",
+    "logic": "sum(if(indexs=3, ovd30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_0",
+    "desc": "第4期 已过应还日 应还笔数",
+    "logic": "sum(if(indexs=4, due0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_0",
+    "desc": "第4期 已过应还日 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd0_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_0",
+    "desc": "第4期 已过应还日 应还金额",
+    "logic": "sum(if(indexs=4, due0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_0",
+    "desc": "第4期 已过应还日 逾期金额",
+    "logic": "sum(if(indexs=4, ovd0_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_1",
+    "desc": "第4期 逾期≥2天 应还笔数",
+    "logic": "sum(if(indexs=4, due1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_1",
+    "desc": "第4期 逾期≥2天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd1_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_1",
+    "desc": "第4期 逾期≥2天 应还金额",
+    "logic": "sum(if(indexs=4, due1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_1",
+    "desc": "第4期 逾期≥2天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd1_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_2",
+    "desc": "第4期 逾期≥3天 应还笔数",
+    "logic": "sum(if(indexs=4, due2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_2",
+    "desc": "第4期 逾期≥3天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd2_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_2",
+    "desc": "第4期 逾期≥3天 应还金额",
+    "logic": "sum(if(indexs=4, due2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_2",
+    "desc": "第4期 逾期≥3天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd2_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_3",
+    "desc": "第4期 逾期≥4天 应还笔数",
+    "logic": "sum(if(indexs=4, due3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_3",
+    "desc": "第4期 逾期≥4天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd3_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_3",
+    "desc": "第4期 逾期≥4天 应还金额",
+    "logic": "sum(if(indexs=4, due3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_3",
+    "desc": "第4期 逾期≥4天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd3_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_7",
+    "desc": "第4期 逾期≥8天 应还笔数",
+    "logic": "sum(if(indexs=4, due7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_7",
+    "desc": "第4期 逾期≥8天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd7_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_7",
+    "desc": "第4期 逾期≥8天 应还金额",
+    "logic": "sum(if(indexs=4, due7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_7",
+    "desc": "第4期 逾期≥8天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd7_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_15",
+    "desc": "第4期 逾期≥16天 应还笔数",
+    "logic": "sum(if(indexs=4, due15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_15",
+    "desc": "第4期 逾期≥16天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd15_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_15",
+    "desc": "第4期 逾期≥16天 应还金额",
+    "logic": "sum(if(indexs=4, due15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_15",
+    "desc": "第4期 逾期≥16天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd15_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 逾期金额"
+   },
+   {
+    "name": "should_cnt_4_30",
+    "desc": "第4期 逾期≥31天 应还笔数",
+    "logic": "sum(if(indexs=4, due30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 应还笔数"
+   },
+   {
+    "name": "overdue_cnt_4_30",
+    "desc": "第4期 逾期≥31天 逾期笔数",
+    "logic": "sum(if(indexs=4, ovd30_cnt, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 逾期笔数"
+   },
+   {
+    "name": "should_capital_4_30",
+    "desc": "第4期 逾期≥31天 应还金额",
+    "logic": "sum(if(indexs=4, due30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "overdue_amount_4_30",
+    "desc": "第4期 逾期≥31天 逾期金额",
+    "logic": "sum(if(indexs=4, ovd30_amount, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 逾期金额"
+   },
+   {
+    "name": "should_interest_1_0",
+    "desc": "第1期 已过应还日 应还利息",
+    "logic": "sum(if(indexs=1, due0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_0",
+    "desc": "第1期 已过应还日 逾期利息",
+    "logic": "sum(if(indexs=1, ovd0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_1",
+    "desc": "第1期 逾期≥2天 应还利息",
+    "logic": "sum(if(indexs=1, due1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_1",
+    "desc": "第1期 逾期≥2天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_2",
+    "desc": "第1期 逾期≥3天 应还利息",
+    "logic": "sum(if(indexs=1, due2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_2",
+    "desc": "第1期 逾期≥3天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_3",
+    "desc": "第1期 逾期≥4天 应还利息",
+    "logic": "sum(if(indexs=1, due3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_3",
+    "desc": "第1期 逾期≥4天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_7",
+    "desc": "第1期 逾期≥8天 应还利息",
+    "logic": "sum(if(indexs=1, due7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_7",
+    "desc": "第1期 逾期≥8天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_15",
+    "desc": "第1期 逾期≥16天 应还利息",
+    "logic": "sum(if(indexs=1, due15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_15",
+    "desc": "第1期 逾期≥16天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_1_30",
+    "desc": "第1期 逾期≥31天 应还利息",
+    "logic": "sum(if(indexs=1, due30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_1_30",
+    "desc": "第1期 逾期≥31天 逾期利息",
+    "logic": "sum(if(indexs=1, ovd30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_0",
+    "desc": "第2期 已过应还日 应还利息",
+    "logic": "sum(if(indexs=2, due0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_0",
+    "desc": "第2期 已过应还日 逾期利息",
+    "logic": "sum(if(indexs=2, ovd0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_1",
+    "desc": "第2期 逾期≥2天 应还利息",
+    "logic": "sum(if(indexs=2, due1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_1",
+    "desc": "第2期 逾期≥2天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_2",
+    "desc": "第2期 逾期≥3天 应还利息",
+    "logic": "sum(if(indexs=2, due2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_2",
+    "desc": "第2期 逾期≥3天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_3",
+    "desc": "第2期 逾期≥4天 应还利息",
+    "logic": "sum(if(indexs=2, due3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_3",
+    "desc": "第2期 逾期≥4天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_7",
+    "desc": "第2期 逾期≥8天 应还利息",
+    "logic": "sum(if(indexs=2, due7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_7",
+    "desc": "第2期 逾期≥8天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_15",
+    "desc": "第2期 逾期≥16天 应还利息",
+    "logic": "sum(if(indexs=2, due15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_15",
+    "desc": "第2期 逾期≥16天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_2_30",
+    "desc": "第2期 逾期≥31天 应还利息",
+    "logic": "sum(if(indexs=2, due30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_2_30",
+    "desc": "第2期 逾期≥31天 逾期利息",
+    "logic": "sum(if(indexs=2, ovd30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_0",
+    "desc": "第3期 已过应还日 应还利息",
+    "logic": "sum(if(indexs=3, due0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_0",
+    "desc": "第3期 已过应还日 逾期利息",
+    "logic": "sum(if(indexs=3, ovd0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_1",
+    "desc": "第3期 逾期≥2天 应还利息",
+    "logic": "sum(if(indexs=3, due1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_1",
+    "desc": "第3期 逾期≥2天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_2",
+    "desc": "第3期 逾期≥3天 应还利息",
+    "logic": "sum(if(indexs=3, due2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_2",
+    "desc": "第3期 逾期≥3天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_3",
+    "desc": "第3期 逾期≥4天 应还利息",
+    "logic": "sum(if(indexs=3, due3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_3",
+    "desc": "第3期 逾期≥4天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_7",
+    "desc": "第3期 逾期≥8天 应还利息",
+    "logic": "sum(if(indexs=3, due7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_7",
+    "desc": "第3期 逾期≥8天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_15",
+    "desc": "第3期 逾期≥16天 应还利息",
+    "logic": "sum(if(indexs=3, due15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_15",
+    "desc": "第3期 逾期≥16天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_3_30",
+    "desc": "第3期 逾期≥31天 应还利息",
+    "logic": "sum(if(indexs=3, due30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_3_30",
+    "desc": "第3期 逾期≥31天 逾期利息",
+    "logic": "sum(if(indexs=3, ovd30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_0",
+    "desc": "第4期 已过应还日 应还利息",
+    "logic": "sum(if(indexs=4, due0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_0",
+    "desc": "第4期 已过应还日 逾期利息",
+    "logic": "sum(if(indexs=4, ovd0_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_1",
+    "desc": "第4期 逾期≥2天 应还利息",
+    "logic": "sum(if(indexs=4, due1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_1",
+    "desc": "第4期 逾期≥2天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd1_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_2",
+    "desc": "第4期 逾期≥3天 应还利息",
+    "logic": "sum(if(indexs=4, due2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_2",
+    "desc": "第4期 逾期≥3天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd2_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_3",
+    "desc": "第4期 逾期≥4天 应还利息",
+    "logic": "sum(if(indexs=4, due3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_3",
+    "desc": "第4期 逾期≥4天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd3_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_7",
+    "desc": "第4期 逾期≥8天 应还利息",
+    "logic": "sum(if(indexs=4, due7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_7",
+    "desc": "第4期 逾期≥8天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd7_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_15",
+    "desc": "第4期 逾期≥16天 应还利息",
+    "logic": "sum(if(indexs=4, due15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_15",
+    "desc": "第4期 逾期≥16天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd15_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "should_interest_4_30",
+    "desc": "第4期 逾期≥31天 应还利息",
+    "logic": "sum(if(indexs=4, due30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "overdue_interest_4_30",
+    "desc": "第4期 逾期≥31天 逾期利息",
+    "logic": "sum(if(indexs=4, ovd30_interest, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "should_capit_1_0",
+    "desc": "第1期 已过应还日 应还本金",
+    "logic": "sum(if(indexs=1, due0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 应还本金"
+   },
+   {
+    "name": "should_capit_2_0",
+    "desc": "第2期 已过应还日 应还本金",
+    "logic": "sum(if(indexs=2, due0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 应还本金"
+   },
+   {
+    "name": "should_capit_3_0",
+    "desc": "第3期 已过应还日 应还本金",
+    "logic": "sum(if(indexs=3, due0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 应还本金"
+   },
+   {
+    "name": "should_capit_4_0",
+    "desc": "第4期 已过应还日 应还本金",
+    "logic": "sum(if(indexs=4, due0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 应还本金"
+   },
+   {
+    "name": "should_capit_1_1",
+    "desc": "第1期 逾期≥2天 应还本金",
+    "logic": "sum(if(indexs=1, due1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 应还本金"
+   },
+   {
+    "name": "should_capit_2_1",
+    "desc": "第2期 逾期≥2天 应还本金",
+    "logic": "sum(if(indexs=2, due1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 应还本金"
+   },
+   {
+    "name": "should_capit_3_1",
+    "desc": "第3期 逾期≥2天 应还本金",
+    "logic": "sum(if(indexs=3, due1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 应还本金"
+   },
+   {
+    "name": "should_capit_4_1",
+    "desc": "第4期 逾期≥2天 应还本金",
+    "logic": "sum(if(indexs=4, due1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 应还本金"
+   },
+   {
+    "name": "should_capit_1_2",
+    "desc": "第1期 逾期≥3天 应还本金",
+    "logic": "sum(if(indexs=1, due2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 应还本金"
+   },
+   {
+    "name": "should_capit_2_2",
+    "desc": "第2期 逾期≥3天 应还本金",
+    "logic": "sum(if(indexs=2, due2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 应还本金"
+   },
+   {
+    "name": "should_capit_3_2",
+    "desc": "第3期 逾期≥3天 应还本金",
+    "logic": "sum(if(indexs=3, due2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 应还本金"
+   },
+   {
+    "name": "should_capit_4_2",
+    "desc": "第4期 逾期≥3天 应还本金",
+    "logic": "sum(if(indexs=4, due2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 应还本金"
+   },
+   {
+    "name": "should_capit_1_3",
+    "desc": "第1期 逾期≥4天 应还本金",
+    "logic": "sum(if(indexs=1, due3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 应还本金"
+   },
+   {
+    "name": "should_capit_2_3",
+    "desc": "第2期 逾期≥4天 应还本金",
+    "logic": "sum(if(indexs=2, due3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 应还本金"
+   },
+   {
+    "name": "should_capit_3_3",
+    "desc": "第3期 逾期≥4天 应还本金",
+    "logic": "sum(if(indexs=3, due3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 应还本金"
+   },
+   {
+    "name": "should_capit_4_3",
+    "desc": "第4期 逾期≥4天 应还本金",
+    "logic": "sum(if(indexs=4, due3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 应还本金"
+   },
+   {
+    "name": "should_capit_1_7",
+    "desc": "第1期 逾期≥8天 应还本金",
+    "logic": "sum(if(indexs=1, due7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 应还本金"
+   },
+   {
+    "name": "should_capit_2_7",
+    "desc": "第2期 逾期≥8天 应还本金",
+    "logic": "sum(if(indexs=2, due7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 应还本金"
+   },
+   {
+    "name": "should_capit_3_7",
+    "desc": "第3期 逾期≥8天 应还本金",
+    "logic": "sum(if(indexs=3, due7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 应还本金"
+   },
+   {
+    "name": "should_capit_4_7",
+    "desc": "第4期 逾期≥8天 应还本金",
+    "logic": "sum(if(indexs=4, due7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 应还本金"
+   },
+   {
+    "name": "should_capit_1_15",
+    "desc": "第1期 逾期≥16天 应还本金",
+    "logic": "sum(if(indexs=1, due15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 应还本金"
+   },
+   {
+    "name": "should_capit_2_15",
+    "desc": "第2期 逾期≥16天 应还本金",
+    "logic": "sum(if(indexs=2, due15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 应还本金"
+   },
+   {
+    "name": "should_capit_3_15",
+    "desc": "第3期 逾期≥16天 应还本金",
+    "logic": "sum(if(indexs=3, due15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 应还本金"
+   },
+   {
+    "name": "should_capit_4_15",
+    "desc": "第4期 逾期≥16天 应还本金",
+    "logic": "sum(if(indexs=4, due15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 应还本金"
+   },
+   {
+    "name": "should_capit_1_30",
+    "desc": "第1期 逾期≥31天 应还本金",
+    "logic": "sum(if(indexs=1, due30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 应还本金"
+   },
+   {
+    "name": "should_capit_2_30",
+    "desc": "第2期 逾期≥31天 应还本金",
+    "logic": "sum(if(indexs=2, due30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 应还本金"
+   },
+   {
+    "name": "should_capit_3_30",
+    "desc": "第3期 逾期≥31天 应还本金",
+    "logic": "sum(if(indexs=3, due30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 应还本金"
+   },
+   {
+    "name": "should_capit_4_30",
+    "desc": "第4期 逾期≥31天 应还本金",
+    "logic": "sum(if(indexs=4, due30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 应还本金"
+   },
+   {
+    "name": "overdue_capit_1_0",
+    "desc": "第1期 已过应还日 逾期本金",
+    "logic": "sum(if(indexs=1, ovd0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_0",
+    "desc": "第2期 已过应还日 逾期本金",
+    "logic": "sum(if(indexs=2, ovd0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_0",
+    "desc": "第3期 已过应还日 逾期本金",
+    "logic": "sum(if(indexs=3, ovd0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_0",
+    "desc": "第4期 已过应还日 逾期本金",
+    "logic": "sum(if(indexs=4, ovd0_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_1",
+    "desc": "第1期 逾期≥2天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_1",
+    "desc": "第2期 逾期≥2天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_1",
+    "desc": "第3期 逾期≥2天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_1",
+    "desc": "第4期 逾期≥2天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd1_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_2",
+    "desc": "第1期 逾期≥3天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_2",
+    "desc": "第2期 逾期≥3天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_2",
+    "desc": "第3期 逾期≥3天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_2",
+    "desc": "第4期 逾期≥3天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd2_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_3",
+    "desc": "第1期 逾期≥4天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_3",
+    "desc": "第2期 逾期≥4天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_3",
+    "desc": "第3期 逾期≥4天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_3",
+    "desc": "第4期 逾期≥4天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd3_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_7",
+    "desc": "第1期 逾期≥8天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_7",
+    "desc": "第2期 逾期≥8天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_7",
+    "desc": "第3期 逾期≥8天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_7",
+    "desc": "第4期 逾期≥8天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd7_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_15",
+    "desc": "第1期 逾期≥16天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_15",
+    "desc": "第2期 逾期≥16天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_15",
+    "desc": "第3期 逾期≥16天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_15",
+    "desc": "第4期 逾期≥16天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd15_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_1_30",
+    "desc": "第1期 逾期≥31天 逾期本金",
+    "logic": "sum(if(indexs=1, ovd30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_2_30",
+    "desc": "第2期 逾期≥31天 逾期本金",
+    "logic": "sum(if(indexs=2, ovd30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_3_30",
+    "desc": "第3期 逾期≥31天 逾期本金",
+    "logic": "sum(if(indexs=3, ovd30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 逾期本金"
+   },
+   {
+    "name": "overdue_capit_4_30",
+    "desc": "第4期 逾期≥31天 逾期本金",
+    "logic": "sum(if(indexs=4, ovd30_capit, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 逾期本金"
+   },
+   {
+    "name": "coupon_substract_1_0",
+    "desc": "第1期 已过应还日 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t0_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_0",
+    "desc": "第2期 已过应还日 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t0_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_0",
+    "desc": "第3期 已过应还日 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t0_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_0",
+    "desc": "第4期 已过应还日 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t0_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_1",
+    "desc": "第1期 逾期≥2天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t1_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_1",
+    "desc": "第2期 逾期≥2天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t1_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_1",
+    "desc": "第3期 逾期≥2天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t1_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_1",
+    "desc": "第4期 逾期≥2天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t1_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_2",
+    "desc": "第1期 逾期≥3天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t2_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_2",
+    "desc": "第2期 逾期≥3天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t2_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_2",
+    "desc": "第3期 逾期≥3天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t2_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_2",
+    "desc": "第4期 逾期≥3天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t2_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_3",
+    "desc": "第1期 逾期≥4天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t3_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_3",
+    "desc": "第2期 逾期≥4天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t3_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_3",
+    "desc": "第3期 逾期≥4天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t3_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_3",
+    "desc": "第4期 逾期≥4天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t3_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_7",
+    "desc": "第1期 逾期≥8天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t7_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_7",
+    "desc": "第2期 逾期≥8天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t7_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_7",
+    "desc": "第3期 逾期≥8天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t7_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_7",
+    "desc": "第4期 逾期≥8天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t7_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_15",
+    "desc": "第1期 逾期≥16天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t15_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_15",
+    "desc": "第2期 逾期≥16天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t15_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_15",
+    "desc": "第3期 逾期≥16天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t15_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_15",
+    "desc": "第4期 逾期≥16天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t15_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_1_30",
+    "desc": "第1期 逾期≥31天 减免及券成本",
+    "logic": "sum(if(indexs=1, repay_t30_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_2_30",
+    "desc": "第2期 逾期≥31天 减免及券成本",
+    "logic": "sum(if(indexs=2, repay_t30_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_3_30",
+    "desc": "第3期 逾期≥31天 减免及券成本",
+    "logic": "sum(if(indexs=3, repay_t30_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "coupon_substract_4_30",
+    "desc": "第4期 逾期≥31天 减免及券成本",
+    "logic": "sum(if(indexs=4, repay_t30_coupon_substract_all, 0))",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all31）",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 减免及券成本"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_vintage_all5",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "id1",
+    "desc": "进件id",
+    "logic": "直取 mx.wxs_vintage_all4.id",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日"
+   },
+   {
+    "name": "is_now_overdue_1",
+    "desc": "第1期 当前是否逾期(未结清)",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_now",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 当前是否逾期(未结清)"
+   },
+   {
+    "name": "tpre3_overdue_amount_1",
+    "desc": "第1期 应还日前3天起窗口 逾期金额",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_amount_1_pre3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前3天 逾期金额"
+   },
+   {
+    "name": "tpre2_overdue_amount_1",
+    "desc": "第1期 应还日前2天起窗口 逾期金额",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_amount_1_pre2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前2天 逾期金额"
+   },
+   {
+    "name": "tpre1_overdue_amount_1",
+    "desc": "第1期 应还日当天起窗口 逾期金额",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_amount_1_pre1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期前1天 逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_1",
+    "desc": "第1期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 逾期金额"
+   },
+   {
+    "name": "t1_overdue_amount_1",
+    "desc": "第1期 逾期≥2天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 逾期金额"
+   },
+   {
+    "name": "t2_overdue_amount_1",
+    "desc": "第1期 逾期≥3天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_1",
+    "desc": "第1期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 逾期金额"
+   },
+   {
+    "name": "t7_overdue_amount_1",
+    "desc": "第1期 逾期≥8天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 逾期金额"
+   },
+   {
+    "name": "t15_overdue_amount_1",
+    "desc": "第1期 逾期≥16天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 逾期金额"
+   },
+   {
+    "name": "t30_overdue_amount_1",
+    "desc": "第1期 逾期≥31天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_2",
+    "desc": "第2期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 逾期金额"
+   },
+   {
+    "name": "t1_overdue_amount_2",
+    "desc": "第2期 逾期≥2天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 逾期金额"
+   },
+   {
+    "name": "t2_overdue_amount_2",
+    "desc": "第2期 逾期≥3天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_2",
+    "desc": "第2期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 逾期金额"
+   },
+   {
+    "name": "t7_overdue_amount_2",
+    "desc": "第2期 逾期≥8天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 逾期金额"
+   },
+   {
+    "name": "t15_overdue_amount_2",
+    "desc": "第2期 逾期≥16天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 逾期金额"
+   },
+   {
+    "name": "t30_overdue_amount_2",
+    "desc": "第2期 逾期≥31天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_3",
+    "desc": "第3期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 逾期金额"
+   },
+   {
+    "name": "t1_overdue_amount_3",
+    "desc": "第3期 逾期≥2天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 逾期金额"
+   },
+   {
+    "name": "t2_overdue_amount_3",
+    "desc": "第3期 逾期≥3天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_3",
+    "desc": "第3期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 逾期金额"
+   },
+   {
+    "name": "t7_overdue_amount_3",
+    "desc": "第3期 逾期≥8天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 逾期金额"
+   },
+   {
+    "name": "t15_overdue_amount_3",
+    "desc": "第3期 逾期≥16天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 逾期金额"
+   },
+   {
+    "name": "t30_overdue_amount_3",
+    "desc": "第3期 逾期≥31天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 逾期金额"
+   },
+   {
+    "name": "t0_overdue_amount_4",
+    "desc": "第4期 已过应还日 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 逾期金额"
+   },
+   {
+    "name": "t1_overdue_amount_4",
+    "desc": "第4期 逾期≥2天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 逾期金额"
+   },
+   {
+    "name": "t2_overdue_amount_4",
+    "desc": "第4期 逾期≥3天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_4",
+    "desc": "第4期 逾期≥4天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 逾期金额"
+   },
+   {
+    "name": "t7_overdue_amount_4",
+    "desc": "第4期 逾期≥8天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 逾期金额"
+   },
+   {
+    "name": "t15_overdue_amount_4",
+    "desc": "第4期 逾期≥16天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 逾期金额"
+   },
+   {
+    "name": "t30_overdue_amount_4",
+    "desc": "第4期 逾期≥31天 逾期金额",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_amount_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 逾期金额"
+   },
+   {
+    "name": "is_tpre3_overdue_1",
+    "desc": "第1期 应还日前3天起窗口 是否逾期标记",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_cnt_1_pre3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前3期窗口 是否逾期标记"
+   },
+   {
+    "name": "is_tpre2_overdue_1",
+    "desc": "第1期 应还日前2天起窗口 是否逾期标记",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_cnt_1_pre2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前2期窗口 是否逾期标记"
+   },
+   {
+    "name": "is_tpre1_overdue_1",
+    "desc": "第1期 应还日当天起窗口 是否逾期标记",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.overdue_cnt_1_pre1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前1期窗口 是否逾期标记"
+   },
+   {
+    "name": "is_t0_overdue_1",
+    "desc": "第1期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 是否逾期标记"
+   },
+   {
+    "name": "is_t1_overdue_1",
+    "desc": "第1期 逾期≥2天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t2_overdue_1",
+    "desc": "第1期 逾期≥3天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t3_overdue_1",
+    "desc": "第1期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 是否逾期标记"
+   },
+   {
+    "name": "is_t7_overdue_1",
+    "desc": "第1期 逾期≥8天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 是否逾期标记"
+   },
+   {
+    "name": "is_t15_overdue_1",
+    "desc": "第1期 逾期≥16天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t30_overdue_1",
+    "desc": "第1期 逾期≥31天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 是否逾期标记"
+   },
+   {
+    "name": "is_t0_overdue_2",
+    "desc": "第2期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 是否逾期标记"
+   },
+   {
+    "name": "is_t1_overdue_2",
+    "desc": "第2期 逾期≥2天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t2_overdue_2",
+    "desc": "第2期 逾期≥3天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t3_overdue_2",
+    "desc": "第2期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 是否逾期标记"
+   },
+   {
+    "name": "is_t7_overdue_2",
+    "desc": "第2期 逾期≥8天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 是否逾期标记"
+   },
+   {
+    "name": "is_t15_overdue_2",
+    "desc": "第2期 逾期≥16天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t30_overdue_2",
+    "desc": "第2期 逾期≥31天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 是否逾期标记"
+   },
+   {
+    "name": "is_t0_overdue_3",
+    "desc": "第3期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t1_overdue_3",
+    "desc": "第3期 逾期≥2天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t2_overdue_3",
+    "desc": "第3期 逾期≥3天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t3_overdue_3",
+    "desc": "第3期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t7_overdue_3",
+    "desc": "第3期 逾期≥8天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t15_overdue_3",
+    "desc": "第3期 逾期≥16天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t30_overdue_3",
+    "desc": "第3期 逾期≥31天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t0_overdue_4",
+    "desc": "第4期 已过应还日 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t1_overdue_4",
+    "desc": "第4期 逾期≥2天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t2_overdue_4",
+    "desc": "第4期 逾期≥3天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t3_overdue_4",
+    "desc": "第4期 逾期≥4天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t7_overdue_4",
+    "desc": "第4期 逾期≥8天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t15_overdue_4",
+    "desc": "第4期 逾期≥16天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 是否逾期标记"
+   },
+   {
+    "name": "is_t30_overdue_4",
+    "desc": "第4期 逾期≥31天 是否逾期标记",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_cnt_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 是否逾期标记"
+   },
+   {
+    "name": "t0_overdue_interest_1",
+    "desc": "第1期 已过应还日 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "t1_overdue_interest_1",
+    "desc": "第1期 逾期≥2天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "t2_overdue_interest_1",
+    "desc": "第1期 逾期≥3天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "t3_overdue_interest_1",
+    "desc": "第1期 逾期≥4天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "t7_overdue_interest_1",
+    "desc": "第1期 逾期≥8天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "t15_overdue_interest_1",
+    "desc": "第1期 逾期≥16天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "t30_overdue_interest_1",
+    "desc": "第1期 逾期≥31天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "t0_overdue_interest_2",
+    "desc": "第2期 已过应还日 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "t1_overdue_interest_2",
+    "desc": "第2期 逾期≥2天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "t2_overdue_interest_2",
+    "desc": "第2期 逾期≥3天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "t3_overdue_interest_2",
+    "desc": "第2期 逾期≥4天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "t7_overdue_interest_2",
+    "desc": "第2期 逾期≥8天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "t15_overdue_interest_2",
+    "desc": "第2期 逾期≥16天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "t30_overdue_interest_2",
+    "desc": "第2期 逾期≥31天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "t0_overdue_interest_3",
+    "desc": "第3期 已过应还日 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "t1_overdue_interest_3",
+    "desc": "第3期 逾期≥2天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "t2_overdue_interest_3",
+    "desc": "第3期 逾期≥3天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "t3_overdue_interest_3",
+    "desc": "第3期 逾期≥4天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "t7_overdue_interest_3",
+    "desc": "第3期 逾期≥8天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "t15_overdue_interest_3",
+    "desc": "第3期 逾期≥16天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "t30_overdue_interest_3",
+    "desc": "第3期 逾期≥31天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "t0_overdue_interest_4",
+    "desc": "第4期 已过应还日 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 逾期利息"
+   },
+   {
+    "name": "t1_overdue_interest_4",
+    "desc": "第4期 逾期≥2天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 逾期利息"
+   },
+   {
+    "name": "t2_overdue_interest_4",
+    "desc": "第4期 逾期≥3天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 逾期利息"
+   },
+   {
+    "name": "t3_overdue_interest_4",
+    "desc": "第4期 逾期≥4天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 逾期利息"
+   },
+   {
+    "name": "t7_overdue_interest_4",
+    "desc": "第4期 逾期≥8天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 逾期利息"
+   },
+   {
+    "name": "t15_overdue_interest_4",
+    "desc": "第4期 逾期≥16天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 逾期利息"
+   },
+   {
+    "name": "t30_overdue_interest_4",
+    "desc": "第4期 逾期≥31天 逾期利息",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_interest_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 逾期利息"
+   },
+   {
+    "name": "tpre3_should_amt_1",
+    "desc": "第1期 应还日前3天起窗口 应还金额",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_capital_1_pre3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前3期窗口 应还金额"
+   },
+   {
+    "name": "tpre2_should_amt_1",
+    "desc": "第1期 应还日前2天起窗口 应还金额",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_capital_1_pre2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前2期窗口 应还金额"
+   },
+   {
+    "name": "tpre1_should_amt_1",
+    "desc": "第1期 应还日当天起窗口 应还金额",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_capital_1_pre1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前1期窗口 应还金额"
+   },
+   {
+    "name": "t0_should_amt_1",
+    "desc": "第1期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 应还金额"
+   },
+   {
+    "name": "t1_should_amt_1",
+    "desc": "第1期 逾期≥2天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "t2_should_amt_1",
+    "desc": "第1期 逾期≥3天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "t3_should_amt_1",
+    "desc": "第1期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 应还金额"
+   },
+   {
+    "name": "t7_should_amt_1",
+    "desc": "第1期 逾期≥8天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 应还金额"
+   },
+   {
+    "name": "t15_should_amt_1",
+    "desc": "第1期 逾期≥16天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "t30_should_amt_1",
+    "desc": "第1期 逾期≥31天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 应还金额"
+   },
+   {
+    "name": "t0_should_amt_2",
+    "desc": "第2期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 应还金额"
+   },
+   {
+    "name": "t1_should_amt_2",
+    "desc": "第2期 逾期≥2天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "t2_should_amt_2",
+    "desc": "第2期 逾期≥3天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "t3_should_amt_2",
+    "desc": "第2期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 应还金额"
+   },
+   {
+    "name": "t7_should_amt_2",
+    "desc": "第2期 逾期≥8天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 应还金额"
+   },
+   {
+    "name": "t15_should_amt_2",
+    "desc": "第2期 逾期≥16天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "t30_should_amt_2",
+    "desc": "第2期 逾期≥31天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 应还金额"
+   },
+   {
+    "name": "t0_should_amt_3",
+    "desc": "第3期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "t1_should_amt_3",
+    "desc": "第3期 逾期≥2天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "t2_should_amt_3",
+    "desc": "第3期 逾期≥3天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "t3_should_amt_3",
+    "desc": "第3期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "t7_should_amt_3",
+    "desc": "第3期 逾期≥8天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "t15_should_amt_3",
+    "desc": "第3期 逾期≥16天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "t30_should_amt_3",
+    "desc": "第3期 逾期≥31天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "t0_should_amt_4",
+    "desc": "第4期 已过应还日 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 应还金额"
+   },
+   {
+    "name": "t1_should_amt_4",
+    "desc": "第4期 逾期≥2天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 应还金额"
+   },
+   {
+    "name": "t2_should_amt_4",
+    "desc": "第4期 逾期≥3天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 应还金额"
+   },
+   {
+    "name": "t3_should_amt_4",
+    "desc": "第4期 逾期≥4天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 应还金额"
+   },
+   {
+    "name": "t7_should_amt_4",
+    "desc": "第4期 逾期≥8天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 应还金额"
+   },
+   {
+    "name": "t15_should_amt_4",
+    "desc": "第4期 逾期≥16天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 应还金额"
+   },
+   {
+    "name": "t30_should_amt_4",
+    "desc": "第4期 逾期≥31天 应还金额",
+    "logic": "直取 mx.wxs_vintage_all4.should_capital_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 应还金额"
+   },
+   {
+    "name": "is_tpre3_window_1",
+    "desc": "第1期 应还日前3天起窗口 窗口标记",
+    "logic": "应还日前3天起窗口：从应还日前3天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_cnt_1_pre3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前3期窗口 窗口标记"
+   },
+   {
+    "name": "is_tpre2_window_1",
+    "desc": "第1期 应还日前2天起窗口 窗口标记",
+    "logic": "应还日前2天起窗口：从应还日前2天起进入、跨过应还日、延续到逾期之后的累计窗口，窗口内既含未到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_cnt_1_pre2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前2期窗口 窗口标记"
+   },
+   {
+    "name": "is_tpre1_window_1",
+    "desc": "第1期 应还日当天起窗口 窗口标记",
+    "logic": "应还日当天起窗口：应还日当天起进入（已到期）、延续到逾期之后的累计窗口，窗口内既含到期应还、也含已逾期未结清；直取 mx.wxs_vintage_all4.should_cnt_1_pre1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 应还日前1期窗口 窗口标记"
+   },
+   {
+    "name": "is_t0_window_1",
+    "desc": "第1期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 窗口标记"
+   },
+   {
+    "name": "is_t1_window_1",
+    "desc": "第1期 逾期≥2天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 窗口标记"
+   },
+   {
+    "name": "is_t2_window_1",
+    "desc": "第1期 逾期≥3天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 窗口标记"
+   },
+   {
+    "name": "is_t3_window_1",
+    "desc": "第1期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 窗口标记"
+   },
+   {
+    "name": "is_t7_window_1",
+    "desc": "第1期 逾期≥8天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 窗口标记"
+   },
+   {
+    "name": "is_t15_window_1",
+    "desc": "第1期 逾期≥16天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 窗口标记"
+   },
+   {
+    "name": "is_t30_window_1",
+    "desc": "第1期 逾期≥31天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 窗口标记"
+   },
+   {
+    "name": "is_t0_window_2",
+    "desc": "第2期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 窗口标记"
+   },
+   {
+    "name": "is_t1_window_2",
+    "desc": "第2期 逾期≥2天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 窗口标记"
+   },
+   {
+    "name": "is_t2_window_2",
+    "desc": "第2期 逾期≥3天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 窗口标记"
+   },
+   {
+    "name": "is_t3_window_2",
+    "desc": "第2期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 窗口标记"
+   },
+   {
+    "name": "is_t7_window_2",
+    "desc": "第2期 逾期≥8天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 窗口标记"
+   },
+   {
+    "name": "is_t15_window_2",
+    "desc": "第2期 逾期≥16天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 窗口标记"
+   },
+   {
+    "name": "is_t30_window_2",
+    "desc": "第2期 逾期≥31天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 窗口标记"
+   },
+   {
+    "name": "is_t0_window_3",
+    "desc": "第3期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 窗口标记"
+   },
+   {
+    "name": "is_t1_window_3",
+    "desc": "第3期 逾期≥2天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 窗口标记"
+   },
+   {
+    "name": "is_t2_window_3",
+    "desc": "第3期 逾期≥3天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 窗口标记"
+   },
+   {
+    "name": "is_t3_window_3",
+    "desc": "第3期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 窗口标记"
+   },
+   {
+    "name": "is_t7_window_3",
+    "desc": "第3期 逾期≥8天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 窗口标记"
+   },
+   {
+    "name": "is_t15_window_3",
+    "desc": "第3期 逾期≥16天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 窗口标记"
+   },
+   {
+    "name": "is_t30_window_3",
+    "desc": "第3期 逾期≥31天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 窗口标记"
+   },
+   {
+    "name": "is_t0_window_4",
+    "desc": "第4期 已过应还日 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 窗口标记"
+   },
+   {
+    "name": "is_t1_window_4",
+    "desc": "第4期 逾期≥2天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 窗口标记"
+   },
+   {
+    "name": "is_t2_window_4",
+    "desc": "第4期 逾期≥3天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 窗口标记"
+   },
+   {
+    "name": "is_t3_window_4",
+    "desc": "第4期 逾期≥4天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 窗口标记"
+   },
+   {
+    "name": "is_t7_window_4",
+    "desc": "第4期 逾期≥8天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 窗口标记"
+   },
+   {
+    "name": "is_t15_window_4",
+    "desc": "第4期 逾期≥16天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 窗口标记"
+   },
+   {
+    "name": "is_t30_window_4",
+    "desc": "第4期 逾期≥31天 窗口标记",
+    "logic": "直取 mx.wxs_vintage_all4.should_cnt_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 窗口标记"
+   },
+   {
+    "name": "t0_should_interest_1",
+    "desc": "第1期 已过应还日 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "t1_should_interest_1",
+    "desc": "第1期 逾期≥2天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "t2_should_interest_1",
+    "desc": "第1期 逾期≥3天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "t3_should_interest_1",
+    "desc": "第1期 逾期≥4天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "t7_should_interest_1",
+    "desc": "第1期 逾期≥8天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "t15_should_interest_1",
+    "desc": "第1期 逾期≥16天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "t30_should_interest_1",
+    "desc": "第1期 逾期≥31天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "t0_should_interest_2",
+    "desc": "第2期 已过应还日 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "t1_should_interest_2",
+    "desc": "第2期 逾期≥2天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "t2_should_interest_2",
+    "desc": "第2期 逾期≥3天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "t3_should_interest_2",
+    "desc": "第2期 逾期≥4天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "t7_should_interest_2",
+    "desc": "第2期 逾期≥8天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "t15_should_interest_2",
+    "desc": "第2期 逾期≥16天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "t30_should_interest_2",
+    "desc": "第2期 逾期≥31天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "t0_should_interest_3",
+    "desc": "第3期 已过应还日 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "t1_should_interest_3",
+    "desc": "第3期 逾期≥2天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "t2_should_interest_3",
+    "desc": "第3期 逾期≥3天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "t3_should_interest_3",
+    "desc": "第3期 逾期≥4天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "t7_should_interest_3",
+    "desc": "第3期 逾期≥8天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "t15_should_interest_3",
+    "desc": "第3期 逾期≥16天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "t30_should_interest_3",
+    "desc": "第3期 逾期≥31天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "t0_should_interest_4",
+    "desc": "第4期 已过应还日 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 应还利息"
+   },
+   {
+    "name": "t1_should_interest_4",
+    "desc": "第4期 逾期≥2天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 应还利息"
+   },
+   {
+    "name": "t2_should_interest_4",
+    "desc": "第4期 逾期≥3天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 应还利息"
+   },
+   {
+    "name": "t3_should_interest_4",
+    "desc": "第4期 逾期≥4天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 应还利息"
+   },
+   {
+    "name": "t7_should_interest_4",
+    "desc": "第4期 逾期≥8天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 应还利息"
+   },
+   {
+    "name": "t15_should_interest_4",
+    "desc": "第4期 逾期≥16天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 应还利息"
+   },
+   {
+    "name": "t30_should_interest_4",
+    "desc": "第4期 逾期≥31天 应还利息",
+    "logic": "直取 mx.wxs_vintage_all4.should_interest_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 应还利息"
+   },
+   {
+    "name": "is_t0_overdue",
+    "desc": "进件级是否已过应还日未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_0,overdue_cnt_2_0,overdue_cnt_3_0,overdue_cnt_4_0)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T0逾期(取各期次最大)"
+   },
+   {
+    "name": "is_t1_overdue",
+    "desc": "进件级是否逾期≥2天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_1,overdue_cnt_2_1,overdue_cnt_3_1,overdue_cnt_4_1)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T1逾期(取各贷次最大)"
+   },
+   {
+    "name": "is_t2_overdue",
+    "desc": "进件级是否逾期≥3天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_2,overdue_cnt_2_2,overdue_cnt_3_2,overdue_cnt_4_2)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T2逾期(取各贷次最大)"
+   },
+   {
+    "name": "is_t3_overdue",
+    "desc": "进件级是否逾期≥4天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_3,overdue_cnt_2_3,overdue_cnt_3_3,overdue_cnt_4_3)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T3逾期(取各期次最大)"
+   },
+   {
+    "name": "is_t7_overdue",
+    "desc": "进件级是否逾期≥8天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_7,overdue_cnt_2_7,overdue_cnt_3_7,overdue_cnt_4_7)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T7逾期(取各期次最大)"
+   },
+   {
+    "name": "is_t15_overdue",
+    "desc": "进件级是否逾期≥16天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_15,overdue_cnt_2_15,overdue_cnt_3_15,overdue_cnt_4_15)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T15逾期(取各贷次最大)"
+   },
+   {
+    "name": "is_t30_overdue",
+    "desc": "进件级是否逾期≥31天未结清(取各期次最大)",
+    "logic": "GREATEST(overdue_cnt_1_30,overdue_cnt_2_30,overdue_cnt_3_30,overdue_cnt_4_30)，来自子查询b(基于mx.wxs_vintage_all4)",
+    "source_table": "派生计算（基于 mx.wxs_vintage_all4）",
+    "update_freq": "每日",
+    "desc_orig": "进件级是否T30逾期(取各期次最大)"
+   },
+   {
+    "name": "t0_should_capit_1",
+    "desc": "第1期 已过应还日 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 应还本金"
+   },
+   {
+    "name": "t0_should_capit_2",
+    "desc": "第2期 已过应还日 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 应还本金"
+   },
+   {
+    "name": "t0_should_capit_3",
+    "desc": "第3期 已过应还日 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 应还本金"
+   },
+   {
+    "name": "t0_should_capit_4",
+    "desc": "第4期 已过应还日 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 应还本金"
+   },
+   {
+    "name": "t1_should_capit_1",
+    "desc": "第1期 逾期≥2天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 应还本金"
+   },
+   {
+    "name": "t1_should_capit_2",
+    "desc": "第2期 逾期≥2天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 应还本金"
+   },
+   {
+    "name": "t1_should_capit_3",
+    "desc": "第3期 逾期≥2天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 应还本金"
+   },
+   {
+    "name": "t1_should_capit_4",
+    "desc": "第4期 逾期≥2天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 应还本金"
+   },
+   {
+    "name": "t2_should_capit_1",
+    "desc": "第1期 逾期≥3天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 应还本金"
+   },
+   {
+    "name": "t2_should_capit_2",
+    "desc": "第2期 逾期≥3天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 应还本金"
+   },
+   {
+    "name": "t2_should_capit_3",
+    "desc": "第3期 逾期≥3天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 应还本金"
+   },
+   {
+    "name": "t2_should_capit_4",
+    "desc": "第4期 逾期≥3天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 应还本金"
+   },
+   {
+    "name": "t3_should_capit_1",
+    "desc": "第1期 逾期≥4天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 应还本金"
+   },
+   {
+    "name": "t3_should_capit_2",
+    "desc": "第2期 逾期≥4天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 应还本金"
+   },
+   {
+    "name": "t3_should_capit_3",
+    "desc": "第3期 逾期≥4天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 应还本金"
+   },
+   {
+    "name": "t3_should_capit_4",
+    "desc": "第4期 逾期≥4天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 应还本金"
+   },
+   {
+    "name": "t7_should_capit_1",
+    "desc": "第1期 逾期≥8天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 应还本金"
+   },
+   {
+    "name": "t7_should_capit_2",
+    "desc": "第2期 逾期≥8天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 应还本金"
+   },
+   {
+    "name": "t7_should_capit_3",
+    "desc": "第3期 逾期≥8天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 应还本金"
+   },
+   {
+    "name": "t7_should_capit_4",
+    "desc": "第4期 逾期≥8天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 应还本金"
+   },
+   {
+    "name": "t15_should_capit_1",
+    "desc": "第1期 逾期≥16天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 应还本金"
+   },
+   {
+    "name": "t15_should_capit_2",
+    "desc": "第2期 逾期≥16天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 应还本金"
+   },
+   {
+    "name": "t15_should_capit_3",
+    "desc": "第3期 逾期≥16天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 应还本金"
+   },
+   {
+    "name": "t15_should_capit_4",
+    "desc": "第4期 逾期≥16天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 应还本金"
+   },
+   {
+    "name": "t30_should_capit_1",
+    "desc": "第1期 逾期≥31天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 应还本金"
+   },
+   {
+    "name": "t30_should_capit_2",
+    "desc": "第2期 逾期≥31天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 应还本金"
+   },
+   {
+    "name": "t30_should_capit_3",
+    "desc": "第3期 逾期≥31天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 应还本金"
+   },
+   {
+    "name": "t30_should_capit_4",
+    "desc": "第4期 逾期≥31天 应还本金",
+    "logic": "直取 mx.wxs_vintage_all4.should_capit_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 应还本金"
+   },
+   {
+    "name": "t0_overdue_capit_1",
+    "desc": "第1期 已过应还日 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 到期当天 逾期本金"
+   },
+   {
+    "name": "t0_overdue_capit_2",
+    "desc": "第2期 已过应还日 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 到期当天 逾期本金"
+   },
+   {
+    "name": "t0_overdue_capit_3",
+    "desc": "第3期 已过应还日 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 到期当天 逾期本金"
+   },
+   {
+    "name": "t0_overdue_capit_4",
+    "desc": "第4期 已过应还日 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 到期当天 逾期本金"
+   },
+   {
+    "name": "t1_overdue_capit_1",
+    "desc": "第1期 逾期≥2天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期1天 逾期本金"
+   },
+   {
+    "name": "t1_overdue_capit_2",
+    "desc": "第2期 逾期≥2天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期1天 逾期本金"
+   },
+   {
+    "name": "t1_overdue_capit_3",
+    "desc": "第3期 逾期≥2天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期1天 逾期本金"
+   },
+   {
+    "name": "t1_overdue_capit_4",
+    "desc": "第4期 逾期≥2天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期1天 逾期本金"
+   },
+   {
+    "name": "t2_overdue_capit_1",
+    "desc": "第1期 逾期≥3天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期2天 逾期本金"
+   },
+   {
+    "name": "t2_overdue_capit_2",
+    "desc": "第2期 逾期≥3天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期2天 逾期本金"
+   },
+   {
+    "name": "t2_overdue_capit_3",
+    "desc": "第3期 逾期≥3天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期2天 逾期本金"
+   },
+   {
+    "name": "t2_overdue_capit_4",
+    "desc": "第4期 逾期≥3天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期2天 逾期本金"
+   },
+   {
+    "name": "t3_overdue_capit_1",
+    "desc": "第1期 逾期≥4天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期3天 逾期本金"
+   },
+   {
+    "name": "t3_overdue_capit_2",
+    "desc": "第2期 逾期≥4天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期3天 逾期本金"
+   },
+   {
+    "name": "t3_overdue_capit_3",
+    "desc": "第3期 逾期≥4天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期3天 逾期本金"
+   },
+   {
+    "name": "t3_overdue_capit_4",
+    "desc": "第4期 逾期≥4天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期3天 逾期本金"
+   },
+   {
+    "name": "t7_overdue_capit_1",
+    "desc": "第1期 逾期≥8天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期7天 逾期本金"
+   },
+   {
+    "name": "t7_overdue_capit_2",
+    "desc": "第2期 逾期≥8天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期7天 逾期本金"
+   },
+   {
+    "name": "t7_overdue_capit_3",
+    "desc": "第3期 逾期≥8天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期7天 逾期本金"
+   },
+   {
+    "name": "t7_overdue_capit_4",
+    "desc": "第4期 逾期≥8天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期7天 逾期本金"
+   },
+   {
+    "name": "t15_overdue_capit_1",
+    "desc": "第1期 逾期≥16天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期15天 逾期本金"
+   },
+   {
+    "name": "t15_overdue_capit_2",
+    "desc": "第2期 逾期≥16天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期15天 逾期本金"
+   },
+   {
+    "name": "t15_overdue_capit_3",
+    "desc": "第3期 逾期≥16天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期15天 逾期本金"
+   },
+   {
+    "name": "t15_overdue_capit_4",
+    "desc": "第4期 逾期≥16天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期15天 逾期本金"
+   },
+   {
+    "name": "t30_overdue_capit_1",
+    "desc": "第1期 逾期≥31天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1期 逾期30天 逾期本金"
+   },
+   {
+    "name": "t30_overdue_capit_2",
+    "desc": "第2期 逾期≥31天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2期 逾期30天 逾期本金"
+   },
+   {
+    "name": "t30_overdue_capit_3",
+    "desc": "第3期 逾期≥31天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3期 逾期30天 逾期本金"
+   },
+   {
+    "name": "t30_overdue_capit_4",
+    "desc": "第4期 逾期≥31天 逾期本金",
+    "logic": "直取 mx.wxs_vintage_all4.overdue_capit_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4期 逾期30天 逾期本金"
+   },
+   {
+    "name": "t0_coupon_substract_1",
+    "desc": "第1期 已过应还日 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "t0_coupon_substract_2",
+    "desc": "第2期 已过应还日 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "t0_coupon_substract_3",
+    "desc": "第3期 已过应还日 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "t0_coupon_substract_4",
+    "desc": "第4期 已过应还日 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_0",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 0天vintage 减免及券成本"
+   },
+   {
+    "name": "t1_coupon_substract_1",
+    "desc": "第1期 逾期≥2天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "t1_coupon_substract_2",
+    "desc": "第2期 逾期≥2天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "t1_coupon_substract_3",
+    "desc": "第3期 逾期≥2天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "t1_coupon_substract_4",
+    "desc": "第4期 逾期≥2天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_1",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 1天vintage 减免及券成本"
+   },
+   {
+    "name": "t2_coupon_substract_1",
+    "desc": "第1期 逾期≥3天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "t2_coupon_substract_2",
+    "desc": "第2期 逾期≥3天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "t2_coupon_substract_3",
+    "desc": "第3期 逾期≥3天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "t2_coupon_substract_4",
+    "desc": "第4期 逾期≥3天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_2",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 2天vintage 减免及券成本"
+   },
+   {
+    "name": "t3_coupon_substract_1",
+    "desc": "第1期 逾期≥4天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "t3_coupon_substract_2",
+    "desc": "第2期 逾期≥4天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "t3_coupon_substract_3",
+    "desc": "第3期 逾期≥4天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "t3_coupon_substract_4",
+    "desc": "第4期 逾期≥4天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_3",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 3天vintage 减免及券成本"
+   },
+   {
+    "name": "t7_coupon_substract_1",
+    "desc": "第1期 逾期≥8天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "t7_coupon_substract_2",
+    "desc": "第2期 逾期≥8天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "t7_coupon_substract_3",
+    "desc": "第3期 逾期≥8天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "t7_coupon_substract_4",
+    "desc": "第4期 逾期≥8天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_7",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 7天vintage 减免及券成本"
+   },
+   {
+    "name": "t15_coupon_substract_1",
+    "desc": "第1期 逾期≥16天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "t15_coupon_substract_2",
+    "desc": "第2期 逾期≥16天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "t15_coupon_substract_3",
+    "desc": "第3期 逾期≥16天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "t15_coupon_substract_4",
+    "desc": "第4期 逾期≥16天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_15",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 15天vintage 减免及券成本"
+   },
+   {
+    "name": "t30_coupon_substract_1",
+    "desc": "第1期 逾期≥31天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_1_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第1贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "t30_coupon_substract_2",
+    "desc": "第2期 逾期≥31天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_2_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第2贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "t30_coupon_substract_3",
+    "desc": "第3期 逾期≥31天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_3_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第3贷次 30天vintage 减免及券成本"
+   },
+   {
+    "name": "t30_coupon_substract_4",
+    "desc": "第4期 逾期≥31天 减免及券成本",
+    "logic": "直取 mx.wxs_vintage_all4.coupon_substract_4_30",
+    "source_table": "mx.wxs_vintage_all4",
+    "update_freq": "每日",
+    "desc_orig": "第4贷次 30天vintage 减免及券成本"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_overdue_basetable",
+  "source_file": "01墨西哥风险宽表新口径.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "camera_id",
+    "desc": "订单id(放款订单号)",
+    "logic": "直取 mx.wxs_risk_ttl.camera_id",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "订单id(放款订单号)"
+   },
+   {
+    "name": "should_time",
+    "desc": "应还日期(按订单取最大应还日)",
+    "logic": "直取 mx.wxs_risk_ttl.should_time",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "应还日期(按订单取最大应还日)"
+   },
+   {
+    "name": "should_capital",
+    "desc": "应还本金(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.should_capital",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "应还本金(按订单合计)"
+   },
+   {
+    "name": "fact_capital",
+    "desc": "实还本金(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.fact_capital",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "实还本金(按订单合计)"
+   },
+   {
+    "name": "should_interest",
+    "desc": "应还利息(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.should_interest",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "应还利息(按订单合计)"
+   },
+   {
+    "name": "fact_interest",
+    "desc": "实还利息(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.fact_interest",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "实还利息(按订单合计)"
+   },
+   {
+    "name": "should_fine",
+    "desc": "应还罚息(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.should_fine",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "应还罚息(按订单合计)"
+   },
+   {
+    "name": "fact_fine",
+    "desc": "实还罚息(按订单合计)",
+    "logic": "直取 mx.wxs_risk_ttl.fact_fine",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "实还罚息(按订单合计)"
+   },
+   {
+    "name": "now_should_amt",
+    "desc": "当前应还总额(本金+利息)",
+    "logic": "直取 mx.wxs_risk_ttl.now_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "当前应还总额(本金+利息)"
+   },
+   {
+    "name": "is_t0_window",
+    "desc": "是否已过应还日(T0窗口)(0/1)",
+    "logic": "直取 mx.wxs_risk_ttl.is_t0_window",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "是否已过应还日T0窗口(0/1)"
+   },
+   {
+    "name": "is_t3_window",
+    "desc": "是否已过应还日后3天(T3窗口)(0/1)",
+    "logic": "直取 mx.wxs_risk_ttl.is_t3_window",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T3窗口(0/1)"
+   },
+   {
+    "name": "is_t7_window",
+    "desc": "是否已过应还日后7天(T7窗口)(0/1)",
+    "logic": "直取 mx.wxs_risk_ttl.is_t7_window",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T7窗口(0/1)"
+   },
+   {
+    "name": "is_t14_window",
+    "desc": "是否已过应还日后14天(T14窗口)(0/1)",
+    "logic": "直取 mx.wxs_risk_ttl.is_t14_window",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T14窗口(0/1)"
+   },
+   {
+    "name": "is_t30_window",
+    "desc": "是否已过应还日后30天(T30窗口)(0/1)",
+    "logic": "直取 mx.wxs_risk_ttl.is_t30_window",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "是否已过T30窗口(0/1)"
+   },
+   {
+    "name": "t0_should_amt",
+    "desc": "T0窗口应还总额(应还日已到)",
+    "logic": "直取 mx.wxs_risk_ttl.t0_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口应还总额(应还日已到)"
+   },
+   {
+    "name": "t3_should_amt",
+    "desc": "T3窗口应还总额(应还日+3天已到)",
+    "logic": "直取 mx.wxs_risk_ttl.t3_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口应还总额(应还日+3天已到)"
+   },
+   {
+    "name": "t7_should_amt",
+    "desc": "T7窗口应还总额(应还日+7天已到)",
+    "logic": "直取 mx.wxs_risk_ttl.t7_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口应还总额(应还日+7天已到)"
+   },
+   {
+    "name": "t14_should_amt",
+    "desc": "T14窗口应还总额(应还日+14天已到)",
+    "logic": "直取 mx.wxs_risk_ttl.t14_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口应还总额(应还日+14天已到)"
+   },
+   {
+    "name": "t30_should_amt",
+    "desc": "T30窗口应还总额(应还日+30天已到)",
+    "logic": "直取 mx.wxs_risk_ttl.t30_should_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口应还总额(应还日+30天已到)"
+   },
+   {
+    "name": "now_fact_amt",
+    "desc": "当前实还总额(本金+利息)",
+    "logic": "直取 mx.wxs_risk_ttl.now_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "当前实还总额(本金+利息)"
+   },
+   {
+    "name": "t0_fact_amt",
+    "desc": "T0窗口实还总额(截至应还日)",
+    "logic": "直取 mx.wxs_risk_ttl.t0_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口实还总额(截至应还日)"
+   },
+   {
+    "name": "t3_fact_amt",
+    "desc": "T3窗口实还总额(截至应还日+3天)",
+    "logic": "直取 mx.wxs_risk_ttl.t3_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口实还总额(截至应还日+3天)"
+   },
+   {
+    "name": "t7_fact_amt",
+    "desc": "T7窗口实还总额(截至应还日+7天)",
+    "logic": "直取 mx.wxs_risk_ttl.t7_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口实还总额(截至应还日+7天)"
+   },
+   {
+    "name": "t14_fact_amt",
+    "desc": "T14窗口实还总额(截至应还日+14天)",
+    "logic": "直取 mx.wxs_risk_ttl.t14_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口实还总额(截至应还日+14天)"
+   },
+   {
+    "name": "t30_fact_amt",
+    "desc": "T30窗口实还总额(截至应还日+30天)",
+    "logic": "直取 mx.wxs_risk_ttl.t30_fact_amt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口实还总额(截至应还日+30天)"
+   },
+   {
+    "name": "t0_should_num",
+    "desc": "T0窗口应还期数标记(应还日已到=1)",
+    "logic": "直取 mx.wxs_risk_ttl.t0_should_num",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口应还期数标记(应还日已到=1)"
+   },
+   {
+    "name": "t3_should_num",
+    "desc": "T3窗口应还期数标记(应还日+3天已到=1)",
+    "logic": "直取 mx.wxs_risk_ttl.t3_should_num",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口应还期数标记(应还日+3天已到=1)"
+   },
+   {
+    "name": "t7_should_num",
+    "desc": "T7窗口应还期数标记(应还日+7天已到=1)",
+    "logic": "直取 mx.wxs_risk_ttl.t7_should_num",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口应还期数标记(应还日+7天已到=1)"
+   },
+   {
+    "name": "t14_should_num",
+    "desc": "T14窗口应还期数标记(应还日+14天已到=1)",
+    "logic": "直取 mx.wxs_risk_ttl.t14_should_num",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口应还期数标记(应还日+14天已到=1)"
+   },
+   {
+    "name": "t30_should_num",
+    "desc": "T30窗口应还期数标记(应还日+30天已到=1)",
+    "logic": "直取 mx.wxs_risk_ttl.t30_should_num",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口应还期数标记(应还日+30天已到=1)"
+   },
+   {
+    "name": "pre_p2_repay",
+    "desc": "提前超过2天还款金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.pre_p2_repay",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "提前超过2天还款金额(本+息)"
+   },
+   {
+    "name": "p2_repay",
+    "desc": "提前2天还款金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.p2_repay",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "提前2天还款金额(本+息)"
+   },
+   {
+    "name": "p2_repaytt",
+    "desc": "提前>=2天还款金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.p2_repaytt",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "提前>=2天还款金额(本+息)"
+   },
+   {
+    "name": "p1_repay",
+    "desc": "提前1天还款金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.p1_repay",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "提前1天还款金额(本+息)"
+   },
+   {
+    "name": "p0_repay",
+    "desc": "到期日当天还款金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.p0_repay",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "到期日当天还款金额(本+息)"
+   },
+   {
+    "name": "now_OVERDUE_AMOUNT",
+    "desc": "当前逾期金额",
+    "logic": "直取 mx.wxs_risk_ttl.now_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日"
+   },
+   {
+    "name": "T0_OVERDUE_AMOUNT",
+    "desc": "应还日(T0)时点逾期金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.T0_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T0窗口逾期金额"
+   },
+   {
+    "name": "T3_OVERDUE_AMOUNT",
+    "desc": "应还日后3天(T3)时点逾期金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.T3_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T3窗口逾期金额"
+   },
+   {
+    "name": "T7_OVERDUE_AMOUNT",
+    "desc": "应还日后7天(T7)时点逾期金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.T7_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T7窗口逾期金额"
+   },
+   {
+    "name": "T14_OVERDUE_AMOUNT",
+    "desc": "应还日后14天(T14)时点逾期金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.T14_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T14窗口逾期金额"
+   },
+   {
+    "name": "T30_OVERDUE_AMOUNT",
+    "desc": "应还日后30天(T30)时点逾期金额(本+息)",
+    "logic": "直取 mx.wxs_risk_ttl.T30_OVERDUE_AMOUNT",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日",
+    "desc_orig": "T30窗口逾期金额"
+   },
+   {
+    "name": "IS_NOW_OVERDUE",
+    "desc": "当前是否逾期(实还应还差额>=-1视为未逾期)",
+    "logic": "直取 mx.wxs_risk_ttl.IS_now_OVERDUE",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日"
+   },
+   {
+    "name": "now_overdue_days",
+    "desc": "当前逾期天数(取各期最大,负数截为0)",
+    "logic": "直取 mx.wxs_risk_ttl.now_overdue_days",
+    "source_table": "mx.wxs_risk_ttl",
+    "update_freq": "每日"
+   },
+   {
+    "name": "（直通 mx.wxs_vintage_all5 全部字段）",
+    "desc": "直通 mx.wxs_vintage_all5 全部字段：id1、is_now_overdue_1、t*/is_t* 各vintage窗口(0/1/2/3/7/15/30/pre1/pre2/pre3)的逾期金额/逾期期数/逾期利息/应还金额/应还期数/应还利息/应还本金/逾期本金/减免券成本，共273个字段",
+    "logic": "直通 mx.wxs_vintage_all5（tt4.*），字段清单见该表条目",
+    "source_table": "mx.wxs_vintage_all5",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

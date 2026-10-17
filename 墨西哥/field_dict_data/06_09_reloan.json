@@ -1,0 +1,1097 @@
+[
+ {
+  "table": "mx.yj_reloan_prof",
+  "source_file": "06墨西哥老客画像.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "biz_id",
+    "desc": "进件单号(申请量口径)",
+    "logic": "直取 wxs_application_funnel.biz_id",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "进件单号(申请量口径)"
+   },
+   {
+    "name": "update_time",
+    "desc": "数据写入/更新时间",
+    "logic": "substr(cast(current_timestamp as varchar),1,24)",
+    "source_table": "派生计算（基于当前时间戳）",
+    "update_freq": "每日",
+    "desc_orig": "数据写入/更新时间"
+   },
+   {
+    "name": "credit_no",
+    "desc": "客户证件号(身份证)",
+    "logic": "直取 wxs_application_funnel.credit_no",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "客户证件号(身份证)"
+   },
+   {
+    "name": "app_time",
+    "desc": "申请时间",
+    "logic": "直取 wxs_application_funnel.app_time",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "tenant",
+    "desc": "租户名称",
+    "logic": "直取 wxs_application_funnel.tenant",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "租户"
+   },
+   {
+    "name": "source",
+    "desc": "系统",
+    "logic": "直取 wxs_application_funnel.source",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "来源渠道"
+   },
+   {
+    "name": "monthh",
+    "desc": "申请月份(按月分桶)",
+    "logic": "date_trunc('month',date(create_time))",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.create_time）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "degree",
+    "desc": "学历(负值置空)",
+    "logic": "case when degree<0 then null else degree end，源 s01_mem_base_info.degree",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.degree）",
+    "update_freq": "每日",
+    "desc_orig": "学历(负值置空)"
+   },
+   {
+    "name": "income",
+    "desc": "收入(负值置空)",
+    "logic": "case when income<0 then null else income end，源 s01_mem_base_info.income",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.income）",
+    "update_freq": "每日",
+    "desc_orig": "收入(负值置空)"
+   },
+   {
+    "name": "age",
+    "desc": "年龄(负值置空)",
+    "logic": "case when age<0 then null else age end，源 s01_mem_base_info.age",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.age）",
+    "update_freq": "每日",
+    "desc_orig": "年龄(负值置空)"
+   },
+   {
+    "name": "degree_flag",
+    "desc": "学历分箱",
+    "logic": "case when degree>=5 then '3_[5,inf]' when degree>=3 then '2_[3,4)' else '1_[inf,3)'",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.degree）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "income_flag",
+    "desc": "收入分组标签",
+    "logic": "case when income>=8 then '3_[8,inf]' when income>=5 then '2_[5,8)' when income>=0 then '1_[0,5)' else '0_-1'",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.income）",
+    "update_freq": "每日",
+    "desc_orig": "收入分箱"
+   },
+   {
+    "name": "age_flag",
+    "desc": "年龄分组标志",
+    "logic": "case when age>=54 then '3_[54,inf]' when age>=38 then '2_[38,54)' else '1_[inf,38)'",
+    "source_table": "派生计算（基于 ods.s01_mem_base_info.age）",
+    "update_freq": "每日",
+    "desc_orig": "年龄分箱"
+   },
+   {
+    "name": "GD_X_19",
+    "desc": "advance近30天多头数量",
+    "logic": "来自 tmp_advance_table：max(cast(json_extract_scalar(inputdata,'$.advance_gd_x_19') as double))；case when c.externalid is not null and GD_X_19 is null then null else GD_X_19",
+    "source_table": "派生计算（基于 mx.tmp_advance_table.gd_x_19）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "GD_X_21",
+    "desc": "advance近730天多头数量",
+    "logic": "来自 tmp_advance_table：max(cast(json_extract_scalar(inputdata,'$.advance_gd_x_21') as double))；case when c.externalid is not null and GD_X_21 is null then null else GD_X_21",
+    "source_table": "派生计算（基于 mx.tmp_advance_table.gd_x_21）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "adv_fenzu",
+    "desc": "白户判断(advance多头全空→白户置1)",
+    "logic": "case when c.externalid is not null then case when GD_X_19 is null and GD_X_21 is null then 1 when GD_X_21=1 or (GD_X_21=2 and GD_X_19 !=1) then 1 else 0 end end",
+    "source_table": "派生计算（基于 mx.tmp_advance_table）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx",
+    "desc": "是否进入授信流程",
+    "logic": "直取 wxs_application_funnel.if_in_sx",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进授信"
+   },
+   {
+    "name": "if_sx_passed",
+    "desc": "是否用信",
+    "logic": "直取 wxs_application_funnel.if_sx_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "授信是否通过"
+   },
+   {
+    "name": "if_in_fu_anti_fraud",
+    "desc": "是否进入复贷反欺诈",
+    "logic": "直取 wxs_application_funnel.if_in_fu_anti_fraud",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进反欺诈"
+   },
+   {
+    "name": "if_fu_external_data_passed",
+    "desc": "复贷外部数据验证是否通过",
+    "logic": "直取 wxs_application_funnel.if_fu_external_data_passed",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "三方数据是否通过"
+   },
+   {
+    "name": "grantcredit_7d_amount",
+    "desc": "授信额度(7天可用额度)",
+    "logic": "直取 wxs_application_funnel.grantcredit_7d_amount",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "授信额度(7天可用额度)"
+   },
+   {
+    "name": "if_in_sx_24h",
+    "desc": "是否进入24小时授信流程",
+    "logic": "直取 wxs_application_funnel.if_in_sx_24h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "24小时内是否进授信"
+   },
+   {
+    "name": "if_sx_passed_24h",
+    "desc": "24小时授信是否通过",
+    "logic": "直取 wxs_application_funnel.if_sx_passed_24h",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "24小时内授信是否通过"
+   },
+   {
+    "name": "t0_overdue_amount_1",
+    "desc": "第1期 已过应还日 逾期金额",
+    "logic": "直取 wxs_application_funnel.t0_overdue_amount_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_1",
+    "desc": "第1期 逾期≥4天 逾期金额",
+    "logic": "直取 wxs_application_funnel.t3_overdue_amount_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3逾期金额"
+   },
+   {
+    "name": "t0_should_amt_1",
+    "desc": "第1期 已过应还日 应还金额",
+    "logic": "直取 wxs_application_funnel.t0_should_amt_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T0应还金额"
+   },
+   {
+    "name": "t3_should_amt_1",
+    "desc": "第1期 逾期≥4天 应还金额",
+    "logic": "直取 wxs_application_funnel.t3_should_amt_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "T3应还金额"
+   },
+   {
+    "name": "is_t0_window_1",
+    "desc": "第1期 已过应还日 窗口标记",
+    "logic": "直取 wxs_application_funnel.is_t0_window_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进入T0逾期窗口"
+   },
+   {
+    "name": "is_t3_window_1",
+    "desc": "第1期 逾期≥4天 窗口标记",
+    "logic": "直取 wxs_application_funnel.is_t3_window_1",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否进入T3逾期窗口"
+   },
+   {
+    "name": "new_media_source",
+    "desc": "新媒体来源分类(Google/tiktok/探知/organic/其它)",
+    "logic": "case when new_media_source='Google' then '1_Google' when 'tiktok' then '2_tiktok' when '探知' then '3_探知' when 'organic' then '4_organic' else '5_其它'",
+    "source_table": "派生计算（基于 mx.gm_attribution_detail.new_media_source）",
+    "update_freq": "每日",
+    "desc_orig": "新媒体来源分类(Google/tiktok/探知/organic/其它)"
+   },
+   {
+    "name": "adv_fenzu_flag",
+    "desc": "advance多头分组(白户/单头/多头)",
+    "logic": "case when c.externalid is null then -1 when GD_X_19 is null and GD_X_21 is null then 1 when GD_X_21=1 or (GD_X_21=2 and GD_X_19 !=1) then 2 else 3",
+    "source_table": "派生计算（基于 mx.tmp_advance_table）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "adv_30d",
+    "desc": "advance近30天多头分箱",
+    "logic": "case when c.externalid is null then '0_-1' when GD_X_19>=5 then '3_[5,inf]' when GD_X_19>=3 then '2_[3,5)' when GD_X_19>=1 then '1_[1,3)' else '-1_-999'",
+    "source_table": "派生计算（基于 mx.tmp_advance_table.gd_x_19）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "adv_730d",
+    "desc": "advance近730天多头分箱",
+    "logic": "case when c.externalid is null then '0_-1' when GD_X_21>=10 then '3_[10,inf]' when GD_X_21>=3 then '2_[3,10)' when GD_X_21>=1 then '1_[1,3)' else '-1_-999'",
+    "source_table": "派生计算（基于 mx.tmp_advance_table.gd_x_21）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "apply_num_total",
+    "desc": "历史累计申请笔数",
+    "logic": "行为变量子查询：count(t2.biz_id)，按credit_no且t1.app_time>t2.app_time关联历史笔",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "apply_num_30d",
+    "desc": "近30天申请笔数",
+    "logic": "count(case when date_diff('day',date(t2.app_time),date(t1.app_time))<=30 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_num_total",
+    "desc": "历史累计放款笔数",
+    "logic": "count(case when t2.if_issue=1 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_num_30d",
+    "desc": "近30天放款笔数",
+    "logic": "count(case when t2.if_issue=1 and date_diff('day',date(t2.app_time),date(t1.app_time))<=30 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_amount_total",
+    "desc": "历史累计放款金额",
+    "logic": "sum(case when t2.if_issue=1 then t2.contract_amount end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "issue_amount_30d",
+    "desc": "近30天放款金额",
+    "logic": "sum(case when t2.if_issue=1 and date_diff('day',date(t2.app_time),date(t1.app_time))<=30 then t2.contract_amount end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_num_total",
+    "desc": "历史结清订单数",
+    "logic": "count(case when t2.finish_time is not null and t1.app_time>t2.finish_time then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_num_30d",
+    "desc": "近30天结清订单数",
+    "logic": "count(case when t2.finish_time is not null and date_diff('day',date(t2.app_time),date(t1.app_time))<=30 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_newissue_days",
+    "desc": "距最近一次新客放款间隔天数",
+    "logic": "max(case when t2.is_reloan='new' and t2.if_issue=1 and t2.finish_time is not null then date_diff('day',date(t2.release_time),date(t1.app_time)) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_lastfinish_days",
+    "desc": "距上次结清间隔天数",
+    "logic": "min(case when t2.finish_time is not null and t1.app_time>t2.finish_time then date_diff('day',date(t2.finish_time),date(t1.app_time)) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_lastfinish_hours",
+    "desc": "距上次结清间隔小时数",
+    "logic": "min(case when t2.finish_time is not null and t1.app_time>t2.finish_time then date_diff('hour',t2.finish_time,t1.app_time) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "no_apply_num_total",
+    "desc": "历史进授信未通过(拒绝)笔数",
+    "logic": "count(case when t2.if_in_sx=1 and t2.if_sx_passed !=1 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "no_apply_num_30d",
+    "desc": "近30天进授信未通过(拒绝)笔数",
+    "logic": "count(case when t2.if_in_sx=1 and t2.if_sx_passed !=1 and date_diff('day',date(t2.app_time),date(t1.app_time))<=30 then t2.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "max_overdue_days",
+    "desc": "历史最大逾期天数",
+    "logic": "max(case when t2.finish_time is not null and t2.should_time<t2.finish_time then date_diff('day',date(t2.should_time),date(t2.finish_time)) when t2.finish_time is null and t2.should_time<t1.app_time then date_diff('day',date(t2.should_time),date(t1.app_time)) else null end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日",
+    "desc_orig": "最大历史逾期天数"
+   },
+   {
+    "name": "max_overdue_days_30d",
+    "desc": "近30天最大逾期天数",
+    "logic": "同上逾期口径，且限定 date_diff('day',date(t2.app_time),date(t1.app_time))<=30",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app",
+    "desc": "应用标识",
+    "logic": "直取 wxs_application_funnel.app",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "产品app"
+   },
+   {
+    "name": "max_overduedays_flag",
+    "desc": "最大历史逾期天数分箱",
+    "logic": "case when max_overdue_days=0 then '1.[0]' when max_overdue_days>=1 and <=30 then '2.[1-30]' when >30 then '3.[31,inf]'",
+    "source_table": "派生计算（基于本表 max_overdue_days）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_num_total_flag",
+    "desc": "历史结清订单数分箱",
+    "logic": "case when finish_num_total 0-1 '1_[0,1]'，2-3 '2_[2,3]'，4-5 '3_[4,5]'，>=6 '4_[6,inf]'",
+    "source_table": "派生计算（基于本表 finish_num_total）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_num_total_byapp_flag",
+    "desc": "按app_group历史结清订单数分箱",
+    "logic": "case on finish_num_total_byapp：0-1 '1_[0,1]'，2-3 '2_[2,3]'，4-5 '3_[4,5]'，>=6 '4_[6,inf]'",
+    "source_table": "派生计算（基于本表 finish_num_total_byapp）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_lastfinish_days_flag",
+    "desc": "距上次结清间隔天数分箱",
+    "logic": "case when to_lastfinish_days=0 '1_[0]'，1-10 '2_[1,10]'，11-30 '3_[11,30]'，>30 '4_[31,inf]'",
+    "source_table": "派生计算（基于本表 to_lastfinish_days）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_lastfinish_days_byapp_flag",
+    "desc": "按app_group距上次结清间隔天数分箱",
+    "logic": "case on to_lastfinish_days_byapp：0 '1_[0]'，1-10 '2_[1,10]'，11-30 '3_[11,30]'，>30 '4_[31,inf]'",
+    "source_table": "派生计算（基于本表 to_lastfinish_days_byapp）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_newissue_days_flag",
+    "desc": "距新客放款间隔天数分箱",
+    "logic": "case when to_newissue_days=0 '1_[0]'，1-15 '2_[1,15]'，16-30 '3_[16,30]'，31-60 '4_[31,60]'，>60 '5_[61,inf]'",
+    "source_table": "派生计算（基于本表 to_newissue_days）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_newissue_days_byapp_flag",
+    "desc": "按app_group距新客放款间隔天数分箱",
+    "logic": "case on to_newissue_days_byapp：0 '1_[0]'，1-15 '2_[1,15]'，16-30 '3_[16,30]'，31-60 '4_[31,60]'，>60 '5_[61,inf]'",
+    "source_table": "派生计算（基于本表 to_newissue_days_byapp）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_to_lastfinish_days_over_30",
+    "desc": "距上次结清是否超过30天",
+    "logic": "case when to_lastfinish_days>30 then 1 else 0",
+    "source_table": "派生计算（基于本表 to_lastfinish_days）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "finish_num_total_byapp",
+    "desc": "按app_group历史结清订单数",
+    "logic": "count(case when app_group in (YW/HL/TG/Mexcredo/Cash Vivas/PF/LS/Balam Plata/Toca Lana/Tuna Cash) and finish_time is not null then biz_id end)，按t1.app_group区分",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_lastfinish_days_byapp",
+    "desc": "按app_group距上次结清间隔天数",
+    "logic": "min(case when app_group in (上述app) and t2.finish_time is not null and t1.app_time>t2.finish_time then date_diff('day',date(t2.finish_time),date(t1.app_time)) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "to_newissue_days_byapp",
+    "desc": "按app_group距新客放款间隔天数",
+    "logic": "max(case when app_group in (上述app) and t2.is_reloan='new' and t2.if_issue=1 and t2.finish_time is not null then date_diff('day',date(t2.release_time),date(t1.app_time)) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史笔）",
+    "update_freq": "每日"
+   }
+  ]
+ },
+ {
+  "table": "mx.yj_clear_reloan",
+  "source_file": "07墨西哥老客结清复借率.sql",
+  "update_freq": "手动",
+  "fields": [
+   {
+    "name": "app_group",
+    "desc": "app分组(复借率分析维度)",
+    "logic": "直取 结清订单.app_group",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "手动",
+    "desc_orig": "app分组(复借率分析维度)"
+   },
+   {
+    "name": "finish_num",
+    "desc": "历史结清次数(>=10归并展示)",
+    "logic": "case when finish_num>=10 then '10+' else cast(finish_num as varchar)；finish_num=该客同app下当前结清订单及其之前的历史结清笔数 count(distinct t2.biz_id)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 历史结清笔）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "finish_time",
+    "desc": "结清时间",
+    "logic": "直取 结清订单.finish_time",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "手动",
+    "desc_orig": "本笔结清时间"
+   },
+   {
+    "name": "first_finish_time",
+    "desc": "首笔结清日期(新客首笔放款结清时间)",
+    "logic": "首笔订单(date(finish_time))，通过tt3子查询取该客同app第一笔(按app_time排序rn=1且is_reloan='new',if_issue=1,finish_time非空)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "is_reloan",
+    "desc": "是否复贷",
+    "logic": "直取 wxs_application_funnel.is_reloan",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "手动"
+   },
+   {
+    "name": "update_tim",
+    "desc": "更新时间",
+    "logic": "max(substr(cast(current_timestamp as varchar),1,24))",
+    "source_table": "派生计算（基于当前时间戳）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "finish_user_num",
+    "desc": "结清人数",
+    "logic": "count(distinct a.biz_id)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 结清人群）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "finish_user_num_5d",
+    "desc": "满足5天表现期的结清人数",
+    "logic": "count(distinct case when date_diff('day',date(a.finish_time),now())>=5 then a.biz_id end)；结清满5天(表现期>=5天)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 结清人群）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "avg_finish_global_limit_5d",
+    "desc": "5天表现期结清订单的平均全局额度",
+    "logic": "avg(case when date_diff('day',date(a.finish_time),now())>=5 then finish_global_limit end)；finish_global_limit=avg(coalesce(cast(global_limit as integer),cast(grantcredit_7d_amount as integer)))",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "reloan_apply_user_num_5d",
+    "desc": "结清后5天内复借申请人数",
+    "logic": "count(distinct case when date_diff('day',date(a.finish_time),now())>=5 and date_diff('day',date(a.finish_time),date(b.app_time))<=5 then a.biz_id end)；表现期>=5天 且 复借窗口<=5天",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 结清人群+复借笔）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "reloan_apply_num_5d",
+    "desc": "结清后5天内复借申请笔数",
+    "logic": "count(distinct case when date_diff('day',date(a.finish_time),now())>=5 and date_diff('day',date(a.finish_time),date(b.app_time))<=5 then b.biz_id end)；表现期>=5天 且 复借窗口<=5天",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 复借笔）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "if_in_sx",
+    "desc": "5天复借窗口内进授信笔数(通过率分母)",
+    "logic": "sum(case when date_diff('day',date(a.finish_time),now())>=5 and date_diff('day',date(a.finish_time),date(b.app_time))<5 then b.if_in_sx end)；复借窗口<5天",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内进授信笔数(通过率分母)"
+   },
+   {
+    "name": "if_in_fu_anti_fraud",
+    "desc": "是否进入复贷反欺诈",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_in_fu_anti_fraud end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_anti_fraud）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内进反欺诈笔数"
+   },
+   {
+    "name": "if_fu_external_data_passed",
+    "desc": "5天复借窗口内三方数据通过笔数",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_fu_external_data_passed end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_external_data_passed）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内三方数据通过笔数"
+   },
+   {
+    "name": "if_sx_passed",
+    "desc": "5天复借窗口内授信通过笔数(通过率分子)",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_sx_passed end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内授信通过笔数(通过率分子)"
+   },
+   {
+    "name": "reloan_global_limit",
+    "desc": "5天复借窗口复借订单的平均全局额度",
+    "logic": "avg(case when 表现期>=5天 and 复借窗口<5天 then coalesce(cast(b.global_limit as integer),cast(b.grantcredit_7d_amount as integer)) end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.global_limit/grantcredit_7d_amount）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "if_sx_passed_24h",
+    "desc": "5天复借窗口内24h授信通过笔数(24h用信率分子)",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_sx_passed_24h end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_24h）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内24h授信通过笔数(24h用信率分子)"
+   },
+   {
+    "name": "if_in_sx_24h",
+    "desc": "5天复借窗口内24h进授信笔数(24h用信率分母)",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 then b.if_in_sx_24h end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx_24h）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口内24h进授信笔数(24h用信率分母)"
+   },
+   {
+    "name": "reloan_amt_5d",
+    "desc": "结清后5天内复借放款金额",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 then b.contract_amount end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.contract_amount）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "t0_overdue_amount_1",
+    "desc": "5天复借窗口放款 第1期 已过应还日 逾期金额",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t0_window_1=1 then b.t0_overdue_amount_1 end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.t0_overdue_amount_1）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口放款T0逾期金额"
+   },
+   {
+    "name": "t3_overdue_amount_1",
+    "desc": "5天复借窗口放款 第1期 逾期≥4天 逾期金额",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t3_window_1=1 then b.t3_overdue_amount_1 end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.t3_overdue_amount_1）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口放款T3逾期金额"
+   },
+   {
+    "name": "t0_should_amt_1",
+    "desc": "5天复借窗口放款 第1期 已过应还日 应还金额",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t0_window_1=1 then b.t0_should_amt_1 end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.t0_should_amt_1）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口放款T0应还金额"
+   },
+   {
+    "name": "t3_should_amt_1",
+    "desc": "5天复借窗口放款 第1期 逾期≥4天 应还金额",
+    "logic": "sum(case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t3_window_1=1 then b.t3_should_amt_1 end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.t3_should_amt_1）",
+    "update_freq": "手动",
+    "desc_orig": "5天复借窗口放款T3应还金额"
+   },
+   {
+    "name": "T0",
+    "desc": "5天复借窗口放款进入T0逾期窗口笔数",
+    "logic": "count(distinct case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t0_window_1=1 then b.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.is_t0_window_1）",
+    "update_freq": "手动"
+   },
+   {
+    "name": "T3",
+    "desc": "5天复借窗口放款进入T3逾期窗口笔数",
+    "logic": "count(distinct case when 表现期>=5天 and 复借窗口<5天 and b.if_issue=1 and b.is_t3_window_1=1 then b.biz_id end)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.is_t3_window_1）",
+    "update_freq": "手动"
+   }
+  ]
+ },
+ {
+  "table": "mx.wxs_aurora_za",
+  "source_file": "08墨西哥复贷节点转化监控.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "apply_date",
+    "desc": "申请日期(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_date as apply_date",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "申请日期(分组维度)"
+   },
+   {
+    "name": "apply_week",
+    "desc": "申请周(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_week as apply_week",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app",
+    "desc": "应用标识",
+    "logic": "直取 wxs_application_funnel.app",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "产品app"
+   },
+   {
+    "name": "tenant",
+    "desc": "租户名称",
+    "logic": "直取 wxs_application_funnel.tenant",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "租户"
+   },
+   {
+    "name": "app_group",
+    "desc": "应用分组",
+    "logic": "直取 wxs_application_funnel.app_group",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "app分组"
+   },
+   {
+    "name": "double_loan",
+    "desc": "是否为复贷",
+    "logic": "直取 wxs_application_funnel.double_loan",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "是否复贷"
+   },
+   {
+    "name": "app_version",
+    "desc": "应用版本",
+    "logic": "直取 wxs_application_funnel.app_version",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "app版本"
+   },
+   {
+    "name": "app_status",
+    "desc": "版本状态标签",
+    "logic": "case when app_version>='1.2.1' and app_channel='56c660de-3549-4482-9ad5-0404eef0d70d' then '置空版本' else '其他版本'",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.app_version/app_channel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "msg_status",
+    "desc": "消息状态标签(1.2.4及以上置空)",
+    "logic": "case when app_version>='1.2.4' and app_channel='56c660de-3549-4482-9ad5-0404eef0d70d' then '置空版本' else '其他版本'",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.app_version/app_channel）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "channel_category",
+    "desc": "渠道分类(新媒体来源)",
+    "logic": "直取 gm_attribution_detail.new_media_source as channel_category",
+    "source_table": "mx.gm_attribution_detail",
+    "update_freq": "每日",
+    "desc_orig": "渠道分类(新媒体来源)"
+   },
+   {
+    "name": "source",
+    "desc": "来源(统一小写)",
+    "logic": "lower(source)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.source）",
+    "update_freq": "每日",
+    "desc_orig": "来源(统一小写)"
+   },
+   {
+    "name": "fd_finishloan_num_main",
+    "desc": "主产品结清次数(封顶4)",
+    "logic": "case when fd_finishloan_num_main>=4 then 4 else fd_finishloan_num_main end",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.fd_finishloan_num_main）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "repayment_clearing_count_index_tenant",
+    "desc": "租户维度结清次数指标",
+    "logic": "直取 darren_behave_var.repayment_clearing_count_index_tenant",
+    "source_table": "mx.darren_behave_var",
+    "update_freq": "每日"
+   },
+   {
+    "name": "one_click_loan_tag",
+    "desc": "一键放款标签(测试/对照分组)",
+    "logic": "直取 wxs_application_funnel.one_click_loan_tag",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日"
+   },
+   {
+    "name": "apply_cnt",
+    "desc": "申请进件量",
+    "logic": "count(distinct a.biz_id)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.biz_id）",
+    "update_freq": "每日",
+    "desc_orig": "申请量"
+   },
+   {
+    "name": "qfc",
+    "desc": "进强反人数",
+    "logic": "sum(if_in_fu_anti_fraud)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_anti_fraud）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "qfp",
+    "desc": "强反通过人数",
+    "logic": "sum(if_fu_anti_fraud_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_anti_fraud_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "rfc",
+    "desc": "进弱反人数",
+    "logic": "sum(if_in_fu_anti_fraud_weak)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_anti_fraud_weak）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "rfp",
+    "desc": "弱反通过人数",
+    "logic": "sum(if_fu_anti_fraud_weak_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_anti_fraud_weak_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mc",
+    "desc": "进模型人数",
+    "logic": "sum(if_in_fu_model)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_model）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mp",
+    "desc": "模型通过人数",
+    "logic": "sum(if_fu_model_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_model_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxrc",
+    "desc": "进授信拒绝人数",
+    "logic": "sum(if_in_fu_sx_refuse)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_sx_refuse）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxrp",
+    "desc": "授信拒绝通过人数",
+    "logic": "sum(if_fu_sx_refuse_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_sx_refuse_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxc",
+    "desc": "进授信人数(授信节点分母)",
+    "logic": "sum(if_in_sx)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxp",
+    "desc": "授信通过人数",
+    "logic": "sum(if_sx_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxp_6h",
+    "desc": "6小时授信通过人数",
+    "logic": "sum(if_sx_passed_6h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_6h）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sxp_24h",
+    "desc": "24小时授信通过人数",
+    "logic": "sum(if_sx_passed_24h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_24h）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sfc",
+    "desc": "进三方人数",
+    "logic": "sum(if_in_fu_external_data)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_external_data）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "qfcr",
+    "desc": "进后置强反人数",
+    "logic": "sum(if_in_fu_post_anti_fraud_rerun)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_post_anti_fraud_rerun）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "qfcrp",
+    "desc": "后置强反通过人数",
+    "logic": "sum(if_fu_post_anti_fraud_rerun_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_post_anti_fraud_rerun_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "rfcr",
+    "desc": "进后置弱反人数",
+    "logic": "sum(if_in_fu_post_weak_anti_fraud_rerun)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_post_weak_anti_fraud_rerun）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "rfcrp",
+    "desc": "后置弱反通过人数",
+    "logic": "sum(if_fu_post_weak_anti_fraud_rerun_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_post_weak_anti_fraud_rerun_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mcr",
+    "desc": "进后置模型人数",
+    "logic": "sum(if_in_fu_post_model_reject_rerun)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_fu_post_model_reject_rerun）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "mcrp",
+    "desc": "后置模型通过人数",
+    "logic": "sum(if_fu_post_model_reject_rerun_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_post_model_reject_rerun_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "sfp",
+    "desc": "三方通过人数",
+    "logic": "sum(if_fu_external_data_passed)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_fu_external_data_passed）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_issue_except_loan_fail",
+    "desc": "放款笔数(剔除放款失败，高通过组特殊处理)",
+    "logic": "sum(if(if_fu_post_anti_fraud_rerun_passed=1 and fd_high_pass_label=1, 1, if_fu_external_data_passed))",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 标志位）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_issue",
+    "desc": "是否放款标志",
+    "logic": "sum(if_issue)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_issue）",
+    "update_freq": "每日",
+    "desc_orig": "放款笔数"
+   },
+   {
+    "name": "should_capital",
+    "desc": "应还本金",
+    "logic": "sum(should_capital)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.should_capital）",
+    "update_freq": "每日",
+    "desc_orig": "应放款金额"
+   },
+   {
+    "name": "if_in_sx_24h",
+    "desc": "是否进入24小时授信流程",
+    "logic": "sum(if_in_sx_24h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx_24h）",
+    "update_freq": "每日",
+    "desc_orig": "24小时进授信人数"
+   },
+   {
+    "name": "if_in_sx_72h",
+    "desc": "72小时进授信人数",
+    "logic": "sum(if_in_sx_72h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx_72h）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_in_sx_120h",
+    "desc": "120小时进授信人数",
+    "logic": "sum(if_in_sx_120h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_in_sx_120h）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_24h",
+    "desc": "24小时授信是否通过",
+    "logic": "sum(if_sx_passed_24h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_24h）",
+    "update_freq": "每日",
+    "desc_orig": "24小时授信通过人数"
+   },
+   {
+    "name": "if_sx_passed_72h",
+    "desc": "72小时授信通过人数",
+    "logic": "sum(if_sx_passed_72h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_72h）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "if_sx_passed_120h",
+    "desc": "120小时授信通过人数",
+    "logic": "sum(if_sx_passed_120h)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.if_sx_passed_120h）",
+    "update_freq": "每日"
+   }
+  ]
+ },
+ {
+  "table": "mx.fd_rule_hit_pct",
+  "source_file": "09复贷规则集中率.sql",
+  "update_freq": "每日",
+  "fields": [
+   {
+    "name": "source",
+    "desc": "来源(分组维度)",
+    "logic": "直取 wxs_application_funnel.source，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "来源(分组维度)"
+   },
+   {
+    "name": "app_version",
+    "desc": "app版本(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_version，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "app版本(分组维度)"
+   },
+   {
+    "name": "fd_high_pass_label",
+    "desc": "高通过组标签(高通过/非高通过/上线前)",
+    "logic": "case when fd_high_pass_label=0 then '非高通过组' when =1 then '高通过组' else '高通过组上线前'",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.fd_high_pass_label）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "one_click_loan_tag",
+    "desc": "一键放款分组标签(测试组/对照组)",
+    "logic": "case when one_click_loan_tag='0' then '一键放款对照组' when '1' then '一键放款测试组' else '不符合条件'",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.one_click_loan_tag）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "app_group",
+    "desc": "app分组(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_group，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "app分组(分组维度)"
+   },
+   {
+    "name": "app_date",
+    "desc": "申请日期(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_date，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "申请日期(分组维度)"
+   },
+   {
+    "name": "app_week",
+    "desc": "申请周(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_week，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "申请周(分组维度)"
+   },
+   {
+    "name": "app_month",
+    "desc": "申请月(分组维度)",
+    "logic": "直取 wxs_application_funnel.app_month，t0聚合维度",
+    "source_table": "mx.wxs_application_funnel",
+    "update_freq": "每日",
+    "desc_orig": "申请月(分组维度)"
+   },
+   {
+    "name": "double_loan",
+    "desc": "客群类型(本表固定复贷)",
+    "logic": "常量 '复贷'",
+    "source_table": "派生计算（常量）",
+    "update_freq": "每日",
+    "desc_orig": "客群类型(本表固定复贷)"
+   },
+   {
+    "name": "update_time",
+    "desc": "记录更新时间",
+    "logic": "SUBSTR(CAST(CURRENT_TIMESTAMP AS VARCHAR),1,24)",
+    "source_table": "派生计算（基于当前时间戳）",
+    "update_freq": "每日",
+    "desc_orig": "更新时间"
+   },
+   {
+    "name": "rule_tag",
+    "desc": "命中拒绝节点标签(强反/弱反/模型/授信节点/授信拒绝/后置强反/后置弱反/后置模型/三方)",
+    "logic": "case when if_in_fu_anti_fraud=1 and if_fu_anti_fraud_passed=0 then '强反' when if_in_fu_anti_fraud_weak=1 and if_fu_anti_fraud_weak_passed=0 then '弱反' when if_in_fu_model=1 and if_fu_model_passed=0 then '模型' when if_in_sx=1 and if_sx_passed=0 then '授信节点' when if_in_fu_sx_refuse=1 and if_fu_sx_refuse_passed=0 then '授信拒绝' when if_in_fu_post_anti_fraud_rerun=1 and if_fu_post_anti_fraud_rerun_passed=0 then '后置强反' when if_in_fu_post_weak_anti_fraud_rerun=1 and if_fu_post_weak_anti_fraud_rerun_passed=0 then '后置弱反' when if_in_fu_post_model_reject_rerun=1 and if_fu_post_model_reject_rerun_passed=0 then '后置模型' when if_in_fu_external_data=1 and if_fu_external_data_passed=0 then '三方'",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 各节点标志位）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "total_cnt",
+    "desc": "该维度下申请总人数(分母)",
+    "logic": "t0子查询 count(distinct biz_id)，WHERE is_reloan='old' and date(create_time)>=2025-02-07",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel.biz_id）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "rule_name",
+    "desc": "命中的具体反欺诈规则名称",
+    "logic": "直取 ods.s05_creditx_anti_fraud_record.rule_name，t1关联条件 rule_type='NORMAL' and real_hint='true' and date(create_time)>=2025-02-07",
+    "source_table": "ods.s05_creditx_anti_fraud_record",
+    "update_freq": "每日"
+   },
+   {
+    "name": "cnt",
+    "desc": "命中某具体规则的人数",
+    "logic": "t2子查询 count(distinct t1.biz_id)，按rule_name维度聚合(即进入该规则并命中的去重人数)",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel + ods.s05_creditx_anti_fraud_record）",
+    "update_freq": "每日"
+   },
+   {
+    "name": "in_cnt",
+    "desc": "进入该规则节点的人数(规则集中率分母)",
+    "logic": "t3子查询 sum(if_in_fu_xxx)，按rule_tag对应节点的进入标志位求和(如强反=sum(if_in_fu_anti_fraud))",
+    "source_table": "派生计算（基于 mx.wxs_application_funnel 各节点进入标志位）",
+    "update_freq": "每日"
+   }
+  ]
+ }
+]

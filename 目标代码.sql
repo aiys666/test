@@ -94,6 +94,181 @@ INSERT INTO ind.ba_kpi_targets_m (
     16442.0000000000       
 );
 
+
+
+CREATE table ind.ba_kpi_targets_m_20260601 as 
+select * from ind.ba_kpi_targets_m ;
+
+delete from ind.ba_kpi_targets_m   ;
+INSERT INTO ind.ba_kpi_targets_m select * from ind.ba_kpi_targets_m_20260601
+
+select * from ind.ba_kpi_targets_m_20260601
+
+INSERT INTO ind.ba_kpi_targets_m    (
+    month,
+    ba_type,
+    daily_avg_spend,
+    cps,
+    fl_confirm_1_2_rate,
+    fl_issue_1_4_cnt,
+    fl_1_4_cps_rate,
+    fl_avg_amt,
+    fl_issue_cnt,
+    fl_pass_rate,
+    fl_contract_amt,
+    fl_loan_cycle,
+    fl_fee_rate,
+    fl_bad_rate,
+    fl_cust_cost,
+    rl_avg_amt,
+    rl_issue_cnt,
+    rl_pass_rate,
+    rl_contract_amt,
+    rl_loan_cycle,
+    rl_fee_rate,
+    rl_bad_rate,
+    total_amt,
+    rl_amt_ratio,
+    lend_biz_ratio,
+    lend_biz_amt,
+    total_fee_rate,
+    total_bad_rate,
+    total_cust_cost,
+    exchange_rate
+  )
+VALUES
+  (
+    '2026-06-01',
+    'kpi',
+    12000.000000,
+    14,
+    0.000000,
+    0.000000,
+    0.000000,
+    74.9,
+    25714,
+    0.133,
+    1927194,
+    126,
+    0.29708,
+    -0.280,
+    -0.187,
+    150,
+    140167,
+    0.481,
+    21025011,
+    145,
+    0.36531,
+    -0.20500,
+    22575811,
+    0.916,
+    0.977,
+    22420709,
+    0.3596,
+    -0.2113,
+    -0.01568,
+    17484
+  )
+
+;
+
+CREATE table ind.ba_kpi_targets_m_20260601 as 
+select * from ind.ba_kpi_targets_m
+ 
+delete from ind.ba_kpi_targets_m   ;
+INSERT INTO ind.ba_kpi_targets_m select * from ind.ba_kpi_targets_m_20260601
+
+select * from ind.ba_kpi_targets_m_20260601
+
+INSERT INTO ind.ba_kpi_targets_m    (
+    month,
+    ba_type,
+    daily_avg_spend,
+    cps,
+    fl_confirm_1_2_rate,
+    fl_issue_1_4_cnt,
+    fl_1_4_cps_rate,
+    fl_avg_amt,
+    fl_issue_cnt,
+    fl_pass_rate,
+    fl_contract_amt,
+    fl_loan_cycle,
+    fl_fee_rate,
+    fl_bad_rate,
+    fl_cust_cost,
+    rl_avg_amt,
+    rl_issue_cnt,
+    rl_pass_rate,
+    rl_contract_amt,
+    rl_loan_cycle,
+    rl_fee_rate,
+    rl_bad_rate,
+    total_amt,
+    rl_amt_ratio,
+    lend_biz_ratio,
+    lend_biz_amt,
+    total_fee_rate,
+    total_bad_rate,
+    total_cust_cost,
+    exchange_rate
+  )
+VALUES
+  (
+    '2026-06-01',
+    'kpi',
+    12000.000000,
+    14,
+    0.000000,
+    0.000000,
+    0.000000,
+    74.9,
+    25714,
+    0.0625,
+    1927194,
+    126,
+    0.29708,
+    -0.280,
+    -0.187,
+    150,
+    140167,
+    0.481,
+    21025011,
+    145,
+    0.36531,
+    -0.20500,
+    22575811,
+    0.916,
+    0.977,
+    22420709,
+    0.3596,
+    -0.2113,
+    -0.01568,
+    17484
+  )
+
+
+
+一、整体：7月合同业绩2,147.8万美元（+2.9% vs.目标），经营利润率+4.6%（-1.0% vs.目标5.6%），gap主要来自TR厚度低于目标，预估整体TR 12.4%（-1.3% VS 目标13.7%）
+拆解来看：首贷继续收量，获客成本下降驱动首贷利润率环比有所改善；复贷件均提升撑起业绩规模超目标，但期限收缩叠加坏账略升，复贷利润率略低于目标；
+
+二、首贷：合同业绩240.1万美元（-10.9% vs.目标），经营利润率-22.3%（-1.0% vs.目标-21.3%）。
+增长拆解：日均投放量级缩至9,661（-19.5% vs.目标），投放收量；件均$105.4（+3.9% vs.目标$101.4），客群收紧+头部提额拉动件均；
+利润拆解：获客成本率-12.5%（+1.4% vs.目标），坏账-30.3%（-1.0% vs.目标-29.3%），坏账略高于目标；整体首贷经营利润率低于目标1.0%，环比6月改善1.9%。
+ 
+三、复贷：合同业绩1,907.8万美元（+5.0% vs.目标），经营利润率7.6%（-1.7% vs.目标9.3%）。
+增长拆解：件均$190.7（+26.6% vs.目标$150.6），客群收紧+头部提额+循环贷框架拉动件均提升撑起业绩超目标 ；
+利润拆解：期限收缩息费收入降低，坏账略高于目标，成本有所优化，整体复贷经营利润率低于目标1.7%，环比改善0.4%。
+
+8月规划： 
+1）策略：首贷反欺诈与用信准入收紧，压降风险，复贷新资产评级与新额度系数上线，优化风险梯度与产品结构。
+2）运营：产品流程上，Privy Revenue Sharing相关的商务合同预计8月份落地；权益上，8月会上线当笔抵扣的功能，预计对勾选率提升有一定帮助；营销策略上，继续推进临时额度和提额券的落数、抵扣逻辑优化；营销基建上，持续和国内产研探讨沟通营销系统的优化方案。
+3）投放：8月规划日预算恢复到1.4万美金，将根据分端和分渠道数据表现追加预算，目前看到IOS质量更优，在预算上会有倾斜；配合风险收紧通过率，调整各点位回传策略；此外，联合商务引入备用投放代理，以保证投放持续稳定。
+4）催收：1.提催回：推进贷中券模型策略持续迭代；短逾阶段完成人案匹配方案制定与上线；加快长逾30+专家卡开发及策略落地，分层提升催回效率。
+         2.降成本：持续迭代贷中分客群弱催策略，合理控制触达成本；逾期前优化人机耦合策略，逾期后通过内催与委外效能PK，动态调整人力配比；同步推进不良资产售卖，增加额外收入。
+         3.控投诉：针对敏感客群，在逾期后阶段配置专人专催策略，上线并持续迭代，有效压降投诉率。
+         4.优基建：升级贷后分案决策引擎，优化催收系统减免功能，同步迭代催收话术，提升系统支撑能力与作业效率。
+
+  
 DROP TABLE IF EXISTS ind.ba_act_targets_process_m;
 
 CREATE TABLE ind.ba_act_targets_process_m AS 

@@ -1,39 +1,111 @@
-# 虚拟环境
+﻿# ===== 虚拟环境 / 缓存 =====
 .venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# 日志文件
-*.log
-*.txt
-
-# Excel输出文件
-*.xlsx
-*.xls
-
-# CSV文件
-*.csv
-
-# 临时文件
-*.tmp
+_cache/
+*.pkl
+*.zip
 *.bak
+*.tmp
+*.log
 
-# IDE配置
+# ===== IDE / 系统 =====
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# 操作系统文件
 Thumbs.db
 .DS_Store
+~$*
 
-# 数据库连接信息
+# ===== 敏感配置 =====
 *.env
 *.config
 
-# Jupyter Notebook
-*.ipynb
-.ipynb_checkpoints/
+# ===== 含明文密码的文件(已备份到 code 外的 密码文件库/, 不入库) =====indonesia_presto.py
+indonesia_presto_backup.py
+mexico_presto.py
+盘古链接python.py
+签名放款率代码.ipynb
+签名放款率代码_desc.py
+经营分析自动化系统_需求与架构汇总.md
+风险坏账数据测试_精简版.py
+周报自动化/presto_client.py
+墨西哥经分/config.yaml
+墨西哥经分/debug_full.py
+墨西哥经分/debug_full2.py
+墨西哥经分/debug_login.py
+墨西哥经分/debug_login2.py
+墨西哥经分/debug_login3.py
+墨西哥经分/debug_query.py
+墨西哥经分/墨西哥周报自动化_需求文档.md
+墨西哥经分/core/db.py
+数据库/check_table.py
+数据库/database_viewer.py
+数据库/data_generator.py
+数据库/easy_fill.py
+数据库/easy_viewer.py
+数据库/fill_data.py
+数据库/final_fill.py
+数据库/fix_disbursement.py
+数据库/mysql_connector.py
+数据库/query_viewer.py
+数据库/simple_db_view.py
+数据库/simple_query.py
+数据库/ultimate_fill.py
+权责自动化处理/4月5月息费汇总_v2.py
+权责自动化处理/4月息费汇总_查询.py
+权责自动化处理/ba_loan_forecast_全流程.py
+权责自动化处理/check_count.py
+权责自动化处理/check_data.py
+权责自动化处理/clean_and_insert.py
+权责自动化处理/config.yaml
+权责自动化处理/debug_insert8.py
+权责自动化处理/debug_select.py
+权责自动化处理/export_paipai_performance.py
+权责自动化处理/export_paipai_transposed.py
+权责自动化处理/insert_to_presto.py
+权责自动化处理/insert_to_presto_bulk.py
+权责自动化处理/insert_to_presto_final.py
+权责自动化处理/insert_to_presto_v2.py
+权责自动化处理/reloan_forecast.py
+权责自动化处理/reloan_forecast_v10.py
+权责自动化处理/reloan_forecast_v11.py
+权责自动化处理/reloan_forecast_v2.py
+权责自动化处理/reloan_forecast_v3.py
+权责自动化处理/reloan_forecast_v4.py
+权责自动化处理/reloan_forecast_v5.py
+权责自动化处理/reloan_forecast_v6.py
+权责自动化处理/reloan_forecast_v7.py
+权责自动化处理/reloan_forecast_v7_FULL.py
+权责自动化处理/reloan_forecast_v8.py
+权责自动化处理/reloan_forecast_v9.py
+权责自动化处理/reloan_query_test.py
+权责自动化处理/run_sql_compare.py
+权责自动化处理/run_sql_compare_v2.py
+权责自动化处理/run_sql_compare_v3.py
+权责自动化处理/run_sql_compare_v4.py
+权责自动化处理/run_sql_compare_v5.py
+权责自动化处理/run_sql_compare_v6.py
+权责自动化处理/test_create_table.py
+权责自动化处理/verify_table.py
+权责自动化处理/verify_table2.py
+权责自动化处理/单次查询_测试.py
+权责自动化处理/周报数据导出.py
+权责自动化处理/周报数据导出_新版.py
+权责自动化处理/周报数据导出_简化版.py
+权责自动化处理/探查2_息费字段.py
+权责自动化处理/探查3_息费字段.py
+权责自动化处理/探查4_月份过滤.py
+权责自动化处理/探查_列名.py
+权责自动化处理/探查_息费字段.py
+权责自动化处理/探查_权责与息费表结构.py
+权责自动化处理/探查_逾期字段.py
+权责自动化处理/查T30字段.py
+权责自动化处理/查T30率和坏账.py
+权责自动化处理/直接验证_查询.py
+权责自动化处理/风险坏账数据测试.py
+权责自动化处理/风险坏账数据测试_转置版.py
+权责自动化处理/core/db.py
