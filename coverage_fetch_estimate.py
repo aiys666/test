@@ -30,7 +30,7 @@ REF_MONTH = '2026-08'
 TARGET_MONTH = '2026-09'
 REVENUE_FIELD = '总收息_含税'
 
-OUT_XLSX = r'e:\岳松个人文件\嘉银工作内容的整理\code\9月每周4t7预估_自动取数_首贷复贷_v2.xlsx'
+OUT_XLSX = r'e:\岳松个人文件\嘉银工作内容的整理\code\9月每周4t7预估_自动取数_首贷复贷_v3.xlsx'
 CACHE_CSV = r'e:\岳松个人文件\嘉银工作内容的整理\code\_coverage_raw_cache.csv'
 
 # 取数 SQL: 一条查询同时含周度/月度两个时间维度, 后续在 Python 中再分组

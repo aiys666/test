@@ -10,10 +10,11 @@ pd.set_option('display.width', 300); pd.set_option('display.max_columns', 80); p
 
 sql_path = r"e:\岳松个人文件\嘉银工作内容的整理\code\墨西哥\_fw_770验证SQL\11_在线离线临额区分逻辑.sql"
 txt = open(sql_path, encoding='utf-8').read()
-start = txt.rindex("\nwith\napp as")
-end = txt.index("'yawey';", start) + len("'yawey';")
-qsql = txt[start+1:end].strip().rstrip(';').strip()
-assert 'mauth' in qsql and 'exp_hash' in qsql and 'hocc' in qsql, "取到的不是大宽表段!"
+begin = txt.index("-- <<WIDE_TABLE_SQL_BEGIN>>")
+end = txt.index("-- <<WIDE_TABLE_SQL_END>>", begin)
+qsql = txt[begin:end]
+qsql = qsql[qsql.index("\nwith\n"):].strip().rstrip(';').strip()
+assert 'main_change' in qsql and 'exp_hash' in qsql and 'hist_occ_summary' in qsql, "取到的不是大宽表段!"
 print("sql chars:", len(qsql), "head:", qsql[:60].replace("\n"," "))
 
 for _ in range(6):

@@ -24,7 +24,11 @@ Thumbs.db
 *.env
 *.config
 
-# ===== 含明文密码的文件(已备份到 code 外的 密码文件库/, 不入库) =====indonesia_presto.py
+# Excel打开中被占用的临时中间版（关闭后可删）
+墨西哥/临额封顶与业绩占比分析_tmp.xlsx
+
+# ===== 含明文密码的文件(已备份到 code 外的 密码文件库/, 不入库) =====
+indonesia_presto.py
 indonesia_presto_backup.py
 mexico_presto.py
 盘古链接python.py
