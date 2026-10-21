@@ -68,26 +68,52 @@ group by 1,2,3,etl_date;
 delete from mx.tmp_darren_product_table
 where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd');
 
+-- insert into mx.tmp_darren_product_table
+-- select biz_id, 
+--   max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v4') as double)) as fd_creditlevel_main_v4,
+--   max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v4_2') as double)) as fd_creditlevel_main_v4_2,
+--   max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v3_3') as double)) as fd_creditlevel_main_v3_3,
+--   max(cast(json_extract_scalar(outputdata, '$.mex_b300_2025v2') as double)) as mex_b300_2025v2,
+--   max(cast(json_extract_scalar(outputdata, '$.m698_old_1t3_voting_0619rh') as double)) as m698_old_1t3_voting_0619rh,
+--   max(cast(json_extract_scalar(outputdata, '$.fd_high_pass_label') as double)) as fd_high_pass_label,
+--   max(cast(json_extract_scalar(outputdata, '$.credit_amount') as double)) as credit_amount,
+--   max(cast(json_extract_scalar(outputdata, '$.fd_duotou_flag_20250724') as double)) as fd_duotou_flag_20250724,
+--   max(cast(json_extract_scalar(outputdata, '$.daily_max_available_limit') as double)) as daily_max_available_limit,
+--   max(etl_date) as etl_date
+-- from(
+--   select biz_id, outputdata,etl_date
+--   from ods.s21_risk_strategy_record 
+--   where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd') 
+--     and productid in (432,426,464,331,196)  -- 20260916增加464
+--     and strategytype = 'CHAMPION'
+-- ) t0
+-- group by 1 ;
+
+ 
 insert into mx.tmp_darren_product_table
-select biz_id, 
-  max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v4') as double)) as fd_creditlevel_main_v4,
-  max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v4_2') as double)) as fd_creditlevel_main_v4_2,
-  max(cast(json_extract_scalar(outputdata, '$.fd_creditlevel_main_v3_3') as double)) as fd_creditlevel_main_v3_3,
-  max(cast(json_extract_scalar(outputdata, '$.mex_b300_2025v2') as double)) as mex_b300_2025v2,
-  max(cast(json_extract_scalar(outputdata, '$.m698_old_1t3_voting_0619rh') as double)) as m698_old_1t3_voting_0619rh,
-  max(cast(json_extract_scalar(outputdata, '$.fd_high_pass_label') as double)) as fd_high_pass_label,
-  max(cast(json_extract_scalar(outputdata, '$.credit_amount') as double)) as credit_amount,
-  max(cast(json_extract_scalar(outputdata, '$.fd_duotou_flag_20250724') as double)) as fd_duotou_flag_20250724,
-  max(cast(json_extract_scalar(outputdata, '$.daily_max_available_limit') as double)) as daily_max_available_limit,
-  etl_date
-from(
-  select biz_id, outputdata,etl_date
-  from ods.s21_risk_strategy_record 
-  where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')
-    and productid in (432,426,331,196)
-    and strategytype = 'CHAMPION'
-) t0
-group by 1,11;
+select
+    a.biz_id,
+    max(cast(json_extract_scalar(a.outputdata, '$.fd_creditlevel_main_v4') as double)) as fd_creditlevel_main_v4,
+    max(cast(json_extract_scalar(a.outputdata, '$.fd_creditlevel_main_v4_2') as double)) as fd_creditlevel_main_v4_2,
+    max(cast(json_extract_scalar(a.outputdata, '$.fd_creditlevel_main_v3_3') as double)) as fd_creditlevel_main_v3_3,
+    max(cast(json_extract_scalar(a.outputdata, '$.mex_b300_2025v2') as double)) as mex_b300_2025v2,
+    max(cast(json_extract_scalar(a.outputdata, '$.m698_old_1t3_voting_0619rh') as double)) as m698_old_1t3_voting_0619rh,
+    max(cast(json_extract_scalar(a.outputdata, '$.fd_high_pass_label') as double)) as fd_high_pass_label,
+    max(cast(json_extract_scalar(a.outputdata, '$.credit_amount') as double)) as credit_amount,
+    max(cast(json_extract_scalar(a.outputdata, '$.fd_duotou_flag_20250724') as double)) as fd_duotou_flag_20250724,
+    max(cast(json_extract_scalar(a.outputdata, '$.daily_max_available_limit') as double)) as daily_max_available_limit,
+    max(a.etl_date) as etl_date
+from ods.s21_risk_strategy_record a 
+left join mx.tmp_darren_product_table b
+    on a.biz_id = b.biz_id
+where a.etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')  
+  and a.productid in (432,426,464,331,196)
+  and a.strategytype = 'CHAMPION'
+  -- 核心条件二选一：
+  -- 1. b.biz_id is null：tmp不存在，全新biz，重算新增
+  -- 2. b.etl_date >= 近5天起始日期：tmp已有，并且它的最新日期在近5天内 → 需要刷新重算
+  and ( b.biz_id is null OR b.etl_date >= to_char(date_add('day', -5, current_date), 'yyyymmdd') )  
+group by 1;
 
 
 delete from mx.tmp_darren_model_table
@@ -301,6 +327,9 @@ on t1.externalid = t2.externalid;
 drop table if EXISTS mx.yj_test_table_250225;
 CREATE table mx.yj_test_table_250225 as
 select *
+,case when  (max_overdue_day_30d_all >= 1 or emcontact_curr_ovd_cnt_all > 0 or
+other_app_has_loan_flag >= 1 and other_app_has_overdue_interval_tag='在逾订单发生在90天外') then 1 else 0 end as release_flag-- 3个放松客群只要命中一者就算
+,case when first_grantcredit_7d_amount<=500 then 1 else 0 end as low_limit_flag-- 小金额客群
 ,CASE WHEN mex_b300_2025v2 <= 0.163083 THEN '(-inf, 0.163083]'
   WHEN mex_b300_2025v2 > 0.163083 AND mex_b300_2025v2 <= 0.188569 THEN '(0.163083, 0.188569]'
   WHEN mex_b300_2025v2 > 0.188569 AND mex_b300_2025v2 <= 0.21973 THEN '(0.188569, 0.21973]'
@@ -430,14 +459,42 @@ from_base(substr(to_hex(sha256(to_utf8('20251106'||credit_no||app_group_sha256))
    when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=8  then 'test_中尾部_C_07_04_00_85'
         else '未转产' end end
  as product_level_test_260701
-   ,case when app_time >= date'2026-07-22' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 
+   ,case when app_time >= date'2026-09-20' and last_product_level is not null  then 
+   case when v3_flag='V5_3'  then  
+  case when from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V5_3>=1 and fd_changepro_V5_3<=2 then 'base_1档_B_07_03_00_60'
+  when from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=1 and fd_changepro_V5_3<=2 then 'test_1档_B_07_04_00_75'
+   when from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V5_3>=3 and fd_changepro_V5_3<=6 then 'base_2档_B_07_03_00_60'
+  when from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=3 and fd_changepro_V5_3<=6 then 'test_2档_C_07_04_00_75'
+  when from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V5_3>=7 and fd_changepro_V5_3<=10 then 'test_3档_B_07_03_00_60'
+  when from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=7 and fd_changepro_V5_3<=10 then 'base_3档_C_07_03_00_75'
+  when from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and  fd_changepro_V5_3>10 then 'test_4档_C_07_03_00_85'
+  when from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>10 then 'base_4档_B_07_02_00_75' else '未转产' end 
+  when v3_flag='V6_1'  then 
+  case when  from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V6_1>=1 and fd_changepro_V6_1<=3 then 'base_1档_B_07_03_00_60'
+  when  from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>=1 and fd_changepro_V6_1<=3 then 'test_1档_B_07_04_00_75'
+   when  from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V6_1>=4 and fd_changepro_V6_1<=6 then 'base_2档_B_07_03_00_60'
+  when  from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>=4 and fd_changepro_V6_1<=6 then 'test_2档_C_07_04_00_75'
+  when  from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V6_1>=7 and fd_changepro_V6_1<=8 then 'test_3档_B_07_03_00_60'
+  when  from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>=7 and fd_changepro_V6_1<=8 then 'base_3档_C_07_03_00_75'
+  when  from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and  fd_changepro_V6_1>8 then 'test_4档_C_07_03_00_85'
+  when  from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>8 then 'base_4档_B_07_02_00_75' end end
+   
+  when app_time >= date'2026-07-22' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 
+  case when v3_flag='V5_3'  then 
   case when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V5_3>=1 and fd_changepro_V5_3<=2 then 'base_1档_B_07_03_00_60'
   when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=1 and fd_changepro_V5_3<=2 then 'test_1档_B_07_04_00_75'
    when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V5_3>=3 and fd_changepro_V5_3<=6 then 'base_2档_B_07_03_00_60'
   when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V5_3>=3 and fd_changepro_V5_3<=6 then 'test_2档_C_07_04_00_75'
-  when last_product_level is not null and fd_changepro_V5_3>=7 and fd_changepro_V5_3<=10 then 'test_3档_C_07_03_00_75'
-  when last_product_level is not null and fd_changepro_V5_3>10 then 'test_4档_B_07_02_00_75'
-        else '未转产' end end as product_level_change_test_260722,
+  when last_product_level is not null and fd_changepro_V5_3>=7 and fd_changepro_V5_3<=10 then 'base_3档_C_07_03_00_75'
+  when last_product_level is not null and fd_changepro_V5_3>10 then 'test_4档_B_07_02_00_75'  end 
+  when v3_flag='V6_1'  then 
+  case when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V6_1>=1 and fd_changepro_V6_1<=3 then 'base_1档_B_07_03_00_60'
+  when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>=1 and fd_changepro_V6_1<=3 then 'test_1档_B_07_04_00_75'
+   when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 and fd_changepro_V6_1>=4 and fd_changepro_V6_1<=6 then 'base_2档_B_07_03_00_60'
+  when last_product_level is not null and from_base(substr(to_hex(sha256(to_utf8('20251107'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 and fd_changepro_V6_1>=4 and fd_changepro_V6_1<=6 then 'test_2档_C_07_04_00_75'
+  when last_product_level is not null  and fd_changepro_V6_1>=7 and fd_changepro_V6_1<=8 then 'base_3档_C_07_03_00_75'
+  when last_product_level is not null  and fd_changepro_V6_1>8 then 'base_4档_B_07_02_00_75' end end 
+  end as product_level_change_test_260722,
  case  when if_in_sx_24h<>1 then '01.距离授信不足24h'
          when if_in_sx_24h=1 and if_SX_passed_24h=1 then '02.24h用信'
          when if_in_sx_24h=1 and change_flag='01.24H转产' and app_time< date'2026-07-16' then '03.执行24h未用信转产' 
@@ -450,8 +507,11 @@ from_base(substr(to_hex(sha256(to_utf8('20251106'||credit_no||app_group_sha256))
       when COALESCE(last_product_level, product_level)='D_1_03' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.7 then 'test_1档_D_1_03'
         when COALESCE(last_product_level, product_level)='C_07_03_00_75' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 'base_2档_C_07_03_00_75'
         when COALESCE(last_product_level, product_level)='D_1_04' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.7 then 'test_2档_D_1_04'
-        when COALESCE(last_product_level, product_level)='B_07_02_00_75' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 'base_3档_B_07_02_00_75'
-        when COALESCE(last_product_level, product_level)='D_1_05' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.7 then 'test_3档_D_1_05'
+        when COALESCE(last_product_level, product_level)='B_07_02_00_75' and  app_time < date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 'base_3档_B_07_02_00_75'
+        when COALESCE(last_product_level, product_level)='D_1_05' and  app_time < date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.7 then 'test_3档_D_1_05'
+        -- 9.15灰度50%测试C_07_03_00_85
+        when COALESCE(last_product_level, product_level)='B_07_02_00_75' and  app_time >= date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 then 'base_3档_B_07_02_00_75'
+        when COALESCE(last_product_level, product_level)='C_07_03_00_85' and  app_time >= date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.5 then 'test_3档_C_07_03_00_85'
          when COALESCE(last_product_level, product_level)='A_07_01_50_00' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 'base_4档_A_07_01_50_00'
         when COALESCE(last_product_level, product_level)='D_1_06'  and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 > 0.7 then 'test_4档_D_1_06' end end as product_test_0722
 ,case when app_time >= date'2026-07-22' and from_base(substr(to_hex(sha256(to_utf8('20260512'||credit_no||app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7
@@ -952,6 +1012,7 @@ a.biz_id
 ,app_group_sha256
 ,last_product_level-- 从转产线决策流取的转产前产品,如果没有转产线这个值会为空
 ,fd_changepro_V5_3 -- 转产线决策流的等级
+,fd_changepro_V6_1 -- 转产线决策流的等级
 ,substr(cast(current_timestamp as varchar), 1, 24) as update_time
 ,cast(grantcredit_amount as decimal) as grantcredit_amount
 ,cast(grantcredit_7d_amount as decimal) as grantcredit_7d_amount
@@ -966,6 +1027,11 @@ end as if_inherit_tag
 
 -- 资产等级更新标签
 ,case 
+when a.app_time>=date'2026-10-16' then 'V6_1' 
+
+when a.app_time>=date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.5 then 'V6_1' 
+when a.app_time>=date'2026-09-15' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.app_group_sha256))),1,4),16)/65536.0000000000000000 >= 0.5 then 'V5_3' 
+
 when a.app_time>=date'2026-09-04' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.7 then 'V6_1' 
 when a.app_time>=date'2026-09-04' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.app_group_sha256))),1,4),16)/65536.0000000000000000 >= 0.7 then 'V5_3' 
 
@@ -1002,6 +1068,10 @@ when (a.app_time>=date'2025-07-11' and from_base(substr(to_hex(sha256(to_utf8('2
 when (a.app_group='Mexcredo' and a.app_time>=date'2025-06-20' and a.app_time<=date'2025-06-23' and from_base(substr(to_hex(sha256(to_utf8('20250617'||a.phone||'other'))),1,4),16)/65536.0000000000000000 >0.5) then 'V3_1'
 when (a.app_time>=date'2025-06-20' and from_base(substr(to_hex(sha256(to_utf8('20250617'||a.phone||a.app_group_sha256))),1,4),16)/65536.0000000000000000 >0.5) then 'V3_1'
 end as v3_flag
+,  case 
+    when a.app_time>=date'2026-08-20' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.    app_group_sha256))),1,4),16)/65536.0000000000000000 <= 0.3 then 'V6_1<=0.3' 
+    when a.app_time>=date'2026-08-20' and from_base(substr(to_hex(sha256(to_utf8('20260818'||a.identity||a.    app_group_sha256))),1,4),16)/65536.0000000000000000 >= 0.7 then 'V5_3>=0.7' 
+    end as v3_flag_huidu
 ,fd_creditlevel_main_v3_3
 ,a.fd_high_pass_label
 --v4资产等级
@@ -1304,38 +1374,41 @@ is_loop_limit_expired,
 cap_test_fd_global_limit_cap,
 cap_test_credit_amount,
 one_click_loan_tag,
--- 0819离线发临额  在贷人群
-offline_temp.tagg_0819 as tagg_0819,
-case when app_date >= date'2026-08-18' and app_date <= date_add('day', +5, date'2026-08-18') 
-     then offline_temp.temp_limit_tag_0819 end as temp_limit_0819_tag,
--- 0820离线发临额  无在贷人群
-offline_temp.curr_main_credit_limit_0820 as curr_main_credit_limit_0820,
-case when app_date >= date'2026-08-19' and app_date <= date_add('day', +5, date'2026-08-19') 
-     then offline_temp.temp_limit_tag_0820 end as temp_limit_0820_tag,
--- 0826离线发临额  在贷人群
-offline_temp.tagg_0826 as tagg_0826,
-case when app_date >= date'2026-08-25' and app_date <= date_add('day', +5, date'2026-08-25') 
-     then offline_temp.temp_limit_tag_0826 end as temp_limit_0826_tag,
--- 0827离线发临额  无在贷人群
-offline_temp.curr_main_credit_limit_0827 as curr_main_credit_limit_0827,
-case when app_date >= date'2026-08-26' and app_date <= date_add('day', +5, date'2026-08-26') 
-     then offline_temp.temp_limit_tag_0827 end as temp_limit_0827_tag,
--- 0902离线发临额  在贷人群
-offline_temp.tagg_0902 as tagg_0902,
-case when app_date >= date'2026-09-01' and app_date <= date_add('day', +5, date'2026-09-01') 
-     then offline_temp.temp_limit_tag_0902 end as temp_limit_0902_tag,
--- 0903离线发临额  无在贷人群
-offline_temp.curr_main_credit_limit_0903 as curr_main_credit_limit_0903,
-case when app_date >= date'2026-09-02' and app_date <= date_add('day', +5, date'2026-09-02') 
-     then offline_temp.temp_limit_tag_0903 end as temp_limit_0903_tag,
--- 0909离线发临额  在贷人群
-offline_temp.tagg_0909 as tagg_0909,
-case when app_date >= date'2026-09-08' and app_date <= date_add('day', +5, date'2026-09-08') 
-     then offline_temp.temp_limit_tag_0909 end as temp_limit_0909_tag,
--- 0910离线发临额  无在贷人群
-offline_temp.curr_main_credit_limit_0910 as curr_main_credit_limit_0910,
-case when app_date >= date'2026-09-09' and app_date <= date_add('day', +5, date'2026-09-09') 
-     then offline_temp.temp_limit_tag_0910 end as temp_limit_0910_tag,
+
+-- 0923离线发临额  在贷人群
+offline_temp.tagg_0923 as tagg_0923,
+case when app_date >= date'2026-09-22' and app_date <= date_add('day', +5, date'2026-09-22') 
+     then offline_temp.temp_limit_tag_0923 end as temp_limit_0923_tag,
+-- 0924离线发临额  无在贷人群
+offline_temp.curr_main_credit_limit_0924 as curr_main_credit_limit_0924,
+case when app_date >= date'2026-09-23' and app_date <= date_add('day', +5, date'2026-09-23') 
+     then offline_temp.temp_limit_tag_0924 end as temp_limit_0924_tag,
+-- 0930离线发临额  在贷人群
+offline_temp.tagg_0930 as tagg_0930,
+case when app_date >= date'2026-09-29' and app_date <= date_add('day', +5, date'2026-09-29') 
+     then offline_temp.temp_limit_tag_0930 end as temp_limit_0930_tag,
+-- 1001离线发临额  无在贷人群
+offline_temp.curr_main_credit_limit_1001 as curr_main_credit_limit_1001,
+case when app_date >= date'2026-09-30' and app_date <= date_add('day', +5, date'2026-09-30') 
+     then offline_temp.temp_limit_tag_1001 end as temp_limit_1001_tag,
+-- 1007离线发临额  在贷人群
+offline_temp.tagg_1007 as tagg_1007,
+case when app_date >= date'2026-10-06' and app_date <= date_add('day', +5, date'2026-10-06') 
+     then offline_temp.temp_limit_tag_1007 end as temp_limit_1007_tag,
+-- 1008离线发临额  无在贷人群
+offline_temp.curr_main_credit_limit_1008 as curr_main_credit_limit_1008,
+
+case when app_date >= date'2026-10-07' and app_date <= date_add('day', +5, date'2026-10-07') 
+     then offline_temp.temp_limit_tag_1008 end as temp_limit_1008_tag,
+-- 0916离线发临额  在贷人群
+offline_temp.tagg_0916 as tagg_0916,
+case when app_date >= date'2026-09-15' and app_date <= date_add('day', +5, date'2026-09-15') 
+     then offline_temp.temp_limit_tag_0916 end as temp_limit_0916_tag,
+-- 0917离线发临额  无在贷人群
+offline_temp.curr_main_credit_limit_0917 as curr_main_credit_limit_0917,
+case when app_date >= date'2026-09-16' and app_date <= date_add('day', +5, date'2026-09-16') 
+     then offline_temp.temp_limit_tag_0917 end as temp_limit_0917_tag,
+
 case when change_event_type = 'C001' then '新客授信'
   when change_event_type = 'C002' then '单期结清调额'
   when change_event_type = 'C005' then '转产线'
@@ -1396,8 +1469,18 @@ left join
  group by 1
  ) t
  on t.biz_id=a.biz_id
-left join (select *,
-  row_number() over(partition by biz_id order by etl_date) as rn 
+left join (select biz_id,
+fd_creditlevel_main_v4,
+fd_creditlevel_main_v4_2,
+fd_creditlevel_main_v3_3,
+mex_b300_2025v2,
+m698_old_1t3_voting_0619rh,
+fd_high_pass_label,
+-- credit_amount,
+fd_duotou_flag_20250724,
+-- daily_max_available_limit,
+etl_date,
+  row_number() over(partition by biz_id order by etl_date desc ) as rn 
   from mx.tmp_darren_product_table)vv
 on cast(vv.biz_id as bigint) = cast(a.biz_id as bigint)
 and rn = 1
@@ -1412,8 +1495,10 @@ left join (
 select biz_id,
   mid,
   risk_credit_limit,-- 本笔占用主额
-  change_used_grantamount
-from mx.darren_bizid_used_grantamount) z 
+  credit_amount, --- 本笔最新全局额度
+  daily_max_available_limit,-- 本笔最新单日最大可借
+  change_used_grantamount -- 总占用额度（不包括本笔）
+from mx.darren_bizid_used_grantamount) z
 on a.biz_id = z.biz_id 
 left join (
 select biz_id,
@@ -1434,6 +1519,7 @@ left join (
     transfer_time,-- 转产线时间
     last_product_level,-- 转产线前产品
     cast(fd_changepro_V5_3 as double)fd_changepro_V5_3,
+    cast(fd_changepro_V6_1 as double)fd_changepro_V6_1,
     -- cast(fd_creditlevel_main_v4_2 as double) as chng_prdct_fd_creditlevel_main_v4_2,
     increase_limit_batch_id-- 提额券批次号
   from mx.change_product) tt2 
@@ -1541,28 +1627,28 @@ left join
 select 
     mid as mid_offline,
 
-    max(case when data_date = '20260826' then tagg end) as tagg_0826,
-    max(case when data_date = '20260826' then temp_limit_tag end) as temp_limit_tag_0826,
-    max(case when data_date = '20260827' then curr_main_credit_limit end) as curr_main_credit_limit_0827,
-    max(case when data_date = '20260827' then temp_limit_tag end) as temp_limit_tag_0827,
+    max(case when data_date = '20260923' then tagg end) as tagg_0923,
+    max(case when data_date = '20260923' then temp_limit_tag end) as temp_limit_tag_0923,
+    max(case when data_date = '20260924' then curr_main_credit_limit end) as curr_main_credit_limit_0924,
+    max(case when data_date = '20260924' then temp_limit_tag end) as temp_limit_tag_0924,
 
-    max(case when data_date = '20260902' then tagg end) as tagg_0902,
-    max(case when data_date = '20260902' then temp_limit_tag end) as temp_limit_tag_0902,
-    max(case when data_date = '20260903' then curr_main_credit_limit end) as curr_main_credit_limit_0903,
-    max(case when data_date = '20260903' then temp_limit_tag end) as temp_limit_tag_0903,
+    max(case when data_date = '20260930' then tagg end) as tagg_0930,
+    max(case when data_date = '20260930' then temp_limit_tag end) as temp_limit_tag_0930,
+    max(case when data_date = '20261001' then curr_main_credit_limit end) as curr_main_credit_limit_1001,
+    max(case when data_date = '20261001' then temp_limit_tag end) as temp_limit_tag_1001,
 
-    max(case when data_date = '20260909' then tagg end) as tagg_0909,
-    max(case when data_date = '20260909' then temp_limit_tag end) as temp_limit_tag_0909,
-    max(case when data_date = '20260910' then curr_main_credit_limit end) as curr_main_credit_limit_0910,
-    max(case when data_date = '20260910' then temp_limit_tag end) as temp_limit_tag_0910,
+    max(case when data_date = '20261007' then tagg end) as tagg_1007,
+    max(case when data_date = '20261007' then temp_limit_tag end) as temp_limit_tag_1007,
+    max(case when data_date = '20261008' then curr_main_credit_limit end) as curr_main_credit_limit_1008,
+    max(case when data_date = '20261008' then temp_limit_tag end) as temp_limit_tag_1008,
 
-    max(case when data_date = '20260819' then tagg end) as tagg_0819,
-    max(case when data_date = '20260819' then temp_limit_tag end) as temp_limit_tag_0819,
-    max(case when data_date = '20260820' then curr_main_credit_limit end) as curr_main_credit_limit_0820,
-    max(case when data_date = '20260820' then temp_limit_tag end) as temp_limit_tag_0820
-  from mx.yuhan_temp_limit_base_table_his
-  -- where data_date in ('20260819','20260820','20260729','20260730','20260805','20260827','20260909','20260910')
-   where data_date in ('20260819','20260820','20260826','20260827','20260902','20260903','20260909','20260910')
+    max(case when data_date = '20260916' then tagg end) as tagg_0916,
+    max(case when data_date = '20260916' then temp_limit_tag end) as temp_limit_tag_0916,
+    max(case when data_date = '20260917' then curr_main_credit_limit end) as curr_main_credit_limit_0917,
+    max(case when data_date = '20260917' then temp_limit_tag end) as temp_limit_tag_0917
+  from mx.yuhan_temp_limit_base_table_his_20260924
+  -- where data_date in ('20260916','20260917','20260729','20260730','20260805','20260924','20261007','20261008')
+   where data_date in ('20260916','20260917','20260923','20260924','20260930','20261001','20261007','20261008')
   group by 1
 )offline_temp
 on cast(a.mid as bigint) = cast(offline_temp.mid_offline as bigint)
@@ -1636,6 +1722,7 @@ on cast(a.biz_id as varchar) = cast(tt17.biz_id17 as varchar)
 and tt17.rn = 1 
 left join (
   select externalid as externalid18,
+  row_number() over(partition by externalid order by createtime) as rn,
     mid,
     createtime,
     -- last_repay_gap_days_app_group,
@@ -1704,6 +1791,6 @@ left join (
     etl_date
   from mx.android_oldCust_mainCreditLevel_charge_V6_1_table) tt18
 on cast(a.biz_id as varchar) = cast(tt18.externalid18 as varchar)
+and tt18.rn=1
 );
-
 
