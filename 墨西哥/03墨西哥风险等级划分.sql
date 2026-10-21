@@ -1,10 +1,7 @@
-
---:{author=wenjing, department=墨西哥风险策略, dagName=darren_risk_wide_table, taskName=darren_risk_wide_table}
 -- 3、取高通过组标签(租户首复贷判断决策流)\credit_amount&daily_max_available_limit复贷授信决策流
 delete from mx.tmp_wenj_product_table
-where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')
-;
---:{author=wenjing, department=墨西哥风险策略, dagName=darren_risk_wide_table, taskName=darren_risk_wide_table}
+where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd');
+
 insert into mx.tmp_wenj_product_table
 select biz_id, 
   max(cast(json_extract_scalar(outputdata, '$.credit_amount') as double)) as credit_amount,
@@ -17,12 +14,9 @@ from(
     and productid in (195,196,217,304)
     and strategytype = 'CHAMPION'
 ) t0
-group by 1,4
-;
---:{author=wenjing, department=墨西哥风险策略, dagName=darren_risk_wide_table, taskName=darren_risk_wide_table}
-drop table if exists mx.darren_risk_wide_table
-;
---:{author=wenjing, department=墨西哥风险策略, dagName=darren_risk_wide_table, taskName=darren_risk_wide_table}
+group by 1,4;
+
+drop table if exists mx.darren_risk_wide_table;
 create table mx.darren_risk_wide_table as 
 SELECT 
     a.*, 
@@ -664,5 +658,4 @@ on a.biz_id = cast(f.biz_idf as varchar)
 
 WHERE 
     date(a.create_time)>=date_add('day',-720,DATE(now())) 
-    AND date(a.create_time)<=current_date
-;
+    AND date(a.create_time)<=current_date;

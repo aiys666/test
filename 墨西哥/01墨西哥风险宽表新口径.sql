@@ -1,9 +1,8 @@
-m'xmx
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
 delete from mx.tmp_darren_double_loan_tag_table
-where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd');
+
 insert into mx.tmp_darren_double_loan_tag_table
 select cast(externalid as bigint) as externalid,
   cast(json_extract_scalar(outputdata, '$.double_loan_tenant') as double) as double_loan_tenant,
@@ -15,11 +14,13 @@ where productid in (310,330,331)
 and strategytype = 'CHAMPION'
 and etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
 delete from mx.tmp_one_click_loan_tag
-where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd')
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+where etl_date >= to_char(date_add('day', -1, current_date), 'yyyymmdd');
+
+
 insert into mx.tmp_one_click_loan_tag
 SELECT biz_id,
   cast(json_extract_scalar(outputdata, '$.one_click_loan_tag') as varchar) as one_click_loan_tag,
@@ -33,15 +34,15 @@ FROM (select *,
   -- etl_date >= '20260101'
   AND strategytype = 'CHAMPION'
   AND strategymainid = 599) t0 
-  where rn = 1
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+  where rn = 1 ;
+
+
+
+
 --实时修改
 -- wxs_application_funnel建表
-  drop table if exists mx.wxs_reloan
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-create table if not exists mx.wxs_reloan as
+  drop table if exists mx.wxs_reloan; 
+  create table if not exists mx.wxs_reloan as
 
   select distinct  t1.id
   ,case when issue_num is null then 1 else issue_num end as  reloan_num
@@ -58,11 +59,12 @@ create table if not exists mx.wxs_reloan as
   where create_time > release_time and release_time  is not null
   group by create_time, t1.id ,t1.mid) t2
   on t1.id = t2.id
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_risk_ttl
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+  ;
+  
+  
+
+
+drop table if exists mx.wxs_risk_ttl;
 create table if not exists mx.wxs_risk_ttl as 
 --不分期贷后
 select 
@@ -210,8 +212,9 @@ left join (
   from ods_view_presto.s02_loan_repayment) t0 ) t1 
   group by 1
 ) t4 on t1.camera_id=t4.camera_id
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+;  
+
+
 --- 该表是旧逻辑 没有使用
 -- drop table if exists mx.wxs_risk_2stage;
 -- create table if not exists mx.wxs_risk_2stage as 
@@ -334,9 +337,7 @@ left join (
   
 
 --悲观逾期口径
-drop table if exists mx.wxs_vintage_all1
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+drop table if exists mx.wxs_vintage_all1;
 create table mx.wxs_vintage_all1 as
 	select 
 		ceil(lr.camera_id) camera_id
@@ -349,10 +350,10 @@ create table mx.wxs_vintage_all1 as
 		on l.camera_id = lr.camera_id
 	where lr.indexs = loan_indexs
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_vintage_all2
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
+drop table if exists mx.wxs_vintage_all2;
 create table mx.wxs_vintage_all2 as
 	select 
 		ceil(camera_id) camera_id
@@ -380,10 +381,10 @@ create table mx.wxs_vintage_all2 as
 	union all
 	select camera_id, 10 indexs , should_date, fact_date, state from mx.wxs_vintage_all1 where loan_indexs < 10
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_vintage_all3
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
+drop table if exists mx.wxs_vintage_all3;
 create table mx.wxs_vintage_all3 as
 select 
     camera_id as id
@@ -414,7 +415,11 @@ select
 	  -- where if_issue = 1 
     -- and app_date > '2024-01-01'
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
+
+
 -- drop table if exists mx.wxs_vintage_all31;
 -- create table mx.wxs_vintage_all31 as
 -- select 
@@ -617,9 +622,7 @@ select
 -- group by 1,2;
 
 
-drop table if exists mx.wxs_vintage_all31
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+drop table if exists mx.wxs_vintage_all31;
 create table mx.wxs_vintage_all31 as
 select 
   id 
@@ -839,12 +842,9 @@ from
   left join ods_view_presto.s02_loan_repayment_detail rd on rd.camera_id = t1.id 
   group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27
 ) o
-group by 1,2
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_vintage_all4
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+group by 1,2;
+
+drop table if exists mx.wxs_vintage_all4;
 create table mx.wxs_vintage_all4 as
 
 select 
@@ -1151,10 +1151,11 @@ sum(if(indexs=4, repay_t30_coupon_substract_all, 0)) as coupon_substract_4_30
 from mx.wxs_vintage_all31
 group by 1
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_vintage_all5
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
+
+drop table if exists mx.wxs_vintage_all5;
 create table mx.wxs_vintage_all5 as
 select
 a.id  id1
@@ -1470,10 +1471,11 @@ from mx.wxs_vintage_all4
 ) b
 on a.id=b.id_b
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_overdue_basetable
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
+
+
+
+
+drop table if exists mx.wxs_overdue_basetable;
 create table if not exists mx.wxs_overdue_basetable as  
 select
 camera_id
@@ -1529,11 +1531,12 @@ from ods_view_presto.s09_os_credit_snapshot tt1
 left join mx.wxs_risk_ttl tt3 on cast(tt1.id as varchar) = cast(ceil(tt3.camera_id) as varchar) --不分期贷后
 left join mx.wxs_vintage_all5 tt4 on cast(tt1.id as varchar) = cast(tt4.id1 as varchar)
 ;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_application_funnel_1
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-create table  mx.wxs_application_funnel_1 as
+
+
+
+
+  drop table if exists mx.wxs_application_funnel_1;    
+  create table  mx.wxs_application_funnel_1 as
   select 
   a.*
   -- ,case 
@@ -1692,12 +1695,13 @@ when tenant_id = 1721000000984539 then 'tengo' end as tenant
   select *
   from mx.tmp_one_click_loan_tag) g 
   on cast(b.biz_id as varchar) = cast(g.biz_id as varchar)
-; 
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_application_funnel_2
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-create table  mx.wxs_application_funnel_2 as
+  ;
+  
+  
+  
+  
+ drop table if exists mx.wxs_application_funnel_2;    
+  create table  mx.wxs_application_funnel_2 as
   SELECT B.BIZ_ID
   ,if_in_shou_anti_fraud  --强反欺诈（首贷）
   ,if_shou_anti_fraud_passed
@@ -1777,7 +1781,7 @@ create table  mx.wxs_application_funnel_2 as
   ,if_fu_post_model_reject_rerun_refused
 
   ,if_in_post_model
-  
+  ,sx_time -- 授信成功时间
   
   FROM
   (SELECT BIZ_ID,status,double_loan FROM ods_view_presto.s05_creditx_order group by 1,2,3) b 
@@ -1947,7 +1951,7 @@ create table  mx.wxs_application_funnel_2 as
               left join
       (
       SELECT 
-        biz_id
+        biz_id,create_time as sx_time
     ,1 as if_in_sx,
       case when sum(case when date_diff('minute',create_time,cast(date_format(now(), '%Y-%m-%d %H:%i:%s.000') as timestamp)) >= 6*60 then 1 else 0 end)>=1 then 1 else 0 end as if_in_sx_6h, 
       case when sum(case when date_diff('minute',create_time,cast(date_format(now(), '%Y-%m-%d %H:%i:%s.000') as timestamp)) >= 24*60 then 1 else 0 end)>=1 then 1 else 0 end as if_in_sx_24h, 
@@ -1963,7 +1967,7 @@ create table  mx.wxs_application_funnel_2 as
       case when sum(case when approve_result='PASSED' and date_diff('minute',create_time,update_time)<=120*60 AND date_diff('minute',create_time,cast(date_format(now(), '%Y-%m-%d %H:%i:%s.000') as timestamp))>= 120 * 60 then 1 else 0 end)>=1 then 1 else 0 end as if_SX_passed_120h
     FROM  ods_view_presto.s05_creditx_processor_record 
       where current_processor in ('首贷授信等待节点','复贷授信等待节点')
-      group by 1 
+      group by 1 ,2
       ) p15
       on b.biz_id = p15.biz_id  
                 left join
@@ -2030,12 +2034,14 @@ left join (select biz_id,
 				where current_processor in ('首贷后置模型拒绝节点') --- 授信等待节点是后置的起始点
 				group by 1) p20
   on b.biz_id = p20.biz_id
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-drop table if exists mx.wxs_application_funnel
-;
---:{author=tudalun, department=墨西哥, dagName=wxs_wide_table_create, taskName=wxs_appication_funnel}
-create table  mx.wxs_application_funnel as
+
+
+  ;
+  
+  
+  
+  drop table if exists mx.wxs_application_funnel;
+  create table  mx.wxs_application_funnel as
   select a.*,b.*
   from 
   mx.wxs_application_funnel_1 a 
@@ -2043,4 +2049,6 @@ create table  mx.wxs_application_funnel as
   mx.wxs_application_funnel_2 b
   on a.app_id = b.BIZ_ID 
   where create_date>=date_add('day',-720,DATE(now())) and create_date<=current_date
-;
+  ;
+
+
