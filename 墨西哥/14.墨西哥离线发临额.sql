@@ -90,7 +90,7 @@ on t0.mid = t3.mid
 -- 以下即发放人群  之前的版本
 -- where id_curr_overdue_days <= 0 -- 当前未逾期
 -- and t0.age <= 65 -- 年龄<=65
--- and id_30days_max_overdue_days <= 0 -- 近30天最大逾期天数<=0(即近30天无逾期记录)
+-- and l <= 0 -- 近30天最大逾期天数<=0(即近30天无逾期记录)
 -- -- and curr_main_available_limit < 200 --- 可用额度不足     (没做这个限制  限制了不利于追业绩)
 where curr_ovd_cnt_this_app_group <= 0 -- 本包当前无逾期
 and curr_ovd_cnt_other_app_group_90d <= 0 --- 他包近90天无逾期
