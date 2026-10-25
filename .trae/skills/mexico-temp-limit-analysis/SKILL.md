@@ -193,9 +193,92 @@ temp_limit_issue_amount
 - ⚠️ 与"临额/占用主额 比值散落 0.1~2.0"**不矛盾**：基准是主额度，占用主额 ≤ 主额度（且离线额度 5 天有效可多笔复用），换算到占用主额必然散落。**纠正 §1.6 旧表述"不是固定比例"**——准确说法是"基准是主额度、按档位取固定比例"。
 - 跑数：`_t_offbase.py`（已删）。
 
+### 1.9 临额宽表 v2/v3 与九维度分析（2026-10-21 落库，65,972 笔 = 2026-09-01~10-20 复贷放款 if_issue=1）
+
+**两张物理表（后续临额分析统一从表3取数，勿再从底表重算）**：
+- `mx.yj_temp_limit_wide_table_v2`：65,972 行 / 26 列，口径=`放款资产额度指标_20260901起.sql`，含 voucher_limit；恒等式 `contract_amount = main_used_this + offline_used_this + online_used_this + voucher_limit` 已验证残差 0
+- `mx.yj_temp_limit_wide_table_v3`：65,972 行 / 93 列，在 v2 基础上追加 9 组维度字段，是所有临额分析的统一基础表
+
+**v3 的 9 组字段清单**：
+
+| 组 | 字段 |
+|---|---|
+| 标识时间 | issue_week / issue_month / release_time / v6_1_level / v6_1_grade |
+| 策略 | strategy_version(V5_2/V5_3) / use_score_1522 / use_type_1523 / issue_tag_1386 |
+| 场景 | used_scenario(none/offline/online) / grant_scenario(none/offline/online/both) / is_temp_used |
+| 额度结构 | 主额/离线/在线 各自 grant、used、available + temp_used_total / temp_share_of_contract / uplift_amount |
+| 上限 | is_main_capped / is_contract_capped / **cap_type(A主额单独顶格 / B主额+离线合计顶格 / C在线突破 / N未撞顶)** / add_if_cap_50000 |
+| 供给效率 | offline_grant_time / offline_age_days / offline_expire_days / offline_use_rate / offline_unused_amount / online_claimed / online_use_rate |
+| 风险收息 | loan_cycle / haircut_amount / should_interest / interest_rate / t0·t3·t7 各期 should&overdue / i1t0~i4t7 |
+
+**九条分析结论（证据均为表3口径，窗口 09-01~10-20）**：
+1. **场景规模**：none 52,417 笔/6,798 万；offline 5,961 笔/1,374 万（临额占合同 29.9%）；online 7,594 笔/1,656 万（21.5%）。发而未用占比大：none+both 2,566 笔、none+offline 2,418 笔、none+online 5,784 笔。
+2. **供给漏斗**：离线持额 11,312 笔（17.1%）、实际用 5,961 笔（**笔级使用率 52.7%**，介于旧口径冲突 16% 与 56.7% 之间，引用需注明口径）；发放 1,599.0 万 vs 用 408.9 万（笔级金额比 25.6%，**批次口径 S/G≈74.9% 才是真兑现率**）。在线弹窗 15,944 笔（24.2%）/903.0 万，领取 7,594 笔（**领取率 47.6%**）/364.1 万（**金额兑现 40.3%**）→ 在线主要损失在「已弹窗未领取」，提升领取率收益高于继续扩大发放额。
+3. **额度结构**：主额按笔累加 2.89 亿 / 离线 1,599 万 / 在线 903 万；D_1_03 笔均可用 6,292/6,905/10,758（主/离/在线），B_07_04 为 5,425/5,924/9,254。
+4. **增信效果（件均抬升）**：g7 件均 1,113→1,602（离线 +44%）/1,368（在线 +23%）；g8 886→1,159（+31%）/1,127（+27%）；临额占合同比离线 20%~43%、在线 18%~25%。
+5. **上限约束**：撞顶 342 笔（0.52%）——A 主额单独顶格 92 笔/85.2 万、B 主额+离线合计顶格 144 笔/140.8 万、C 在线突破 106 笔/59.0 万，合计被压 **285.05 万（=放款额 +3.0%）**；周撞顶 29→71 笔（0.39%→0.72%）逐周上行。`add_if_cap_50000 = GREATEST(LEAST(主额可用+离线可用,50000)−contract_amount,0)` 可直接聚合测算放开 5 万的反事实。
+6. **风险归因**：1T0/4T7 = none 28.6%/32.0%、offline 24.9%/30.2%、online 26.3%/31.2%——**临额组整体坏账不高于 none**；但分段异质：g3 online 28.0% vs none 21.2%（低分段在线加杠杆有害）；g8 offline 35.9% vs none 39.7%、g10 offline 38.2% vs none 49.9%（离线在该分段仍筛选优质客）。
+7. **策略维度**：V5_2 45,954 笔 / V5_3 20,018 笔；**V5_3 同 type 的 4T7 全面更高**——type2 20.4% vs 30.2%、type3 26.3% vs 35.9%、type4 35.3% vs 42.5%；且 V5_3 type3 渗透 3,502/5,531=63.3% vs V5_2 3,273/5,671=57.7%（下沉放量）→ **V5_3 风险 = 同 type 坏账升高 + 渗透扩大双击**。
+8. **资金效率（有效期递减）**：离线临额剩余有效期 4-5 天用 65.1%、余 3 天 51.7%、余 2 天 48.3%、余 1 天 42.0%、到期当日 38.1%（前松后紧）；全区间 5,461 笔（8.3%）持有但完全未用、沉淀 915 万。
+9. **cap_type 字段化**：A/B/C 三类即 §1.6/§1.7 撞顶三类的逐笔落列版本，后续放开上限测算直接 `group by cap_type` 聚合即可，无需再跑链路 SQL。
+
+**口径提示**：① 110 笔（0.17%）有离线用额但 5 天内无 C015/C013 发放记录（发放侧漏，ogr 关联不上）；② **10-19 周仅 2,758 笔、离线批次未落完、1T0 未到期，周度趋势只看 08-31~09-28**；③ 文件：SQL `墨西哥/放款资产额度指标/临额宽表3_分维度_20260901起.sql`、分析脚本 `临额分析_表3.py`、产出 `临额分析_表3_20260901起.xlsx`（14 sheet，00_结论摘要为纲）。
+
+### 1.10 时刻级有效期锚点（v11，2026-10-25 落库）——「谁能用这笔临额」的唯一判据
+
+**目标表**：`mx.yj_asset_quota_v11`（67,980 行 = 2026-08-25~10-15 复贷放款笔，逐 biz 一行）。SQL：`scripts/放款资产额度指标_v11_20261025.sql`。
+
+**(a) 系统权威有效期 = `expiring_time`，不是自然日**
+- 取 `ods_view_presto.s05_user_creditlimit_change_record.expiring_time`；实测**离线 C015/C013 = `create_time` + 精确 120h**、**在线 C010 = 精确 72h**；决策链参数在节点 **1505**（`temp_credit_amount_expired_day=5`，在线 3）。
+- **v10 旧口径作废**：`DATE_DIFF('day', 发放日, issue_date) BETWEEN 0 AND 5` 是按自然日算，最长可到 **144h**，比真实 120h 多出最多 24h → 会把「已过期但仍被算成可用」的笔误判为持有。
+
+**(b) 「用信时刻」三级锚点：`COALESCE(limit_freeze_time, apply_time, release_time)`**
+
+| 优先级 | 字段 | 来源 | 覆盖率 | 说明 |
+|---|---|---|---|---|
+| 1 | `limit_freeze_time` | `ods.s05_user_creditlimit_used_detail` 中 TEMP `FREEZE_LIMIT` 的 `create_time` | **20.5%**（13,967/67,980） | 最精确，但主额够用时**不冻 TEMP**，只有真用了临额的笔才有一行 |
+| 2 | `apply_time` | `mx.wxs_application_funnel.apply_time`（用户点「确认用信」时刻） | **100%** | 与台账首个 TEMP FREEZE 相差 **24~33 毫秒**，全量 `n_apply_after_freeze = 0`（apply_time 恒 ≤ 冻结时刻）→ **v11 用此为主锚点** |
+| 3 | `release_time` | 放款时刻 | 100% | 比冻结晚**中位 502 秒 / p99 5,002 秒 / 最长 65 小时**，仅作兜底；用它会"迟到管"（未到期的也被杀） |
+
+- 正确判据：`发放时刻 ≤ apply_time ≤ expiring_time` → 该笔可用离线临额。**不能**用 `issue_date`（自然日）代替。
+- `apply_time ≥ app_time`；同一 biz 多行时取 `MAX(apply_time)`。
+
+**(c) v10 → v11 实测差异（2026-09-01~10-15 复贷 67,980 笔）**
+- **316 笔由「持有离线」翻为「不持有」**：290 笔是 120h 边界真过期 + 26 笔是「点击后才发放」；`flipped_used = 0`（**没有一笔真正用掉临额**，只修口径不伤业务）。
+- `holds_offline` 11,904 → **11,588**；离线去重可用 10,889,526 → **10,705,510**（−184,016 / 1.69%）；逐笔可用 14,589,174 → **14,230,923**（−358,251）。
+- **使用额分毫未变**：offline 4,225,829.62 / online 3,682,578.75 → v11 只纠正「持有 / 可用」，不动「实际使用」，历史使用类与坏账类结论无需重跑。
+- A11 断言全绿：`expired_held=0`、`rescued_by_apply_time=15`（age=5 边界，去重可用合计 1,700、实际支用 0）、`apply_time_null=0`、`cap_15000_cnt=184`、`cap_out_of_window=0`、`cap_below_base=0`；A0 诊断全 0。
+
+### 1.11 发放起点漏斗（L1→L5，2026-10-25 落库）
+
+**目标表**：`mx.yj_temp_grant_funnel_v11`（一行 = 一次发放）。SQL：`scripts/临额发放起点_漏斗取数SQL_v11_20261025.sql`；框架见 `references/analysis-framework.md` §8。
+
+**五层 + 每层拆「全周期 / 有效期内」**：L1 发放 → L2 进件 → L3 用信（`apply_time` 有值）→ L4 放款（`if_issue=1`）→ L5 用掉临额（`used_amt>0`），每层同时给**人数 / 件数 / 金额**。
+
+**维度**：`temp_type`（offline/online）× `grade_band`（1_高(1-2) / 2_中(3-7) / 3_低(8+) / unknown）× `strategy_version`（仅在线，1523 落库标签 `LIKE '%V5_3%'`；离线恒 `NA`）。
+- `grade_v5_3` = 发放时刻快照：`mx.android_oldcust_maincreditlevel_charge_v5_3_table`（字段 `android_oldcust_maincreditlevel_charge_v5_3`），按 mid 用 `MAX_BY(value, createtime)` 取 `createtime <= grant_time` 的最近一次。缺失约 0.26%（104/40,692），归 `unknown`。
+
+**归属唯一规则**：一笔进件只挂到「**事件时刻之前最近一次发放**」，事件时刻 = `COALESCE(apply_time, app_time)`；再用时间比较打「有效期内」标签。
+
+**实测（2026-09-01 ~ 2026-10-21）**：
+
+| 指标 | 合计 | 离线 | 在线 |
+|---|---|---|---|
+| 发放次数 / 人数 / 金额 | 40,692 / 16,738 / 4,148.1 万 | 24,454 / 11,549 / 3,226.5 万 | 16,238 / 9,624 / 921.7 万 |
+| 进件件数 / 人数 | 53,285 / 14,096 | 37,047 / 8,498 | 16,238 / 9,624（恒=发放） |
+| 有效期内进件件数 / 人数 | 33,185 / 13,453 | 16,947 / 7,474 | 16,238 / 9,624 |
+| 放款件数 / 人数 | 41,571 / 13,021 | 25,690 / 7,303 | 15,881 / 9,442 |
+| 合同额 / 用掉临额 / 兑现率 | 7,972.7 万 / 740.6 万 / **17.85%** | 4,981.8 万 / 372.5 万 / **11.55%** | 2,990.9 万 / 368.0 万 / **39.93%** |
+
+- **分档兑现率（用掉临额 ÷ 发放额）单调反向**：离线 高 6.19% / 中 12.95% / 低 **21.55%**；在线 高 34.02% / 中 37.70% / 低 **51.83%** —— 低评级给同样的额度，被用掉的比例更高（需求更旺、额度更紧）。
+- **版本**：V5_3 兑现率 **42.92%** > V5_2 **36.76%**。
+- **两类漏斗不可相加**：离线是「先发后用」（mid 级，靠后续进件匹配，一次发放可被多笔进件消耗）；在线是「边发边用」（biz 级，发放即绑定该订单，进件恒=1）。合计行的 40,692 只是两类事件并列，不是统一"发放人数"。
+- **已知口径缺口**：离线使用额按 C015 批次严格归属后 **3,725,450.71**，比 v11 全量 offline_used **4,225,829.62** 少约 **50 万**（差额 = C013 批次消耗 + C015 与 v11 批次金额来源差异）；引用离线兑现率须注明"仅 C015 批次"。
+- 在线 `issue_date` 窗口取到 **10-21**（funnel `app_time < 10-22`）；放到 10-22 则为 **16,248 笔 / 9,224,900**（多 10 笔 / 8,200，属当日新发放）。C013 全量剔除（2,331 笔 / 193 万，9 月开发手动补单异常，不可与 C015 混用）。
+
 ## 2. 核心表与字段
 
-- `mx.yj_test_table_250225`：复贷老客宽表（344列，is_reloan='old' and tenant='yawey'）。只有 app_time/app_date，**无 apply_time**。临额现成字段：
+- `mx.yj_test_table_250225`：复贷老客宽表（344列，is_reloan='old' and tenant='yawey'）。⚠️ **2026-10-21 发散根因定位：该表存在全行精确重复（Exact Duplicate）——同一条记录被 ETL 写入两份，非上游数据问题**。729,135 个 biz_id 各有 2 行、344 列逐字段全同（抽样 biz 1620000459813802 验证 0 差异；contract_amount/temp_grant_amount/release_time 等 12 个关键列全同值）；上游 5 张源表（ctj_yxmodel_base_app_00/01、wxs_application_funnel、darren_risk_wide_table、report_application_funnel7_table）均 1 行 → 表自身写入非幂等。按天实测：`app_date < 2025-10-01` 为 1.0 倍，**`app_date >= 2025-10-01` 起恒为 2.0 倍**（与最大 app_month=2026-10-01 恰构成 12 个月滚动窗口，疑「历史全量 + 近 12 月滚动重算」两份数据 UNION ALL 或 INSERT INTO 未 OVERWRITE）。**影响：count(1)/sum() 会翻倍，count(distinct biz_id) 不受影响；取数必须 GROUP BY biz_id 用 MAX() 聚合或 ROW_NUMBER() rn=1 去重**（表2/表3 建表已按此处理，分析结论未受污染；presto_query_id=20261021_025531_03218_cwitv，numrows=1,500,814≈729,135×2+边缘）。只有 app_time/app_date，**无 apply_time**。临额现成字段：
   - `temp_credit_amount_issue_tag`（double，0/1）：在线临额是否发放，来自 model 1386 outputdata `$.temp_credit_amount_issue_tag`，关联取**最早一条**（row_number order by dt，rn=1）
   - `temp_credit_amount_strategy_test_flag`：V5_2/V5_3 策略分桶（建表时按 apply_time 算好落表，直接用，勿复现 hash）
   - `temp_grant_amount`（bigint）：实际使用临额金额（/1000 为比索）；客户弹窗点"使用"才 >0
@@ -287,13 +370,21 @@ C010 事件打标在线临额曾出现样本污染。复现 Excel「满额动支
 - 【2026-10-19 离线圈选客群逻辑，`墨西哥/14.墨西哥离线发临额.sql` L95-106】准入 where：本包当前无逾期(`curr_ovd_cnt_this_app_group≤0`)、他包近90天无逾期(`curr_ovd_cnt_other_app_group_90d≤0`)、近30天最大逾期≤2天(8/24后收紧至0)、年龄≤65、非禁申(`if_prohibit_apply=0`)、主额度未过期、`app_group∈{Balam Plata,Tuna Cash,Mexcredo}`、有在贷(`onloan_cnt>0`)、复贷(`is_reloan_stgy=1`)、距上次临额使用≥10天；另有 10% 灰度对照组(圈中不发)。**分档(L113-114)**：30% 档 = `V5_3∈[1,2]` 或 `(V5_3∈[3,7] 且 还款分+多头分≥-1)`；其余 10%/20%/15% 档按不同批次 where 切片分配，落库由 `temp_limit_tag` 后缀 `_1/_2/_3` 区分。无在贷人群实验：40% 临额 + 40% 减息(后收5%) + 20% 对照。
 - 【2026-10-19 在线临额客群范围】在线临额**无提前圈人**：所有复贷老客用信时**全量**进 `1522→1523` 决策链，再由 `type∈{1,2,3}` + `tag=1` 两道门槛筛出实际发放。策略版本 V5_2/V5_3 由 `hash(20260811|credit_no|app_group)` 前16bit 分桶(hash>0.7=A恒V5_2、≤0.3=C恒V5_3、中间B按时间切)，`temp_credit_amount_strategy_test_flag` 为生产实走桶落库标签。
 - 【2026-10-19 额度链路图已重画】`墨西哥/临额机制与链路汇报.md` §1.3 mermaid 改为「5 层钳制链(授信→C003→占用主额→临额→合同) + 第③层标注 1万硬顶 + 在线池外叠加/离线池内补差 双分支」，替代原"本笔临额从哪来"单分叉图；§3.1/§3.2 补齐离线圈选两步逻辑与档位。
+- 【2026-10-21 表3 九维度分析落库】`mx.yj_temp_limit_wide_table_v2`(65,972行/26列) + `mx.yj_temp_limit_wide_table_v3`(93列/9组维度) 落库，后续临额分析统一从表3取数。九条结论：①离线笔级使用率 52.7%（持额 11,312/用 5,961，介于旧 16% 与 56.7% 口径之间；批次兑现率 S/G≈74.9%）；②在线弹窗领取率 47.6%、金额兑现 40.3%，主要损失在未领取；③临额抬件均：g7 离线+44%/在线+23%、g8 +31%/+27%；④撞顶 342 笔（A 92/B 144/C 106）合计压 285 万（+3.0%），cap_type 已字段化、add_if_cap_50000 可直接聚合算放开 5 万反事实；⑤风险：临额组整体不高于 none（1T0 24.9~26.3% vs 28.6%），但 g3 online 28.0%>none 21.2% 低分段在线有害；⑥V5_3 同 type 4T7 全面更高（type3 35.9% vs 26.3%）且 type3 渗透 63.3%>57.7%，坏账升高+渗透扩大双击；⑦离线有效期余 4-5 天用 65.1%→到期当日 38.1% 前松后紧，8.3% 笔完全未用沉淀 915 万；⑧口径提示：110 笔有离线用额无发放记录、10-19 周不完整（周度趋势只看 08-31~09-28）。详见 §1.9；yj_test_table_250225 全行重复问题与去重要求见 §2 警示。
+
+- 【2026-10-25 v11 时刻级有效期 + 发放起点漏斗】①「能不能用这笔临额」的唯一判据是 `发放时刻 ≤ apply_time ≤ expiring_time`，**不是自然日 issue_date**（v10 的 0~5 天可到 144h，超出真实 120h）；②用信时刻三级锚点 `COALESCE(limit_freeze_time, apply_time, release_time)`——TEMP 冻结覆盖率仅 20.5%（主额够用不冻 TEMP），`apply_time` 100% 覆盖且与冻结相差 24~33ms、恒早于冻结，`release_time` 晚中位 502s/p99 5,002s 只能兜底；③v10→v11：316 笔翻为不持有（290 真过期 + 26 点击后才发，`flipped_used=0`），holds 11,904→11,588、去重可用 −1.69%，**使用额分毫未变**；④发放起点漏斗 `mx.yj_temp_grant_funnel_v11`：40,692 次发放/16,738 人/4,148 万，兑现率合计 17.85%（离线 11.55% / 在线 39.93%），**分档兑现率随评级变差而升高**（离线低档 21.55%、在线低档 51.83%），V5_3 42.92% > V5_2 36.76%；⑤离线与在线两类漏斗**不可相加**（先发后用 vs 边发边用），离线兑现率仅覆盖 C015 批次（使用额 372.5 万 vs 全量 422.6 万，缺约 50 万）。详见 §1.10、§1.11
 
 ## 8. 参考资料
 
-- `references/analysis-framework.md`：7 模块额度策略分析框架（供给/TR/在线策略/离线政策/风险分层/客群质量/性价比+DID）、成熟度规则、结构分解做法
+- `references/analysis-framework.md`：8 模块额度策略分析框架（供给/TR/在线策略/离线政策/风险分层/客群质量/性价比+DID/**发放起点漏斗**）、成熟度规则、结构分解做法
 - `references/temp-limit-business.md`：5 份需求文档（管理体系/三国逻辑/使用率变量/循环贷变量改造）的业务逻辑整理
-- `references/variable-dictionary.md`：额度表/变更表字段与临额变量字典
+- `references/variable-dictionary.md`：额度表/变更表字段与临额变量字典（含 v11 新增 `expiring_time`/`apply_time`/`online_grant_flag`）
 - `scripts/tagging_template.py`：四组打标 + 周度指标的 Python/Presto 脚本模板（含网络重试）
+- `scripts/放款资产额度指标_v11_20261025.sql`：v11 建表 SQL（`mx.yj_asset_quota_v11`，逐笔额度口径 + 时刻级 5 天有效期 + apply_time 三级锚点；A11 断言内置）
+- `scripts/临额发放起点_漏斗取数SQL_v11_20261025.sql`：发放起点漏斗建表 SQL（`mx.yj_temp_grant_funnel_v11`，一行=一次发放，L1~L5 五层 + 评级/版本维度 + 断言）
 - `墨西哥/_fw_h.py`：V5_2/V5_3 决策矩阵（矩阵常量 V52/V53 + matrix() SQL 构造器）、E5 矩阵命中率校验、E6 双矩阵 type 迁徙、E7 单元风险格；矩阵常量可直接 import 复用
 - `墨西哥/_fw_verify_all.py`：1.2 节全部校验的逐条复跑脚本（恒等式/C010对账/双路径/冲突扫描/样例事件流），编号 V1~V9
+- `墨西哥/放款资产额度指标/放款资产额度指标_20260901起.sql`：表2 建表 SQL（26 列额度口径，含 voucher_limit，恒等式已验证）
+- `墨西哥/放款资产额度指标/临额宽表3_分维度_20260901起.sql`：表3 建表 SQL（v2→v3 追加 9 组维度；yxCTE 对 yj_test_table_250225 用 MAX() 去重、fn CTE 用 ROW_NUMBER 取最新、ogr CTE 取 C015/C013 离线发放时刻，窗口 [release_time−5天, release_time]）
+- `墨西哥/放款资产额度指标/临额分析_表3.py` + `临额分析_表3_20260901起.xlsx`：表3 九维度分析脚本与产出（14 sheet，00_结论摘要为纲；NUM_EXCLUDE 防止字符串/date 列被 to_numeric 转 0）
 - 取数连接：`code/mexico_presto.py` 的 PrestoQuery（query 返回 DataFrame 或错误字符串，单页上限 1000 行）

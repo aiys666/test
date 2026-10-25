@@ -14,6 +14,23 @@
 | mx.tmp_darren_temp_limit_table | model 1386 落表 | 每日滚动，rn 取最早 |
 | mx.tmp_darren_new_temp_limit_table | model 1523 落表 | 每日滚动，rn 取最新 |
 | mx.yuhan_temp_limit_base_table_his_* | 离线临额底表 | temp_limit_tag 批次/temp_limit_issue_amount 金额/temp_limit_issue_date 时间 |
+| mx.android_oldcust_maincreditlevel_charge_v5_3_table | V5_3 主评级历史快照 | 字段 `android_oldcust_maincreditlevel_charge_v5_3`（1 优→13 差）；`mid`+`createtime` 多快照，按时刻取最近（`MAX_BY`）；有历史（587,019 行 / 81,412 mid，2026-05-21~）→ **可取"发放时刻"评级，不必取最新** |
+| mx.yj_asset_quota_v11 | 逐笔额度口径宽表（v11） | 67,980 行 / 复贷放款笔；`contract_amount = main_used_this + offline_used_this + online_used_this + voucher_limit`（残差 0）；含 `apply_time` 三级锚点、5 天时刻级有效期、cap 诊断 |
+| mx.yj_temp_grant_funnel_v11 | 发放起点漏斗（一行=一次发放） | 40,692 行；维度 `temp_type`×`grade_band`×`strategy_version`；L1~L5 各层人数/件数/金额字段见 SKILL §1.11 |
+
+## 一之二、v11 新增/关键字段（时刻级有效期口径）
+
+| 字段 | 表 | 含义与口径 |
+|---|---|---|
+| `expiring_time` | `s05_user_creditlimit_change_record` | **系统权威临额到期时刻**。离线 C015/C013 = `create_time` + **精确 120h**；在线 C010 = **精确 72h**。判"是否过期"必须用它，不能用自然日 `issue_date` |
+| `apply_time` | `mx.wxs_application_funnel` | **用信确认时刻**（用户点"确认用信"、额度冻结那一刻）。覆盖率 100%；`apply_time >= app_time`；与台账首个 TEMP `FREEZE_LIMIT` 相差 24~33ms 且恒早于冻结 → v11 主锚点。⚠️ `yj_test_table_250225` **没有**这个字段 |
+| `limit_freeze_time` | 由 `s05_user_creditlimit_used_detail` 派生 | 本笔 TEMP `FREEZE_LIMIT` 的 `create_time`。最精确但覆盖率仅 **20.5%**（主额够用时不冻 TEMP，只有真用临额的笔才有） |
+| `release_time` | yj / funnel | 放款时刻。比额度冻结晚**中位 502s / p99 5,002s / 最长 65h** → 只能作锚点兜底，不可作为"能否用临额"的判据 |
+| `online_grant_flag` | `mx.yj_asset_quota_v11` | 在线临额**是否发放**（= 本笔 1386 `temp_credit_amount_issue_tag=1` 且 857 弹窗额 > 0）。在线发放量 = 该标记笔数 × 857 额 |
+| `online_grant_amount` | `mx.yj_asset_quota_v11` | 在线临额**发放额**（857 弹窗额，名义额） |
+| `online_used_this` | `mx.yj_asset_quota_v11` | 在线临额**实际用掉**（= C010 实到账 = 本笔 TEMP 冻结）。**发放 921.7 万 vs 使用 368.0 万，兑现率 39.93%** |
+| `offline_used_this` / `offline_grant_time` | `mx.yj_asset_quota_v11` | 本笔消耗的离线临额额 / 对应 C015 批次时刻。**批次匹配必须用 `offline_grant_time` 严格 join**，否则跨批次累加会出现"使用额 > 发放额" |
+| `temp_grant_amount` | `mx.yj_test_table_250225` | ⚠️ 是**实际支用**（/1000 为比索），**不是发放额**；发放额要用 `online_grant_amount` |
 
 ## 二、yj 表临额字段与生成逻辑
 

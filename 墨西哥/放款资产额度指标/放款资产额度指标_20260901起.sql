@@ -265,9 +265,10 @@ lz_anchor AS (
   GROUP BY 1
 ),
 offm AS (
-  -- CTE2 离线临额：该批次发放额 + 本笔放款时刻的账户级实时占用
+  -- CTE2 离线临额：该批次发放额 + 批次档位标签 + 本笔放款时刻的账户级实时占用
   SELECT b.biz_id,
          COALESCE(g.temp_limit_issue_amount, 0) AS offline_grant_amount,
+         g.offline_grant_tag                    AS offline_grant_tag,  -- 离线批次档位（_1=10% _2=20% _3=30% _无在贷≈30%）
          COALESCE(u.temp_used_after, 0)         AS offline_used_amount
   FROM base b
   LEFT JOIN (
@@ -278,8 +279,15 @@ offm AS (
     --    09-01~09-02 两天窗口漏 47 笔（占 1.9%）。
     --    另：该表 temp_limit_issue_date 是**首次获额时间**（常为几个月前），不是本批次时间，也不可用。
     --    故直接用额度台账事件时刻，金额取 change_total_grantamount（= 账户实际到账额度）。
+    --
+    --    批次档位 temp_limit_tag 从 yuhan 表取（同一批次同一 tag），关联条件：
+    --    mid 匹配 + 金额近似匹配（yuhan 是 50 取整、额度台账是实际到账，±50 容错）
+    --    + data_date 窗口（比 C015/C013 事件日多 +1 天上界，覆盖当日 20 点后发放的批次）。
+    --    档位映射：_1→10%（个别期 15%）、_2→20%、_3→30%、无后缀→20%、_无在贷≈30%。
+    --    取 MAX_BY(data_date) 保证同一批次多条记录取最新那条的 tag。
     SELECT b2.biz_id,
-           MAX_BY(CAST(c.change_total_grantamount AS DOUBLE), c.create_time) AS temp_limit_issue_amount
+           MAX_BY(CAST(c.change_total_grantamount AS DOUBLE), c.create_time) AS temp_limit_issue_amount,
+           MAX_BY(y.temp_limit_tag, y.data_date)                              AS offline_grant_tag
     FROM base b2
     JOIN ods_view_presto.s05_user_creditlimit_change_record c
       ON c.mid = b2.mid
@@ -290,6 +298,17 @@ offm AS (
      AND c.create_time >= DATE_ADD('day', -5,
            COALESCE(b2.release_time, CAST(b2.issue_date AS TIMESTAMP)))
      AND c.create_time <= COALESCE(b2.release_time, CAST(b2.issue_date AS TIMESTAMP))
+    LEFT JOIN mx.yuhan_temp_limit_base_table_his_20260924 y
+      ON CAST(y.mid AS VARCHAR) = CAST(b2.mid AS VARCHAR)
+     AND ABS(CAST(y.temp_limit_issue_amount AS DOUBLE)
+             - CAST(c.change_total_grantamount AS DOUBLE)) < 50
+     AND CAST(date_parse(y.data_date, '%Y%m%d') AS DATE)
+         >= CAST(DATE_ADD('day', -5,
+               COALESCE(b2.release_time, CAST(b2.issue_date AS TIMESTAMP))) AS DATE)
+     AND CAST(date_parse(y.data_date, '%Y%m%d') AS DATE)
+         <= CAST(DATE_ADD('day', 1,
+               COALESCE(b2.release_time, CAST(b2.issue_date AS TIMESTAMP))) AS DATE)
+     AND y.temp_limit_issue_amount IS NOT NULL
     GROUP BY 1
   ) g ON g.biz_id = b.biz_id
   LEFT JOIN (
@@ -422,8 +441,25 @@ SELECT
            b.risk_credit_limit,
            b.contract_amount - COALESCE(b.temp_used, 0))             AS main_used_this,
 
-  -- [离线临额] 授予额度 / 本笔放款时刻已占用 / 当前可用额度 / 本笔支用
+  -- [离线临额] 授予额度 / 批次档位标签 / 本笔放款时刻已占用 / 当前可用额度 / 本笔支用
   offm.offline_grant_amount,
+  offm.offline_grant_tag                                              AS offline_grant_tag,
+  -- 批次标签派生两列（tag 格式实测 = 'MMDD临额测试组_有在贷_N' / 'MMDD临额测试组_无在贷'
+  --   / 'MMDD减息测试组_无在贷'，所有 tag 必含「有在贷」或「无在贷」，故 ELSE 分支安全）
+  CASE WHEN COALESCE(offm.offline_grant_tag, '') = ''        THEN NULL
+       WHEN STRPOS(offm.offline_grant_tag, '有在贷') > 0     THEN '有在贷'
+       ELSE '无在贷' END                                              AS has_outstanding_tag,
+  -- ⚠️ 这列实际区分的是「临额实验组 vs 减息对照组」，不是「有没有临额」
+  CASE WHEN COALESCE(offm.offline_grant_tag, '') = ''        THEN NULL
+       WHEN STRPOS(offm.offline_grant_tag, '临额') > 0       THEN '临额'
+       ELSE '无临额' END                                              AS has_temp_tag,
+  -- 档位后缀 _1/_2/_3 = 10%/20%/30%（无后缀的早期批次按 20%，_无在贷≈30%）
+  CASE WHEN COALESCE(offm.offline_grant_tag, '') = ''        THEN NULL
+       WHEN offm.offline_grant_tag LIKE '%\_1' ESCAPE '\'    THEN '10%'
+       WHEN offm.offline_grant_tag LIKE '%\_2' ESCAPE '\'    THEN '20%'
+       WHEN offm.offline_grant_tag LIKE '%\_3' ESCAPE '\'    THEN '30%'
+       WHEN STRPOS(offm.offline_grant_tag, '无在贷') > 0     THEN '30%'
+       ELSE '20%' END                                                 AS offline_grant_ratio_tag,
   offm.offline_used_amount,
   GREATEST(offm.offline_grant_amount - offm.offline_used_amount, 0)  AS offline_available_amount,
   IF(c010.online_grant_amount IS NULL,
