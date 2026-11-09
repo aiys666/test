@@ -252,6 +252,7 @@ def build_sheet(wb, sheet_name, df_w, df_m, ref_month, target_month,
     # ============================================================
     r = 6
     weekly_summaries = []  # (week_str, summary_row, week_start, week_end)
+    unobserved_weeks = set()  # 无任何账龄窗口的周(如月末周尚未出账), 不参与月度加权
 
     for w in target_weeks:
         wdata = sep_weeks[sep_weeks['week_str'] == w].copy()
@@ -259,6 +260,13 @@ def build_sheet(wb, sheet_name, df_w, df_m, ref_month, target_month,
         if len(wdata) == 0:
             print(f"  [警告] 周 {w} 无数据, 跳过")
             continue
+        # 该周是否已有任何观察窗口(1T0 或 4T7 出账>0); 都为 0 说明账龄未出,
+        # 此时估计值 AR/AS 恒为 0, 计入月度加权会显著虚高 TR
+        obs_1t0 = float(wdata['is_t0_window_1'].fillna(0).sum()) if 'is_t0_window_1' in wdata else 0.0
+        obs_4t7 = float(wdata['is_t7_window_4'].fillna(0).sum()) if 'is_t7_window_4' in wdata else 0.0
+        if obs_1t0 == 0 and obs_4t7 == 0:
+            unobserved_weeks.add(w)
+            print(f"  [警告] 周 {w} 尚无账龄窗口(1T0/4T7 出账均为0), 保留明细但不计入月度加权")
 
         # 周分隔行
         ws.cell(row=r, column=1, value=f'--- {w} ---').font = sfont
@@ -457,16 +465,21 @@ def build_sheet(wb, sheet_name, df_w, df_m, ref_month, target_month,
             return f'D{wr}'
         return f'D{wr}*{w}'
 
-    num_ar = [num('AR', w, wr) for w, wr, _, _ in weekly_summaries]
-    num_as = [num('AS', w, wr) for w, wr, _, _ in weekly_summaries]
-    num_at = [num('AT', w, wr) for w, wr, _, _ in weekly_summaries]
-    den_all = [den(w, wr) for w, wr, _, _ in weekly_summaries]
+    # 仅用已有账龄窗口的周做时间加权(无窗口周的估计值为 0, 会造成 TR 虚高)
+    eff_summaries = [x for x in weekly_summaries if x[0] not in unobserved_weeks]
+    if not eff_summaries:
+        eff_summaries = weekly_summaries
+
+    num_ar = [num('AR', w, wr) for w, wr, _, _ in eff_summaries]
+    num_as = [num('AS', w, wr) for w, wr, _, _ in eff_summaries]
+    num_at = [num('AT', w, wr) for w, wr, _, _ in eff_summaries]
+    den_all = [den(w, wr) for w, wr, _, _ in eff_summaries]
 
     ws.cell(row=r, column=1, value='月聚合').font = sfont
     ws.cell(row=r, column=3,
-            value=f'=SUM({",".join([f"C{wr}" for _, wr, _, _ in weekly_summaries])})').number_format = NUM
+            value=f'=SUM({",".join([f"C{wr}" for _, wr, _, _ in eff_summaries])})').number_format = NUM
     ws.cell(row=r, column=4,
-            value=f'=SUM({",".join([f"D{wr}" for _, wr, _, _ in weekly_summaries])})').number_format = NUM
+            value=f'=SUM({",".join([f"D{wr}" for _, wr, _, _ in eff_summaries])})').number_format = NUM
     ws.cell(row=r, column=44,
             value=f'=IFERROR(({"+".join(num_ar)})/({"+".join(den_all)}),0)').number_format = PCT
     ws.cell(row=r, column=45,

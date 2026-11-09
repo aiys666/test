@@ -3,6 +3,63 @@
 -- 2026-10-25。在 v10 基础上只修 3 处（见【v11 改动】），其余与 v10 完全一致。
 --
 -- ══════════════════════════════════════════════════════════════════════
+-- 【v11.2 改动】★★★ 在线临额占用拆分口径重构（2026-10-26，岳松二次纠错）
+--
+--   问题：v11.1 把 online_used_inloan_amount / online_used_noloan_amount 写成
+--     「本笔 TEMP 台账残差 × 本笔当前结清状态」，加总 ≠ online_used_amount
+--     （实测 1,164,884 vs 53,784，完全不闭合）。岳松原话：
+--     「在贷占用和无在贷占用，不等于在线占用的金额呀」。
+--
+--   正确框架（岳松给出的业务语义）：
+--     名义发放 online_grant_amount（4000）
+--       ├─ 历史存量占用 online_used_amount（1000，C010 change_used_grantamount）
+--       │    ├─ 历史未结清在贷占用 online_used_inloan_amount（主体）
+--       │    └─ 历史已结清残留占用 online_used_noloan_amount（2-3 月 bug 尾巴）
+--       │    闭合：used_amount ≡ inloan + noloan（断言 a12）
+--       └─ 实到账可用 online_available_amount（3000 = grant − used_amount）
+--            ↓ 客户领取（一次性用完）
+--            本笔支用 online_used_this = available
+--
+--   新口径（on_src_split CTE）：
+--     发放时刻(c010.grant_ts)之前，同 mid 下所有**来源笔**(ledger_biz ≠ 本笔)
+--     的 TEMP 台账残差（ΣFREEZE − ΣUNFREEZE），按来源笔当前结清状态拆两组：
+--       来源笔当前未结清 → online_used_inloan_amount
+--       来源笔当前已结清 → online_used_noloan_amount
+--
+--   实测（17,326 笔持在线 / 150 笔 used_amount > 0）：
+--     used_amount = 53,783.75
+--       = inloan 14,614.48（45 笔，占 27%）
+--       + noloan 39,169.27（106 笔，占 73%，主体是已结清残留）
+--     差额 0.0，完美闭合。
+--
+--   ⚠️ 关键：TEMP 台账 s05_user_creditlimit_used_detail 的 biz_id 是**来源笔**
+--     （造成占用的历史笔），mid 是账户 → 拆分必须按 mid join，再按 d.biz_id 拆源。
+--   ⚠️ 窗口下界 2026-01-01 覆盖 2-3 月残留 bug 期。
+-- ══════════════════════════════════════════════════════════════════════
+--
+-- ══════════════════════════════════════════════════════════════════════
+-- 【v11.1 改动】★★ 在线临额三列恢复「三段式」语义 + 新增当前占用拆分（2026-10-26）
+--
+--   问题：v10/v11 的 online_used_amount = grant − available，而 available 恒 = grant
+--     → **结构性恒 0**，与列名「历史已占用」语义冲突（岳松校验发现）。
+--     且 v10 注释「857 弹窗额本身已是净可用额」**不成立**：857 是名义发放额，
+--     实到账 = 名义额 − 发放前账户存量占用（SKILL §1.4 金额三段式）。
+--
+--   修正（与离线侧同结构的三段式）：
+--     ① online_used_amount      = C010 change_used_grantamount（发放前账户存量占用
+--                                 =「历史已占用」真值；实测 150 笔 >0 / 53,783.8）
+--     ② online_available_amount = 名义额 − 存量占用（= 实到账可用额）
+--     ③ online_used_this        = 本笔支用（不变）
+--   全量验证（17,326 笔持在线 / 8,160 笔有 C010 / 9,166 笔弹窗未领取）：
+--     C010 名义额 = 857 弹窗额 8,160/8,160 全中；支用 ≤ 实到账 0 笔违反；
+--     支用 = 实到账 8,160 全中（领取后一次性用完）。
+--   恒等式 grant − used_amount − available ≡ 0 结构性成立。
+--
+--   实现：新增 on_occ_led（TEMP 台账残差）、on_st（结清判定）、c010（C010 发放事件，
+--         external_id = biz_id，取 change_used_grantamount）三个 CTE。
+-- ══════════════════════════════════════════════════════════════════════
+--
+-- ══════════════════════════════════════════════════════════════════════
 -- 【v11 改动】只修 3 处；恒等式、批次去重一律不动
 --
 --   ① ★ 离线有效期从「自然日 0~5」改为「时刻级 120 小时」
@@ -215,7 +272,8 @@
 --            （同一笔只会用其中一种，用 used_source_tag 一列即可判定走哪条路）
 --   ❌ 不互斥：offline_available_amount / online_available_amount **可以同时 > 0**
 --            （用信前持有离线 + 用信时又被弹窗发在线，实测 4,062 笔两者都持有）
---            offline_used_amount / online_used_amount 同理。
+--            offline_used_amount / online_used_amount 同理（都是「发放额被存量占用吃掉
+--            的部分」，与本笔支用解耦，故不互斥）。
 --   ⚠️【v10 删掉了 v9 这里的错误表述】v9 原文写「_used_amount 亦然、_available_amount 亦然」，
 --      那是 v7 的遗留（当时 holds 靠 last_grant_type 判定、天然互斥），
 --      v8 取消 holds 互斥时漏改，且与校验段 a2_both_avail_ok「允许同时 > 0」自相矛盾。
@@ -670,6 +728,94 @@ product_cap AS (
          DATE '2099-12-31' AS end_date,
          CAST(15000.0 AS DOUBLE) AS cap_amount
 ),
+on_occ_led AS (
+  -- 【v11.1 ★】TEMP 台账残差（按 biz）：这笔订单的在线临额「当前真实占用」= Σ冻结 − Σ解冻。
+  --   占用的正确口径是台账残差，不是支用额：实测 frz 与 used_this 100% 相等（0 例外），
+  --   但 2,701 笔在贷笔在还款中已发生部分/全额解冻（UNFREEZE）→ 残差 < 支用额。
+  --   窗口下界 2026-08-25：早于本表 issue_date 下界（09-01）6 天，覆盖全部跨天/晚批冻结，
+  --   同时满足大表 create_time 分区裁剪要求。
+  --   ⚠️ 本列对离线来源笔也可能非 0（离线使用同样记 TEMP 台账），故只对在线行取用。
+  SELECT CAST(biz_id AS BIGINT) AS biz_id,
+         SUM(CASE WHEN change_action = 'FREEZE_LIMIT'   THEN CAST(risk_credit_limit AS DOUBLE) ELSE 0 END)
+       - SUM(CASE WHEN change_action = 'UNFREEZE_LIMIT' THEN CAST(risk_credit_limit AS DOUBLE) ELSE 0 END)
+                                                                        AS temp_resid
+  FROM ods.s05_user_creditlimit_used_detail
+  WHERE limit_type = 'TEMP' AND biz_id IS NOT NULL
+    AND create_time >= TIMESTAMP '2026-08-25 00:00:00'
+  GROUP BY 1
+),
+on_st AS (
+  -- 【v11.1 ★】结清判定：state<>1 记为未还（岳松口径 MAX(state<>1)=0 才算结清）。
+  --   无还款记录的 biz 默认**在贷**（COALESCE(any_unpaid,1)），不是结清。
+  --   IN 半连接先裁剪到本表 biz，避免还款大表全量 GROUP BY。
+  SELECT CAST(camera_id AS BIGINT) AS biz_id,
+         MAX(CASE WHEN state <> 1 THEN 1 ELSE 0 END) AS any_unpaid
+  FROM ods_view_presto.s02_loan_repayment
+  WHERE camera_id IS NOT NULL
+    AND CAST(camera_id AS BIGINT) IN (SELECT CAST(biz_id AS BIGINT) FROM mx.yj_quota_base)
+  GROUP BY 1
+),
+c010 AS (
+  -- 【v11.1 ★】本笔 C010 发放事件：在线「历史已占用」的唯一真值来源
+  --   change_total_grantamount = 名义发放额（实测与 857 弹窗额 8,160/8,160 全中，仅作校验）
+  --   change_used_grantamount  = 发放**前**该 TEMP 账户的存量占用（历史已占用）
+  --   三段式（2026-10-26 全量验证，17,326 笔持在线 / 8,160 笔有 C010）：
+  --     名义额 = 存量占用 + 实到账；支用 ≤ 实到账（0 笔违反）；支用 = 实到账（一次性用完，8,160 全中）
+  --   存量占用真实存在：150 笔 / 53,783.8 比索（发放额被账户既有占用抵扣）
+  --   external_id = biz_id；无 C010 的笔 = 弹窗未领取（used_before 取 0）
+  -- 【v11.2】加 grant_ts：发放时刻，供 on_src_split 取「发放时刻之前」的台账残差
+  SELECT CAST(c.external_id AS BIGINT) AS biz_id,
+         MAX_BY(CAST(c.change_total_grantamount AS DOUBLE), c.create_time) AS c010_total,
+         MAX_BY(CAST(c.change_used_grantamount  AS DOUBLE), c.create_time) AS c010_used_before,
+         MAX(c.create_time)                                                AS grant_ts
+  FROM ods_view_presto.s05_user_creditlimit_change_record c
+  WHERE c.limit_type = 'TEMP' AND c.change_event_type = 'C010'
+    AND c.external_id IS NOT NULL
+    AND c.create_time >= TIMESTAMP '2026-08-25 00:00:00'
+  GROUP BY 1
+),
+on_src_split AS (
+  -- 【v11.2 ★★】online_used_amount（历史存量占用）按【来源笔当前结清状态】拆分
+  --   岳松框架：名义发放 4000 = 历史存量占用 1000 + 实到账可用 3000
+  --     其中历史存量占用 1000 理论上是历史笔未结清在贷占用，但可能含已结清残留（2-3 月 bug 尾巴）
+  --   拆分维度：发放时刻（c010.grant_ts）之前，同 mid 下所有非本笔（ledger_biz ≠ 本笔）的
+  --     TEMP 台账残差（ΣFREEZE − ΣUNFREEZE），按来源笔当前是否结清分两组：
+  --       来源笔当前未结清 → online_used_inloan_amount（真"在贷占用"）
+  --       来源笔当前已结清 → online_used_noloan_amount（已结清但台账未释放 = 残留）
+  --   闭合断言 a12_on_used_split_identity：used_amount = inloan + noloan，期望 0
+  --   实测（17,326 笔持在线 / 150 笔 used_amount>0）：
+  --     53,783.75 = 14,614.48（45 笔在贷）+ 39,169.27（106 笔残留），差额 0.0
+  --   ⚠️ TEMP 台账 biz_id 是来源笔（造成占用的历史笔），mid 是账户 → 必须用 mid join
+  --   ⚠️ 窗口下界 2026-01-01 覆盖 2-3 月残留 bug 期（project_memory L38）
+  SELECT led.cur_biz,
+         SUM(CASE WHEN COALESCE(s.any_unpaid, 1) = 1 THEN led.src_resid ELSE 0 END) AS online_used_inloan_v2,
+         SUM(CASE WHEN COALESCE(s.any_unpaid, 1) = 0 THEN led.src_resid ELSE 0 END) AS online_used_noloan_v2
+  FROM (
+    SELECT CAST(b.biz_id AS BIGINT) AS cur_biz,
+           CAST(d.biz_id AS BIGINT) AS src_biz,
+           SUM(CASE WHEN d.change_action = 'FREEZE_LIMIT'   THEN CAST(d.risk_credit_limit AS DOUBLE) ELSE 0 END)
+         - SUM(CASE WHEN d.change_action = 'UNFREEZE_LIMIT' THEN CAST(d.risk_credit_limit AS DOUBLE) ELSE 0 END) AS src_resid
+    FROM mx.yj_quota_base b
+    JOIN c010 t ON t.biz_id = CAST(b.biz_id AS BIGINT)
+    JOIN ods.s05_user_creditlimit_used_detail d
+      ON d.mid = b.mid AND d.limit_type = 'TEMP'
+     AND d.create_time <  t.grant_ts                       -- 发放时刻之前（历史存量）
+     AND d.create_time >= TIMESTAMP '2026-01-01 00:00:00'  -- 覆盖 2-3 月残留 bug
+     AND CAST(d.biz_id AS BIGINT) <> CAST(b.biz_id AS BIGINT)  -- 排除本笔，只看历史来源
+    GROUP BY 1, 2
+    HAVING SUM(CASE WHEN d.change_action = 'FREEZE_LIMIT'   THEN CAST(d.risk_credit_limit AS DOUBLE) ELSE 0 END)
+         - SUM(CASE WHEN d.change_action = 'UNFREEZE_LIMIT' THEN CAST(d.risk_credit_limit AS DOUBLE) ELSE 0 END) > 0.01
+  ) led
+  LEFT JOIN (
+    -- 来源笔当前结清状态（与 on_st 同口径：无还款记录默认在贷）
+    SELECT CAST(camera_id AS BIGINT) AS src_biz,
+           MAX(CASE WHEN state <> 1 THEN 1 ELSE 0 END) AS any_unpaid
+    FROM ods_view_presto.s02_loan_repayment
+    WHERE camera_id IS NOT NULL
+    GROUP BY 1
+  ) s ON s.src_biz = led.src_biz
+  GROUP BY led.cur_biz
+),
 calc AS (
   SELECT
     b.biz_id, b.mid, b.issue_date, b.release_time, b.product_level, b.contract_amount,
@@ -782,7 +928,16 @@ calc AS (
     -- 【v11 改动】产品上限改由 product_cap 区间表决定（原为写死的 CASE，无失效日期）
     COALESCE(pc.cap_amount, 10000.0)                                   AS product_limit_max,
     COALESCE(v.voucher_limit, 0)                                       AS voucher_limit,
-    v.voucher_id
+    v.voucher_id,
+    -- 【v11.1】本笔 biz 的 TEMP 台账残差（当前真实占用）与结清标志；
+    --   on_st 无记录默认在贷（无还款记录 ≠ 结清）
+    COALESCE(ool.temp_resid, 0)                                        AS temp_resid,
+    COALESCE(ost.any_unpaid, 1)                                        AS online_any_unpaid,
+    -- 【v11.1】C010 发放前账户存量占用（在线「历史已占用」真值）；无 C010 = 未领取 → 0
+    COALESCE(c10.c010_used_before, 0)                                  AS online_used_before,
+    -- 【v11.2】历史存量占用按来源笔当前结清状态拆分（替换旧 inloan/noloan 错口径）
+    COALESCE(osp.online_used_inloan_v2, 0)                             AS online_used_inloan_v2,
+    COALESCE(osp.online_used_noloan_v2, 0)                             AS online_used_noloan_v2
   FROM mx.yj_quota_base b
   LEFT JOIN s1077            s   ON s.biz_id   = b.biz_id
   LEFT JOIN online_grant     ong ON ong.biz_id = b.biz_id
@@ -795,6 +950,12 @@ calc AS (
   LEFT JOIN main_frz         mf  ON mf.biz_id  = b.biz_id
   LEFT JOIN main_used_detail mud ON mud.biz_id = b.biz_id
   LEFT JOIN vch              v   ON v.biz_id   = b.biz_id
+  -- 【v11.1】在线临额占用拆分：TEMP 台账残差 + 结清判定 + C010 发放事件
+  LEFT JOIN on_occ_led       ool ON ool.biz_id = b.biz_id
+  LEFT JOIN on_st            ost ON ost.biz_id = b.biz_id
+  LEFT JOIN c010             c10 ON c10.biz_id = b.biz_id
+  -- 【v11.2】历史存量占用按来源笔当前结清状态拆分
+  LEFT JOIN on_src_split     osp ON osp.cur_biz = b.biz_id
   LEFT JOIN product_cap      pc  ON pc.product_level = b.product_level
                                AND b.issue_date BETWEEN pc.start_date AND pc.end_date
 )
@@ -854,30 +1015,32 @@ SELECT
   CASE WHEN used_source_tag = 'offline' THEN temp_used ELSE 0 END      AS offline_used_this,
 
   -- ── [在线临额] ──
-  -- 在线可用只在「本笔弹窗发了在线、且账户额度确由那次 C010 设定」时有值。
-  --   ⚠️ C010 是**整体替换**账户总额度（实测 7,648 笔 new_total 100% = 857 弹窗额，
-  --      其中 1,719 笔是调低），所以此时离线额度已被抹掉 → offline_available 必为 0。
-  --      反例 biz 1620000464246378：C015 发 5,650 → C010 覆盖成 4,000，
-  --      用信那一刻客户只剩「用不用这 4,000 在线」这一个选择。
+  -- 【v11.1 ★★ 三段式口径】对齐离线侧结构，2026-10-26 全量验证（17,326 笔持在线）：
+  --     online_grant_amount      = 857 弹窗名义发放额
+  --     online_used_amount       = C010 change_used_grantamount（发放**前**账户存量占用，
+  --                                即「历史已占用」；实测 150 笔 >0 / 合计 53,783.8）
+  --     online_available_amount  = 名义额 − 存量占用（= 实到账可用额，本笔最多能用这么多）
+  --     online_used_this         = 本笔实际支用（≤ available，0 笔违反；且实测全部 = 实到账，
+  --                                印证「领取后一次性用完」）
+  --   恒等式 grant − used_amount − available ≡ 0 结构性成立（与离线侧同一结构）。
+  --   无 C010 的笔（9,166 笔弹窗未领取）：used_amount=0、available=grant、used_this=0。
+  --   ⚠️ 校验事实：C010 名义额与 857 弹窗额 8,160/8,160 全中 → used_amount 用 C010 口径
+  --      不会与 grant(857) 口径错位。
+  -- 【v10 背景】C010 是**整体替换**账户总额度（实测 7,648 笔 new_total 100% = 857 弹窗额，
+  --   其中 1,719 笔是调低），所以弹窗时离线额度已被抹掉 → offline_available 必为 0。
+  --   反例 biz 1620000464246378：C015 发 5,650 → C010 覆盖成 4,000，
+  --   用信那一刻客户只剩「用不用这 4,000 在线」这一个选择。
   online_grant_flag, online_grant_amount, holds_online,
-  -- 【v10 ★★ 硬恒等式】online_grant_amount − online_used_amount − online_available_amount = 0
-  --   在线临额是用信**决策时**才发的净额度 → 用信前的账户占用 used_before **不该扣**：
-  --     · pre_total_amount 是「用信决策之前」的账户总额度，本来就**不含**这次弹窗额
-  --     · 857 弹窗额 = 风控按主额冻结额算出的「你现在能额外借多少」，已经是净可用额
-  --   实证（全量 67,980 笔）：16,248 笔持在线，**0 笔** online_used_this > 弹窗额，max 超出 0.0
-  --
-  --   所以 available = 弹窗额、used_amount = 0，恒等式 grant − 0 − grant = 0 恒成立。
-  --
-  --   ⚠️ v9 错在这：available = 弹窗额 − used_before，拿账户级总占用减本次新发的净额度，
-  --      造出 124 笔负可用（如弹窗额 350 − 占用 3,793 = −3,443），这 124 笔 used_this 全是 0。
-  --      且这个 used_before 与离线侧减的是同一个数 → 同一笔占用扣了两遍。
-  --   同样写成 grant − available，让恒等式结构性成立。
-  COALESCE(online_grant_amount,0)
-    - CASE WHEN holds_online = 1
-           THEN COALESCE(online_grant_amount,0) ELSE 0 END              AS online_used_amount,
-  CASE WHEN holds_online = 1
-       THEN COALESCE(online_grant_amount,0) ELSE 0 END                 AS online_available_amount,
+  online_used_before                                                 AS online_used_amount,
+  COALESCE(online_grant_amount,0) - online_used_before               AS online_available_amount,
   CASE WHEN used_source_tag = 'online'  THEN temp_used ELSE 0 END      AS online_used_this,
+  -- 【v11.2 ★★】历史存量占用按来源笔当前结清状态拆分（替换 v11.1 错口径）：
+  --   旧错口径：把 temp_resid（本笔台账残差）按本笔 online_any_unpaid 拆 → 加总 ≠ used_amount
+  --   新口径：on_src_split 按「发放时刻之前、来源笔 ≠ 本笔」的 TEMP 台账残差，
+  --           再按来源笔当前是否结清分两组，加总 ≡ used_amount（断言 a12 校验）
+  --   实测：53,783.75 = 14,614.48（45 笔在贷）+ 39,169.27（106 笔残留），差额 0.0
+  online_used_inloan_v2                                                AS online_used_inloan_amount,
+  online_used_noloan_v2                                                AS online_used_noloan_amount,
 
   -- ── [来源与兜底] ──
   used_source_tag,
@@ -933,6 +1096,9 @@ SELECT
   last_grant_type,      -- 用信前最后一次发放事件：C010 在线 / C013·C015 离线
   available_amount_check,
   used_this_check,
+  -- 【v11.1】在线占用拆分的中间量（诊断用，业务列在 [在线临额] 块）
+  temp_resid,           -- 本笔 biz 的 TEMP 台账残差 = Σ冻结 − Σ解冻（离线来源笔也可能非 0）
+  online_any_unpaid,    -- 结清标志：1=有未还期次（在贷）/ 0=全部结清；无还款记录默认 1
   -- 【v6 新增】批次口径 vs 账户口径的差：
   --   offline_grant_amount 是 yuhan 批次口径（这一批发了多少），
   --   limit_total_amount   是台账账户口径（冻结时账户里实际有多少）。
@@ -959,6 +1125,8 @@ SELECT
   --   ⚠️ 必须单列 isnull：SUM(CASE WHEN ABS(x)>t ...) 遇 NULL 计 0 = 静默放过
   --   【v10】两列的 _used_amount 都已改写成 grant − available，恒等式**结构性**成立
   --   （grant − (grant−avail) − avail ≡ 0），这两条断言从此只能被"列算错/漏列"打破。
+  --   【v11.1】在线侧恢复三段式：used_amount = C010 存量占用、available = grant − used_amount，
+  --     恒等式仍结构性成立。
   -- ════════════════════════════════════════════════════════════════
   SUM(CASE WHEN offline_grant_amount IS NULL AND holds_offline = 1 THEN 1 ELSE 0 END)
                                                                                 AS a0_off_grant_null,
@@ -1133,9 +1301,14 @@ SELECT
   SUM(CASE WHEN offline_used_this > 0.05 AND holds_offline = 0 THEN 1 ELSE 0 END)
                                                                                 AS a8_used_not_held,
   -- 本笔使用额不该超过可用额
-  -- 【v10】在线侧期望 **0**（available = 弹窗额，实证 0 笔用超弹窗额）
+  -- 【v11.1】available 恢复为「名义额 − 存量占用」（实到账可用），实证 0 笔支用超过实到账
+  --   （8,160 笔有 C010 的支用全部恰好 = 实到账；仅 1 笔跨笔领取无 C010 记录，用 grant 兜底）
   SUM(CASE WHEN online_used_this > online_available_amount + 0.05 THEN 1 ELSE 0 END)
                                                                                 AS a8_on_use_gt_avail,
+  -- 【v11.2 ★】历史存量占用拆分闭合：used_amount = inloan + noloan（来源笔按当前结清状态拆）
+  --   期望 0。非 0 说明 on_src_split 漏了来源笔（窗口/排除条件错）或 C010 快照与台账口径错位。
+  SUM(CASE WHEN ABS(online_used_amount - online_used_inloan_amount
+                    - online_used_noloan_amount) > 0.05 THEN 1 ELSE 0 END)      AS a12_on_used_split_identity,
   -- 【v10】离线侧期望 **26**（OBS08，非公式问题，见下）
   SUM(CASE WHEN offline_used_this > offline_available_amount + 0.05 THEN 1 ELSE 0 END)
                                                                                 AS a8_off_use_gt_avail,

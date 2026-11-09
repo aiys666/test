@@ -71,9 +71,11 @@
 |---|---|---|
 | `product_limit_max` | 在线临额-产品上限 | 该笔产品 `ods.s03_product.limit_max / 1000.0`（比索） |
 | `online_grant_amount` | 在线临额-授予额度 | 本笔 C010（TEMP）的 `change_total_grantamount`（无 C010 则 0/空） |
-| `online_used_amount` | 在线临额-历史已占用 | 本笔 C010 的 `change_used_grantamount` |
-| `online_available_amount` | 在线临额-当前可用额度 | `online_grant_amount - online_used_amount` |
+| `online_used_amount` | 在线临额-历史已占用（v11.1） | 本笔 C010 的 `change_used_grantamount`（发放**前** TEMP 账户存量占用；无 C010=未领取则为 0） |
+| `online_available_amount` | 在线临额-当前可用额度 | `online_grant_amount - online_used_amount`（= 实到账可用额；实测支用全部恰等于它，一次性用完） |
 | `online_used_this` | 在线临额-当前支用额度 | 本笔临额使用且**来源为在线**时 = `temp_grant_amount/1000`，否则 0 |
+| `online_used_inloan_amount` | 在线临额-在贷占用（v11.1 新增） | 本笔用在线临额、当前仍冻结且**在贷**的 TEMP 台账残差（ΣFREEZE − ΣUNFREEZE，按 biz） |
+| `online_used_noloan_amount` | 在线临额-无在贷占用（v11.1 新增） | 本笔用在线临额、当前仍冻结但**已结清**的残留（同上口径；实测仅 16 笔 / 4,150，为近期结清解冻滞后） |
 
 ### E. 三套逻辑可用额度（3 列）— 分组「主额+离线临额」
 
